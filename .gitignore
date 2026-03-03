@@ -1,0 +1,6 @@
+node_modules/
+userdata/
+*.enc
+*.ps1
+import_tmp.csv
+.env

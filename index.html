@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALQ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #1c1c1c;
+    --surface: #252525;
+    --surface2: #2e2e2e;
+    --border: #3a3a3a;
+    --border2: #484848;
+    --accent: #5b9cf6;
+    --accent2: #a78bfa;
+    --green: #4ade80;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --text: #f0f0f0;
+    --text2: #a0a0a0;
+    --text3: #666666;
+    --sidebar-w: 220px;
+  }
+  [data-theme="light"] {
+    --bg: #f0f2f8; --surface: #ffffff; --surface2: #e8ecf5;
+    --border: #d0d5e8; --border2: #b8bfd4;
+    --text: #1a1d27; --text2: #5a6380; --text3: #9099b0;
+  }
+  [data-theme="midnight"] {
+    --bg: #050508; --surface: #0d0f18; --surface2: #131620;
+    --border: #1e2130; --border2: #252840; --accent: #6366f1; --text: #c8d0e8;
+  }
+  [data-theme="forest"] {
+    --bg: #0d1410; --surface: #131d18; --surface2: #1a2820;
+    --border: #243028; --border2: #2e3d35; --accent: #3ecf8e; --text: #d0e8d8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', sans-serif;
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* TITLEBAR */
+  .titlebar {
+    height: 36px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 12px; gap: 8px; flex-shrink: 0;
+    user-select: none; -webkit-app-region: drag;
+  }
+  .tb-title {
+    flex: 1; text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text3); letter-spacing: 0.15em;
+  }
+  .tb-controls { display: flex; gap: 6px; align-items: center; -webkit-app-region: no-drag; }
+  .tb-btn {
+    padding: 3px 10px; border-radius: 4px; font-size: 10px;
+    cursor: pointer; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text2);
+    transition: all 0.15s;
+  }
+  .tb-btn:hover { background: var(--border2); color: var(--text); }
+  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* APP LAYOUT */
+  .app { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+    transition: width 0.25s, transform 0.25s;
+  }
+  .sidebar.hidden { transform: translateX(-100%); width: 0; overflow: hidden; }
+  .sidebar-logo {
+    padding: 14px 14px 12px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; overflow: hidden;
+  }
+  .logo-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
+  }
+  .logo-text { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; }
+  .logo-ver { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .nav-section { padding: 10px 0; }
+  .nav-label {
+    padding: 4px 14px; font-size: 9px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; cursor: pointer; font-size: 12.5px; color: var(--text2);
+    border-left: 2px solid transparent; transition: all 0.15s; white-space: nowrap;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+  .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent);
+    color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 600;
+  }
+  .nav-badge.red { background: var(--red); }
+  .sidebar-footer { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--border); }
+  .status-pill { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text3); }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 5px var(--green);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* TOP NAV */
+  .top-nav {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: none; align-items: center; padding: 0 12px; gap: 2px; height: 40px; flex-shrink: 0;
+  }
+  .top-nav.visible { display: flex; }
+  .top-nav-item {
+    padding: 6px 12px; border-radius: 6px; font-size: 12px;
+    cursor: pointer; color: var(--text3); transition: all 0.15s;
+  }
+  .top-nav-item:hover { background: var(--surface2); color: var(--text); }
+  .top-nav-item.active { background: var(--surface2); color: var(--accent); }
+
+  /* SECTION TABS */
+  .section-tabs {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: none; align-items: center; padding: 0 12px; gap: 2px; flex-shrink: 0;
+  }
+  .section-tabs.visible { display: flex; }
+  .section-tab {
+    padding: 8px 14px; font-size: 12px; cursor: pointer; color: var(--text3);
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .section-tab:hover { color: var(--text); }
+  .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    height: 44px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0;
+  }
+  .topbar-title { font-size: 13px; font-weight: 600; }
+  .topbar-sub { font-size: 11px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 6px; }
+  .btn {
+    padding: 5px 12px; border-radius: 6px; font-size: 11px;
+    font-weight: 500; cursor: pointer; border: none;
+    transition: all 0.15s; display: flex; align-items: center; gap: 5px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+  /* CONTENT */
+  .content { flex: 1; overflow: hidden; display: flex; }
+  .panel-layout { display: flex; flex: 1; overflow: hidden; }
+  .panel-layout.vertical { flex-direction: column; }
+
+  /* WO PANEL */
+  .wo-panel {
+    width: 340px; flex-shrink: 0; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-layout.vertical .wo-panel { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid var(--border); }
+  .wo-panel-header {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .wo-search {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 5px 10px; font-size: 11px;
+    color: var(--text); outline: none;
+  }
+  .wo-search:focus { border-color: var(--accent); }
+  .wo-search::placeholder { color: var(--text3); }
+  .wo-filters {
+    padding: 6px 12px; display: flex; gap: 4px;
+    border-bottom: 1px solid var(--border); overflow-x: auto;
+  }
+  .filter-chip {
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
+    border: 1px solid var(--border2); color: var(--text3); white-space: nowrap; transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .wo-list { flex: 1; overflow-y: auto; }
+  .wo-list::-webkit-scrollbar { width: 4px; }
+  .wo-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .wo-item {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent;
+  }
+  .wo-item:hover { background: var(--surface2); }
+  .wo-item.active { background: var(--surface2); border-left-color: var(--accent); }
+  .wo-item.overdue { border-left-color: var(--red); }
+  .wo-item.due-today { border-left-color: var(--yellow); }
+  .wo-item.on-track { border-left-color: var(--green); }
+  .wo-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .wo-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; color: var(--accent); }
+  .wo-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .wo-status-dot.assigned { background: var(--accent); }
+  .wo-status-dot.scheduled { background: var(--yellow); }
+  .wo-status-dot.waiting { background: var(--orange); }
+  .wo-prop { font-size: 11.5px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wo-item-bot { display: flex; align-items: center; gap: 6px; }
+  .wo-vendor { font-size: 10px; color: var(--text3); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wo-age { font-size: 9px; font-family: 'JetBrains Mono', monospace; padding: 1px 5px; border-radius: 3px; }
+  .wo-age.old { background: rgba(248,113,113,0.15); color: var(--red); }
+  .wo-age.mid { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .wo-age.new { background: rgba(74,222,128,0.15); color: var(--green); }
+  .wo-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+
+  /* APPFOLIO PANEL */
+  .af-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .af-tabs {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 8px; gap: 2px;
+    overflow-x: auto; flex-shrink: 0; height: 36px;
+  }
+  .af-tab {
+    padding: 4px 12px; border-radius: 5px 5px 0 0; font-size: 11px;
+    cursor: pointer; color: var(--text3); display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; transition: all 0.15s;
+    border: 1px solid transparent; border-bottom: none;
+  }
+  .af-tab:hover { color: var(--text); background: var(--surface2); }
+  .af-tab.active { color: var(--text); background: var(--bg); border-color: var(--border); }
+  .af-tab-close { font-size: 10px; color: var(--text3); margin-left: 4px; }
+  .af-tab-close:hover { color: var(--red); }
+  .af-new-tab { padding: 4px 8px; color: var(--text3); cursor: pointer; font-size: 16px; }
+  .af-new-tab:hover { color: var(--accent); }
+  .af-toolbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 6px 10px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .af-nav-btn {
+    width: 26px; height: 26px; border-radius: 5px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text2); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+  }
+  .af-nav-btn:hover { background: var(--border2); color: var(--text); }
+  .af-url {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 4px 10px; font-size: 11px;
+    color: var(--text2); font-family: 'JetBrains Mono', monospace; outline: none;
+  }
+  .af-url:focus { border-color: var(--accent); color: var(--text); }
+  .af-go-btn {
+    padding: 4px 12px; border-radius: 6px; background: var(--accent);
+    color: #fff; font-size: 11px; cursor: pointer; border: none; font-weight: 500;
+  }
+  .af-content { flex: 1; display: flex; overflow: hidden; position: relative; }
+  webview { flex: 1; width: 100%; height: 100%; border: none; }
+
+  /* DETAIL DRAWER */
+  .wo-detail {
+    width: 0; overflow: hidden; background: var(--surface);
+    border-left: 1px solid var(--border);
+    transition: width 0.25s; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .wo-detail.open { width: 280px; }
+  .wo-detail-header {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wo-detail-title { font-size: 12px; font-weight: 600; }
+  .wo-detail-close { cursor: pointer; color: var(--text3); font-size: 14px; }
+  .wo-detail-body { padding: 12px 14px; overflow-y: auto; flex: 1; }
+  .detail-row { margin-bottom: 12px; }
+  .detail-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; font-family: 'JetBrains Mono', monospace; }
+  .detail-val { font-size: 12px; color: var(--text); }
+  .detail-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 5px; padding: 4px 8px; font-size: 11px;
+    color: var(--text); width: 100%; outline: none; font-family: 'Inter', sans-serif;
+  }
+  .detail-input:focus { border-color: var(--accent); }
+  .detail-actions { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+
+  /* MACRO BAR */
+  .macro-bar {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 12px; display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0; overflow-x: auto;
+  }
+  .macro-label { font-size: 10px; color: var(--text3); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+  .macro-btn {
+    padding: 4px 10px; border-radius: 5px; font-size: 10px; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
+    white-space: nowrap; transition: all 0.15s;
+  }
+  .macro-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .macro-sep { width: 1px; height: 16px; background: var(--border2); flex-shrink: 0; }
+  .macro-run-all {
+    background: rgba(91,156,246,0.1); border-color: var(--accent); color: var(--accent);
+  }
+
+  /* BOTTOM BAR */
+  .bottombar {
+    height: 24px; background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 12px; flex-shrink: 0;
+  }
+  .bb-item { font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; }
+  .bb-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* SETTINGS */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; z-index: 100; align-items: flex-start; justify-content: flex-end;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-panel {
+    width: 300px; height: 100vh; background: var(--surface);
+    border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .settings-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .settings-title { font-size: 13px; font-weight: 600; }
+  .settings-close { cursor: pointer; color: var(--text3); font-size: 16px; }
+  .settings-body { padding: 14px 16px; }
+  .settings-section { margin-bottom: 20px; }
+  .settings-section-title { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
+  .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .theme-option {
+    padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border2);
+    cursor: pointer; font-size: 11px; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .theme-option:hover { border-color: var(--accent); }
+  .theme-option.active { border-color: var(--accent); background: rgba(91,156,246,0.1); color: var(--accent); }
+  .theme-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .layout-options { display: flex; flex-direction: column; gap: 6px; }
+  .layout-option {
+    padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border2);
+    cursor: pointer; font-size: 11px; transition: all 0.15s;
+  }
+  .layout-option:hover { border-color: var(--accent); }
+  .layout-option.active { border-color: var(--accent); background: rgba(91,156,246,0.1); color: var(--accent); }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px;
+  }
+  .toggle { width: 32px; height: 18px; border-radius: 9px; background: var(--border2); cursor: pointer; position: relative; transition: background 0.2s; }
+  .toggle.on { background: var(--accent); }
+  .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: transform 0.2s; }
+  .toggle.on::after { transform: translateX(14px); }
+
+  /* CREDENTIALS */
+  .creds-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 6px 10px; font-size: 11px;
+    color: var(--text); outline: none; margin-top: 5px;
+    font-family: 'Inter', sans-serif;
+  }
+  .creds-input:focus { border-color: var(--accent); }
+  .creds-input::placeholder { color: var(--text3); }
+  .creds-status {
+    font-size: 10px; margin-top: 6px; padding: 4px 8px;
+    border-radius: 5px; display: none;
+  }
+  .creds-status.ok  { display: block; background: rgba(74,222,128,0.1); color: var(--green); }
+  .creds-status.err { display: block; background: rgba(248,113,113,0.1); color: var(--red); }
+
+  /* PIN LOCK MODAL */
+  .pin-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; z-index: 150;
+    align-items: center; justify-content: center;
+  }
+  .pin-overlay.open { display: flex; }
+  .pin-modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 28px 32px; width: 280px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .pin-title   { font-size: 13px; font-weight: 600; color: var(--text); }
+  .pin-sub     { font-size: 11px; color: var(--text3); text-align: center; margin-top: -8px; }
+  .pin-dots    { display: flex; gap: 10px; margin: 4px 0; }
+  .pin-dot     {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid var(--border2); background: transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-dot.error  { background: var(--red);    border-color: var(--red); }
+  .pin-keypad  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+  .pin-key {
+    height: 44px; border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text); font-size: 16px;
+    cursor: pointer; transition: all 0.1s; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .pin-key:hover  { background: var(--border2); }
+  .pin-key:active { transform: scale(0.94); }
+  .pin-key.wide   { grid-column: span 2; font-size: 12px; color: var(--text3); }
+  .pin-error-msg  { font-size: 10px; color: var(--red); min-height: 14px; }
+
+  /* DRAG DROP */
+  .drop-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(91,156,246,0.12); border: 3px dashed var(--accent);
+    z-index: 200; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--accent); flex-direction: column; gap: 10px;
+  }
+  .drop-overlay.active { display: flex; }
+</style>
+</head>
+<body data-theme="dark">
+
+<!-- DRAG DROP OVERLAY -->
+<div class="drop-overlay" id="drop-overlay">
+  <div style="font-size:48px">📂</div>
+  <div>Drop your Appfolio Work Order file here</div>
+  <div style="font-size:12px;opacity:0.7">work_order-[date].xlsx</div>
+</div>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <div class="tb-title">HALQ — Maintenance Command</div>
+  <div class="tb-controls">
+    <div class="tb-btn active" onclick="toggleNav('sidebar')" id="nav-sidebar-btn">⊞ Sidebar</div>
+    <div class="tb-btn" onclick="toggleNav('topnav')" id="nav-topnav-btn">↕ Top Nav</div>
+    <div class="tb-btn" onclick="toggleNav('tabs')" id="nav-tabs-btn">⊟ Tabs</div>
+    <div style="width:1px;height:14px;background:var(--border2);margin:0 2px"></div>
+    <div class="tb-btn active" onclick="toggleLayout('side')" id="layout-side-btn">◫ Split</div>
+    <div class="tb-btn" onclick="toggleLayout('vertical')" id="layout-vert-btn">⊟ Stack</div>
+    <div style="width:1px;height:14px;background:var(--border2);margin:0 2px"></div>
+    <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<div class="top-nav" id="top-nav">
+  <div class="top-nav-item active">📋 Work Orders</div>
+  <div class="top-nav-item">🌐 Appfolio</div>
+  <div class="top-nav-item">✉️ Email</div>
+  <div class="top-nav-item">📝 Notes</div>
+  <div class="top-nav-item">⚡ Macros</div>
+</div>
+
+<!-- SECTION TABS -->
+<div class="section-tabs" id="section-tabs">
+  <div class="section-tab active">Work Orders</div>
+  <div class="section-tab">Appfolio</div>
+  <div class="section-tab">Email</div>
+  <div class="section-tab">Notes</div>
+  <div class="section-tab">Macros</div>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">H</div>
+      <div>
+        <div class="logo-text">HALQ</div>
+        <div class="logo-ver">v0.1 ALPHA</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge">101</span></div>
+      <div class="nav-item"><span class="nav-icon">🌐</span><span>Appfolio</span></div>
+      <div class="nav-item"><span class="nav-icon">✉️</span><span>Email</span><span class="nav-badge red">3</span></div>
+      <div class="nav-item"><span class="nav-icon">📝</span><span>Notes</span></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">⚡</span><span>Macros</span></div>
+      <div class="nav-item"><span class="nav-icon">📊</span><span>Summary</span></div>
+      <div class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>Settings</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="status-pill"><div class="status-dot"></div><span>Excel connected</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">Work Orders</span>
+      <span class="topbar-sub" id="wo-count-label">Active Monitoring · 101 open</span>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="triggerImport()">⬆ Import</button>
+        <button class="btn btn-primary" onclick="navReload()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="panel-layout" id="panel-layout">
+
+        <!-- WO LIST -->
+        <div class="wo-panel">
+          <div class="wo-panel-header">
+            <input class="wo-search" placeholder="🔍  Search WO#, property, vendor..." oninput="filterWOs(this.value)">
+            <button class="btn btn-ghost" style="padding:4px 8px" onclick="toggleDetail()">⊞</button>
+          </div>
+          <div class="wo-filters">
+            <div class="filter-chip active" onclick="toggleChip(this,'all')">All</div>
+            <div class="filter-chip" onclick="toggleChip(this,'overdue')">Overdue</div>
+            <div class="filter-chip" onclick="toggleChip(this,'today')">Due Today</div>
+            <div class="filter-chip" onclick="toggleChip(this,'assigned')">Assigned</div>
+            <div class="filter-chip" onclick="toggleChip(this,'waiting')">Waiting</div>
+            <div class="filter-chip" onclick="toggleChip(this,'urgent')">Urgent</div>
+            <div class="filter-chip" onclick="toggleChip(this,'BH')">BH</div>
+            <div class="filter-chip" onclick="toggleChip(this,'Talley')">Talley</div>
+          </div>
+          <div class="wo-list" id="wo-list"></div>
+        </div>
+
+        <!-- APPFOLIO PANEL -->
+        <div class="af-panel">
+          <div class="af-tabs" id="af-tabs">
+            <div class="af-tab active" id="tab-main"><span>🏠 Appfolio</span></div>
+            <div class="af-new-tab" onclick="addTab()" title="New Tab">+</div>
+          </div>
+          <div class="af-toolbar">
+            <div class="af-nav-btn" onclick="navBack()" title="Back">←</div>
+            <div class="af-nav-btn" onclick="navForward()" title="Forward">→</div>
+            <div class="af-nav-btn" onclick="navReload()" title="Reload">↻</div>
+            <input class="af-url" id="af-url" value="https://talley.appfolio.com"
+              onkeydown="if(event.key==='Enter') navTo(this.value)">
+            <button class="af-go-btn" onclick="navTo(document.getElementById('af-url').value)">Go</button>
+          </div>
+          <div class="af-content">
+            <webview
+              id="appfolio-view"
+              src="https://talley.appfolio.com"
+              partition="persist:appfolio"
+              allowpopups
+              webpreferences="nodeIntegration=no, contextIsolation=yes"
+              style="flex:1;width:100%;height:100%;border:none;">
+            </webview>
+          </div>
+        </div>
+
+        <!-- DETAIL DRAWER -->
+        <div class="wo-detail" id="wo-detail">
+          <div class="wo-detail-header">
+            <span class="wo-detail-title">WO Details</span>
+            <span class="wo-detail-close" onclick="toggleDetail()">✕</span>
+          </div>
+          <div class="wo-detail-body">
+            <div class="detail-row"><div class="detail-label">Work Order #</div><div class="detail-val" id="d-wo">—</div></div>
+            <div class="detail-row"><div class="detail-label">Property</div><div class="detail-val" id="d-prop">—</div></div>
+            <div class="detail-row"><div class="detail-label">Primary Resident</div><div class="detail-val" id="d-res">—</div></div>
+            <div class="detail-row"><div class="detail-label">Vendor</div><div class="detail-val" id="d-vendor">—</div></div>
+            <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val" id="d-status">—</div></div>
+            <div class="detail-row"><div class="detail-label">Age (Days)</div><div class="detail-val" id="d-age">—</div></div>
+            <div class="detail-row"><div class="detail-label">Portfolio</div><div class="detail-val" id="d-portfolio">—</div></div>
+            <div class="detail-row"><div class="detail-label">Job Summary</div><div class="detail-val" id="d-job" style="font-size:11px;color:var(--text2);line-height:1.5">—</div></div>
+            <div class="detail-row">
+              <div class="detail-label">Follow-up Date</div>
+              <input type="date" class="detail-input">
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Category Tag</div>
+              <select class="detail-input" id="tag-select">
+                <option value="">— None —</option>
+                <option>Low Monitoring</option>
+                <option>For Invoice</option>
+                <option>Urgent</option>
+              </select>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openInAppfolio()">🌐 Open in Appfolio</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center">✉️ Send Notification</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center">📝 Add Note</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MACRO BAR -->
+    <div class="macro-bar">
+      <span class="macro-label">MACROS:</span>
+      <div class="macro-btn" onclick="runMacro(this,'ScanForNewWorkOrders','① Scan New WOs')">① Scan New WOs</div>
+      <div class="macro-sep"></div>
+      <div class="macro-btn" onclick="runQuickTransfer(this)">② Quick Transfer</div>
+      <div class="macro-sep"></div>
+      <div class="macro-btn" onclick="runMacro(this,'RefreshFormulasActiveMonitoring','③ Refresh')">③ Refresh</div>
+      <div class="macro-sep"></div>
+      <div class="macro-btn" onclick="runMacro(this,'SyncOutlookTasksOnly','④ Sync Outlook')">④ Sync Outlook</div>
+      <div class="macro-sep"></div>
+      <div class="macro-btn" onclick="runMacro(this,'TransferToSummary','⑤ Summary')">⑤ Summary</div>
+      <div class="macro-sep"></div>
+      <div class="macro-btn macro-run-all" onclick="runAllMacros()">▶ Run All</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottombar">
+  <div class="bb-item"><div class="bb-dot" style="background:var(--green)"></div>Excel Connected</div>
+  <div class="bb-item"><div class="bb-dot" style="background:var(--accent)"></div>Appfolio Ready</div>
+  <div class="bb-item">📋 <span id="bb-wo-count">101</span> Active WOs</div>
+  <div class="bb-item">⚠️ <span id="bb-overdue">12</span> Overdue</div>
+  <div style="margin-left:auto" class="bb-item" id="clock"></div>
+</div>
+
+<!-- PIN LOCK MODAL -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-modal">
+    <div class="pin-title">🔒 Settings Locked</div>
+    <div class="pin-sub" id="pin-sub">Enter your PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error-msg" id="pin-error"></div>
+    <div class="pin-keypad">
+      <div class="pin-key" onclick="pinKey('1')">1</div>
+      <div class="pin-key" onclick="pinKey('2')">2</div>
+      <div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div>
+      <div class="pin-key" onclick="pinKey('5')">5</div>
+      <div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div>
+      <div class="pin-key" onclick="pinKey('8')">8</div>
+      <div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key" onclick="pinKey('back')">⌫</div>
+      <div class="pin-key" onclick="pinKey('0')">0</div>
+      <div class="pin-key" onclick="pinKey('cancel')">✕</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">⚙ HALQ Settings</span>
+      <span class="settings-close" onclick="closeSettings()">✕</span>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-section-title">Appfolio Credentials</div>
+        <div class="detail-label" style="margin-bottom:2px">Email</div>
+        <input class="creds-input" id="creds-email" type="email" placeholder="your@email.com" autocomplete="username">
+        <div class="detail-label" style="margin-bottom:2px;margin-top:8px">Password</div>
+        <input class="creds-input" id="creds-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        <div class="creds-status" id="creds-status"></div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveCreds()">💾 Save</button>
+          <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="clearCreds()">🗑 Clear</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Settings PIN Lock</div>
+        <div class="detail-label" style="margin-bottom:2px">New PIN (4 digits)</div>
+        <input class="creds-input" id="pin-setup-input" type="password"
+               maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*">
+        <div class="creds-status" id="pin-setup-status"></div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="savePin()">💾 Set PIN</button>
+          <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="clearPin()">🗑 Remove PIN</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Theme</div>
+        <div class="theme-grid">
+          <div class="theme-option active" onclick="setTheme('dark',this)"><div class="theme-dot" style="background:#3a3a3a;border:1px solid #666"></div>Gray Dark</div>
+          <div class="theme-option" onclick="setTheme('light',this)"><div class="theme-dot" style="background:#e8ecf5;border:1px solid #ccc"></div>Light</div>
+          <div class="theme-option" onclick="setTheme('midnight',this)"><div class="theme-dot" style="background:#6366f1"></div>Midnight</div>
+          <div class="theme-option" onclick="setTheme('forest',this)"><div class="theme-dot" style="background:#3ecf8e"></div>Forest</div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Layout</div>
+        <div class="layout-options">
+          <div class="layout-option active" onclick="setLayoutOpt('side',this)">◫ Side by Side</div>
+          <div class="layout-option" onclick="setLayoutOpt('vertical',this)">⊟ Stacked</div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Navigation</div>
+        <div class="layout-options">
+          <div class="layout-option active" onclick="setNavOpt('sidebar',this)">⊞ Left Sidebar</div>
+          <div class="layout-option" onclick="setNavOpt('topnav',this)">↕ Top Bar</div>
+          <div class="layout-option" onclick="setNavOpt('tabs',this)">⊟ Tabs</div>
+          <div class="layout-option" onclick="setNavOpt('none',this)">✕ Hidden</div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Preferences</div>
+        <div class="toggle-row"><span>Show Macro Bar</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><span>Color Code WOs</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><span>Auto-search on WO click</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><span>Show Bottom Bar</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><span>Show Menu Bar</span><div class="toggle" id="menubar-toggle" onclick="toggleMenuBar(this)"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================
+// ELECTRON IPC — exposed via preload.js as window.halq
+// =====================
+
+// =====================
+// SAMPLE DATA
+// =====================
+const wos = [
+  {wo:'49638-1',prop:'3106 Creighton Drive',res:'Latta, Howard',vendor:'Homeslam INC',status:'Assigned',age:90,job:'Install smoke detectors in the bedrooms. Install 10-year lithium-ion tamper-proof units.',tag:'Urgent',portfolio:'BH'},
+  {wo:'49670-1',prop:'701 Louise Avenue #1',res:'Fishero, Joshua',vendor:'CE Inc.',status:'Assigned',age:88,job:'Ceiling leaking still. Attached a photo.',tag:'Low Monitoring',portfolio:'BH'},
+  {wo:'49706-1',prop:'1100 Dresden Drive',res:'Quick, John',vendor:'Biggs, Mark',status:'Assigned',age:85,job:'Resident Update 02/20/2026: I would like to schedule a time.',tag:'',portfolio:'Talley'},
+  {wo:'50236-1',prop:'1320 Briar Creek Road',res:'Chavez, Douglas',vendor:'Homeslam INC',status:'Assigned',age:40,job:'Install 10 year lithium smoke detectors.',tag:'',portfolio:'BH'},
+  {wo:'50284-1',prop:'1709 Fulton Avenue',res:'Gilliard, Virginia',vendor:'Homeslam INC',status:'Scheduled',age:35,job:'Install 10 year lithium smoke detectors.',tag:'For Invoice',portfolio:'BH'},
+  {wo:'50310-1',prop:'1905 Finchley Drive',res:'Waddell, Kenneth',vendor:'Biggs, Mark',status:'Assigned',age:34,job:'Install 10 year lithium smoke detectors.',tag:'',portfolio:'Talley'},
+  {wo:'50338-1',prop:'North Main Street',res:'Mosorjak, Therese M.',vendor:'Steele Jones Dev.',status:'Scheduled',age:31,job:'The kitchen floor tile is cracked.',tag:'',portfolio:'Talley'},
+  {wo:'50472-1',prop:'6601 Rosecran Drive',res:'Suber, Sigcourtney R.',vendor:'Blue Chip Maintenance',status:'Scheduled',age:19,job:'Replace the hot water heater.',tag:'',portfolio:'Talley'},
+  {wo:'50483-1',prop:'9632 Terrier Way',res:'Stroble, Erika R.',vendor:'Waiting',status:'Waiting',age:18,job:'UNIT - SPIDERS: Tenant Erika called in requesting.',tag:'Urgent',portfolio:'Talley'},
+  {wo:'50490-1',prop:'1711 Harrill Street',res:'Beattie, Sheila A.',vendor:'Homeslam INC',status:'Assigned',age:16,job:'The remote for the fan in the living room needs.',tag:'',portfolio:'BH'},
+  {wo:'50597-1',prop:'524-B Wakefield Drive',res:'',vendor:'AR Comfort LLC',status:'Scheduled',age:5,job:'Rekey to master and bring lockbox back to office.',tag:'',portfolio:'Talley'},
+  {wo:'50643-1',prop:'7600 Woodstream Drive',res:'',vendor:'Biggs, Mark',status:'Assigned',age:2,job:'Resident Update 03/01/2026: The poison ivy.',tag:'',portfolio:'BH'},
+];
+
+let currentFilter = 'all';
+let selectedWO = null;
+
+function getAgeClass(age) { return age > 60 ? 'old' : age > 20 ? 'mid' : 'new'; }
+function getItemClass(age) { return age > 60 ? 'overdue' : age === 0 ? 'due-today' : 'on-track'; }
+function getStatusClass(s) { return s === 'Assigned' ? 'assigned' : s === 'Scheduled' ? 'scheduled' : 'waiting'; }
+
+function renderWOList(data) {
+  const list = document.getElementById('wo-list');
+  if (!data) data = wos;
+  if (data.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No work orders found</div>';
+    return;
+  }
+  list.innerHTML = data.map(w => `
+    <div class="wo-item ${getItemClass(w.age)}" onclick="selectWO(${wos.indexOf(w)})">
+      <div class="wo-item-top">
+        <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
+        <div class="wo-num">${w.wo}</div>
+        ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
+        <div style="margin-left:auto;font-size:9px;color:var(--text3)">${w.portfolio}</div>
+      </div>
+      <div class="wo-prop">${w.prop}</div>
+      <div class="wo-item-bot">
+        <div class="wo-vendor">${w.vendor}</div>
+        <div class="wo-age ${getAgeClass(w.age)}">${w.age}d</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterWOs(query) {
+  const q = query.toLowerCase();
+  const filtered = wos.filter(w =>
+    w.wo.toLowerCase().includes(q) ||
+    w.prop.toLowerCase().includes(q) ||
+    w.vendor.toLowerCase().includes(q) ||
+    w.res.toLowerCase().includes(q) ||
+    w.job.toLowerCase().includes(q)
+  );
+  renderWOList(filtered);
+}
+
+function toggleChip(el, filter) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = filter;
+  let filtered = wos;
+  if (filter === 'overdue') filtered = wos.filter(w => w.age > 60);
+  else if (filter === 'today') filtered = wos.filter(w => w.age === 0);
+  else if (filter === 'assigned') filtered = wos.filter(w => w.status === 'Assigned');
+  else if (filter === 'waiting') filtered = wos.filter(w => w.status === 'Waiting');
+  else if (filter === 'urgent') filtered = wos.filter(w => w.tag === 'Urgent');
+  else if (filter === 'BH') filtered = wos.filter(w => w.portfolio === 'BH');
+  else if (filter === 'Talley') filtered = wos.filter(w => w.portfolio === 'Talley');
+  renderWOList(filtered);
+}
+
+function selectWO(i) {
+  selectedWO = wos[i];
+  document.querySelectorAll('.wo-item').forEach((el, idx) => {
+    el.classList.toggle('active', wos.indexOf(selectedWO) === wos.indexOf(wos[idx]));
+  });
+  document.getElementById('d-wo').textContent = selectedWO.wo;
+  document.getElementById('d-prop').textContent = selectedWO.prop;
+  document.getElementById('d-res').textContent = selectedWO.res || '—';
+  document.getElementById('d-vendor').textContent = selectedWO.vendor;
+  document.getElementById('d-status').textContent = selectedWO.status;
+  document.getElementById('d-age').textContent = selectedWO.age + ' days';
+  document.getElementById('d-portfolio').textContent = selectedWO.portfolio;
+  document.getElementById('d-job').textContent = selectedWO.job;
+
+  // Auto-search in Appfolio
+  const woNum = selectedWO.wo.split('-')[0];
+  const url = `https://talley.appfolio.com/search/advanced_search?full_text_search=${woNum}`;
+  document.getElementById('af-url').value = url;
+  const view = document.getElementById('appfolio-view');
+  if (view) view.src = url;
+
+  // Open detail drawer
+  document.getElementById('wo-detail').classList.add('open');
+}
+
+function openInAppfolio() {
+  if (!selectedWO) return;
+  const woNum = selectedWO.wo.split('-')[0];
+  const url = `https://talley.appfolio.com/search/advanced_search?full_text_search=${woNum}`;
+  document.getElementById('af-url').value = url;
+  const view = document.getElementById('appfolio-view');
+  if (view) view.src = url;
+}
+
+// =====================
+// BROWSER CONTROLS
+// =====================
+function navBack() { const v = document.getElementById('appfolio-view'); if (v) v.goBack(); }
+function navForward() { const v = document.getElementById('appfolio-view'); if (v) v.goForward(); }
+function navReload() { const v = document.getElementById('appfolio-view'); if (v) v.reload(); }
+function navTo(url) {
+  if (!url.startsWith('http')) url = 'https://' + url;
+  document.getElementById('af-url').value = url;
+  const v = document.getElementById('appfolio-view');
+  if (v) v.src = url;
+}
+
+// Track URL changes
+document.addEventListener('DOMContentLoaded', () => {
+  const view = document.getElementById('appfolio-view');
+  if (view) {
+    view.addEventListener('did-navigate',         e => { document.getElementById('af-url').value = e.url; });
+    view.addEventListener('did-navigate-in-page', e => { document.getElementById('af-url').value = e.url; });
+    view.addEventListener('did-stop-loading',     ()  => { tryAutoFill(view); });
+  }
+});
+
+// =====================
+// WEBVIEW AUTO-FILL
+// =====================
+// =====================
+// ERROR DIALOG — copyable, unlike alert()
+// =====================
+function showErrorDialog (title, message) {
+  // Remove existing if any
+  const existing = document.getElementById('halq-error-dialog')
+  if (existing) existing.remove()
+
+  const overlay = document.createElement('div')
+  overlay.id = 'halq-error-dialog'
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.6)',
+    'z-index:999', 'display:flex', 'align-items:center', 'justify-content:center'
+  ].join(';')
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--red);border-radius:10px;
+                padding:20px 24px;width:480px;max-width:90vw;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:var(--red);font-weight:600;font-size:13px">✗ ${title}</span>
+        <span onclick="document.getElementById('halq-error-dialog').remove()"
+              style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
+      </div>
+      <textarea readonly
+        style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;
+               color:var(--text);font-family:monospace;font-size:11px;padding:10px;
+               width:100%;height:120px;resize:none;outline:none;user-select:text"
+      >${message}</textarea>
+      <div style="font-size:10px;color:var(--text3)">Click inside the box and Ctrl+A to select all, then Ctrl+C to copy</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="navigator.clipboard.writeText('${message.replace(/'/g, "\\'")}').then(()=>this.textContent='✓ Copied').catch(()=>{})"
+          style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);
+                 border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">
+          Copy
+        </button>
+        <button onclick="document.getElementById('halq-error-dialog').remove()"
+          style="background:var(--red);border:none;color:#fff;
+                 border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">
+          Close
+        </button>
+      </div>
+    </div>
+  `
+
+  document.body.appendChild(overlay)
+
+  // Auto-select text in textarea for easy copying
+  setTimeout(() => {
+    const ta = overlay.querySelector('textarea')
+    if (ta) { ta.focus(); ta.select() }
+  }, 50)
+}
+
+function showDebug (msg) {
+  let bar = document.getElementById('autofill-debug')
+  if (!bar) {
+    bar = document.createElement('div')
+    bar.id = 'autofill-debug'
+    bar.style.cssText = [
+      'position:fixed', 'bottom:28px', 'left:50%', 'transform:translateX(-50%)',
+      'background:#1a1a2e', 'color:#5b9cf6', 'font-size:11px',
+      'font-family:monospace', 'padding:4px 14px', 'border-radius:6px',
+      'border:1px solid #5b9cf6', 'z-index:9999', 'pointer-events:none'
+    ].join(';')
+    document.body.appendChild(bar)
+  }
+  bar.textContent = '[HALQ] ' + msg
+  clearTimeout(bar._t)
+  bar._t = setTimeout(() => bar.remove(), 6000)
+}
+
+async function tryAutoFill (view) {
+  const url = view.getURL()
+  showDebug('page loaded: ' + url.slice(0, 60))
+
+  if (!url.includes('appfolio.com')) { showDebug('skip — not appfolio'); return }
+
+  // 2FA page — cannot auto-fill, just notify and wait for manual code entry
+  const is2FA = url.includes('two_factor') || url.includes('otp') ||
+                url.includes('verification') || url.includes('challenge') ||
+                url.includes('mfa') || url.includes('authenticate')
+  if (is2FA) {
+    showDebug('⚠ 2FA required — enter your code manually')
+    return
+  }
+
+  if (!url.includes('sign_in') && !url.includes('login') && !url.includes('user_session')) {
+    showDebug('skip — not login page (' + url.slice(0, 50) + ')')
+    return
+  }
+
+  showDebug('login page detected — loading creds...')
+  const creds = await window.halq.credsLoad()
+  showDebug('creds.ok=' + creds.ok + ' email=' + (creds.email ? 'yes' : 'no') + ' pass=' + (creds.password ? 'yes' : 'no'))
+
+  if (!creds.ok || !creds.email || !creds.password) {
+    showDebug('no creds saved — go to Settings to save them')
+    return
+  }
+
+  const safeEmail = JSON.stringify(creds.email)
+  const safePass  = JSON.stringify(creds.password)
+
+  showDebug('injecting fill script...')
+
+  view.executeJavaScript(`
+    (function () {
+      const MAX_ATTEMPTS  = 20
+      const POLL_INTERVAL = 300
+      let   attempts      = 0
+
+      function tryFill () {
+        const emailField = document.querySelector(
+          'input[type="email"], input[name="user[email]"], input[id*="email"], input[autocomplete="email"], input[autocomplete="username"]'
+        )
+        const passField = document.querySelector('input[type="password"]')
+        const submitBtn = document.querySelector(
+          'input[type="submit"], button[type="submit"], button[data-qa="login-button"]'
+        )
+
+        if (emailField && passField) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value'
+          ).set
+
+          nativeSetter.call(emailField, ${safeEmail})
+          emailField.dispatchEvent(new Event('input',  { bubbles: true }))
+          emailField.dispatchEvent(new Event('change', { bubbles: true }))
+          emailField.dispatchEvent(new Event('blur',   { bubbles: true }))
+
+          nativeSetter.call(passField, ${safePass})
+          passField.dispatchEvent(new Event('input',  { bubbles: true }))
+          passField.dispatchEvent(new Event('change', { bubbles: true }))
+          passField.dispatchEvent(new Event('blur',   { bubbles: true }))
+
+          if (submitBtn) setTimeout(() => submitBtn.click(), 600)
+          return 'filled'
+        }
+
+        attempts++
+        if (attempts < MAX_ATTEMPTS) {
+          setTimeout(tryFill, POLL_INTERVAL)
+          return 'retry-' + attempts
+        }
+        return 'not-found'
+      }
+
+      return tryFill()
+    })()
+  `).then(result => showDebug('fill result: ' + result))
+   .catch(err   => showDebug('fill error: ' + err.message))
+}
+
+// =====================
+// TABS
+// =====================
+let tabCount = 1;
+function addTab() {
+  tabCount++;
+  const tabs = document.getElementById('af-tabs');
+  const tab = document.createElement('div');
+  tab.className = 'af-tab';
+  tab.innerHTML = `<span>New Tab ${tabCount}</span><span class="af-tab-close" onclick="removeTab(this)">✕</span>`;
+  tab.onclick = function(e) {
+    if (e.target.classList.contains('af-tab-close')) return;
+    document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  };
+  tabs.insertBefore(tab, tabs.lastElementChild);
+  document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+}
+function removeTab(btn) {
+  btn.parentElement.remove();
+  const tabs = document.querySelectorAll('.af-tab');
+  if (tabs.length) tabs[tabs.length - 1].classList.add('active');
+}
+
+function toggleDetail() { document.getElementById('wo-detail').classList.toggle('open'); }
+
+// =====================
+// IMPORT
+// Reads raw Appfolio export, strips rows 1-17 (report metadata),
+// keeps row 18 as headers and row 19+ as WO data rows only,
+// writes clean result into AppFolio Data sheet of the .xlsm
+// =====================
+document.body.addEventListener('dragover', e => {
+  e.preventDefault()
+  document.getElementById('drop-overlay').classList.add('active')
+})
+document.body.addEventListener('dragleave', e => {
+  if (e.relatedTarget === null) document.getElementById('drop-overlay').classList.remove('active')
+})
+document.body.addEventListener('drop', e => {
+  e.preventDefault()
+  document.getElementById('drop-overlay').classList.remove('active')
+  const file = e.dataTransfer.files[0]
+  if (file && file.path) handleImportFile(file.path)
+})
+
+async function triggerImport () {
+  const result = await window.halq.dialogOpen({
+    title:       'Select Appfolio Work Order Export',
+    buttonLabel: 'Import',
+    filters:     [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }],
+    properties:  ['openFile']
+  })
+
+  if (result.canceled || !result.filePaths.length) return
+  handleImportFile(result.filePaths[0])
+}
+
+async function handleImportFile (filePath) {
+  if (!filePath) return
+
+  const fileName = filePath.split('\\').pop().split('/').pop()
+
+  if (!fileName.toLowerCase().includes('work_order')) {
+    const go = confirm(
+      `"${fileName}" doesn't look like an Appfolio work_order export.\n\n` +
+      `Expected: work_order-[date].xlsx\n\nImport anyway?`
+    )
+    if (!go) return
+  }
+
+  showDebug('⏳ Importing ' + fileName + '...')
+
+  const result = await window.halq.excelImport(filePath)
+
+  if (result.ok) {
+    showDebug(`✓ ${result.count} rows imported into AppFolio Data — run ① Scan New WOs next`)
+
+    // Pulse the Scan button to guide next step
+    const scanBtn = document.querySelector('.macro-btn')
+    if (scanBtn) {
+      let pulses = 0
+      const pulse = setInterval(() => {
+        scanBtn.style.boxShadow = pulses % 2 === 0 ? '0 0 8px 2px var(--accent)' : 'none'
+        if (++pulses >= 6) { clearInterval(pulse); scanBtn.style.boxShadow = '' }
+      }, 500)
+    }
+  } else {
+    showDebug('✗ Import failed: ' + result.error)
+    showErrorDialog('Import Failed', result.error)
+  }
+}
+
+// =====================
+// MACROS
+// =====================
+function setMacroRunning (el, label) {
+  el.dataset.orig      = el.textContent
+  el.style.background  = 'rgba(91,156,246,0.2)'
+  el.style.borderColor = 'var(--accent)'
+  el.style.color       = 'var(--accent)'
+  el.textContent       = '⏳ ' + label + '...'
+  el.style.pointerEvents = 'none'
+}
+
+function setMacroDone (el, ok) {
+  const color = ok ? 'var(--green)' : 'var(--red)'
+  el.style.background  = ok ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'
+  el.style.borderColor = color
+  el.style.color       = color
+  el.textContent       = ok ? '✓ ' + el.dataset.orig : '✗ Failed'
+  setTimeout(() => {
+    el.style.background    = ''
+    el.style.borderColor   = ''
+    el.style.color         = ''
+    el.textContent         = el.dataset.orig
+    el.style.pointerEvents = ''
+  }, 2500)
+}
+
+async function runMacro (el, macroName, label) {
+  setMacroRunning(el, label)
+  const result = await window.halq.macroRun(macroName)
+  setMacroDone(el, result.ok)
+  if (!result.ok) showDebug('Macro failed: ' + result.error)
+  // Reload WO panel after scan or refresh so data stays current
+  if (result.ok && (macroName === 'ScanForNewWorkOrders' || macroName === 'RefreshFormulasActiveMonitoring')) {
+    await loadExcelData()
+  }
+}
+
+// ② Quick Transfer requires manual row selection in Excel first
+function runQuickTransfer (el) {
+  alert(
+    '② Quick Transfer\n\n' +
+    'Steps:\n' +
+    '1. Switch to Excel\n' +
+    '2. Go to the Work Queue sheet\n' +
+    '3. Select the rows you want to transfer\n' +
+    '4. Come back to HALQ and click "Run Transfer Now"\n\n' +
+    'Note: Run ① Scan New WOs first if Work Queue is empty.'
+  )
+  el.textContent     = '▶ Run Transfer Now'
+  el.style.background  = 'rgba(251,191,36,0.15)'
+  el.style.borderColor = 'var(--yellow)'
+  el.style.color       = 'var(--yellow)'
+  el.onclick           = (e) => confirmQuickTransfer(e.currentTarget)
+}
+
+async function confirmQuickTransfer (el) {
+  el.onclick = () => runQuickTransfer(el)  // reset for next time
+  setMacroRunning(el, 'Quick Transfer')
+  const result = await window.halq.macroRun('QuickTransferHighlightedWO')
+  setMacroDone(el, result.ok)
+  el.textContent = '② Quick Transfer'
+  if (!result.ok) showDebug('Quick Transfer failed: ' + result.error)
+  if (result.ok) await loadExcelData()
+}
+
+// Run All: ①③④⑤ in order — ② excluded (needs manual selection)
+async function runAllMacros () {
+  const allBtn = document.querySelector('.macro-run-all')
+  const sequence = [
+    { name: 'ScanForNewWorkOrders',          label: '① Scan'    },
+    { name: 'RefreshFormulasActiveMonitoring', label: '③ Refresh' },
+    { name: 'SyncOutlookTasksOnly',           label: '④ Outlook' },
+    { name: 'TransferToSummary',              label: '⑤ Summary' }
+  ]
+
+  allBtn.style.pointerEvents = 'none'
+  allBtn.textContent         = '⏳ Running...'
+
+  let allOk = true
+  for (const macro of sequence) {
+    allBtn.textContent = '⏳ ' + macro.label
+    const result = await window.halq.macroRun(macro.name)
+    if (!result.ok) {
+      allOk = false
+      showDebug('Run All stopped at ' + macro.label + ': ' + result.error)
+      break
+    }
+  }
+
+  allBtn.style.pointerEvents = ''
+  allBtn.textContent         = '▶ Run All'
+  if (allOk) await loadExcelData()
+}
+
+// =====================
+// EXCEL DATA LOAD
+// Replaces sample data with live Active Monitoring rows
+// =====================
+async function loadExcelData () {
+  const result = await window.halq.excelLoad()
+  if (!result.ok) {
+    showDebug('Excel: ' + result.error)
+    return
+  }
+  wos.length = 0
+  result.wos.forEach(wo => wos.push(wo))
+  renderWOList()
+  document.getElementById('wo-count-label').textContent =
+    'Active Monitoring · ' + wos.length + ' open'
+  document.getElementById('bb-wo-count').textContent = wos.length
+  const overdue = wos.filter(w => w.age > 60).length
+  document.getElementById('bb-overdue').textContent = overdue
+  showDebug('Loaded ' + wos.length + ' WOs from Active Monitoring')
+}
+
+// =====================
+// LAYOUT
+// =====================
+function toggleLayout(mode) {
+  document.getElementById('layout-side-btn').classList.remove('active');
+  document.getElementById('layout-vert-btn').classList.remove('active');
+  const pl = document.getElementById('panel-layout');
+  pl.className = 'panel-layout' + (mode === 'vertical' ? ' vertical' : '');
+  document.getElementById(mode === 'side' ? 'layout-side-btn' : 'layout-vert-btn').classList.add('active');
+}
+function setLayoutOpt(mode, el) {
+  el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  toggleLayout(mode);
+}
+
+// =====================
+// NAVIGATION
+// =====================
+function toggleNav(mode) {
+  ['sidebar','topnav','tabs'].forEach(m => {
+    document.getElementById(`nav-${m}-btn`).classList.remove('active');
+  });
+  document.getElementById('sidebar').className = 'sidebar hidden';
+  document.getElementById('top-nav').classList.remove('visible');
+  document.getElementById('section-tabs').classList.remove('visible');
+
+  document.getElementById(`nav-${mode}-btn`).classList.add('active');
+  if (mode === 'sidebar') document.getElementById('sidebar').className = 'sidebar';
+  else if (mode === 'topnav') document.getElementById('top-nav').classList.add('visible');
+  else if (mode === 'tabs') document.getElementById('section-tabs').classList.add('visible');
+}
+function setNavOpt(mode, el) {
+  el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  if (mode === 'none') {
+    document.getElementById('sidebar').className = 'sidebar hidden';
+    document.getElementById('top-nav').classList.remove('visible');
+    document.getElementById('section-tabs').classList.remove('visible');
+  } else toggleNav(mode);
+}
+
+// =====================
+// THEME
+// =====================
+function setTheme(theme, el) {
+  document.body.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// =====================
+// SETTINGS
+// =====================
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+function closeSettingsOutside(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
+
+// =====================
+// PIN LOCK
+// =====================
+let pinBuffer = ''
+
+async function openSettings () {
+  const result = await window.halq.pinLoad()
+  if (!result.ok) {
+    // No PIN set — open directly
+    document.getElementById('settings-overlay').classList.add('open')
+    return
+  }
+  // PIN exists — show lock modal
+  pinBuffer = ''
+  updatePinDots()
+  document.getElementById('pin-error').textContent = ''
+  document.getElementById('pin-sub').textContent   = 'Enter your PIN to continue'
+  document.getElementById('pin-overlay').classList.add('open')
+  document.getElementById('pin-overlay')._savedPin = result.pin
+}
+
+function pinKey (key) {
+  if (key === 'cancel') {
+    document.getElementById('pin-overlay').classList.remove('open')
+    pinBuffer = ''
+    return
+  }
+  if (key === 'back') {
+    pinBuffer = pinBuffer.slice(0, -1)
+    updatePinDots()
+    return
+  }
+  if (pinBuffer.length >= 4) return
+  pinBuffer += key
+  updatePinDots()
+  if (pinBuffer.length === 4) verifyPin()
+}
+
+function updatePinDots () {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i)
+    dot.classList.toggle('filled', i < pinBuffer.length)
+    dot.classList.remove('error')
+  }
+}
+
+async function verifyPin () {
+  const savedPin = document.getElementById('pin-overlay')._savedPin
+  if (pinBuffer === savedPin) {
+    document.getElementById('pin-overlay').classList.remove('open')
+    document.getElementById('settings-overlay').classList.add('open')
+    pinBuffer = ''
+  } else {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('pd' + i)
+      dot.classList.add('error')
+    }
+    document.getElementById('pin-error').textContent = 'Incorrect PIN'
+    setTimeout(() => {
+      pinBuffer = ''
+      updatePinDots()
+      document.getElementById('pin-error').textContent = ''
+    }, 900)
+  }
+}
+
+async function savePin () {
+  const pin    = document.getElementById('pin-setup-input').value.trim()
+  const status = document.getElementById('pin-setup-status')
+  if (!/^\d{4}$/.test(pin)) {
+    status.textContent = 'PIN must be exactly 4 digits'
+    status.className   = 'creds-status err'
+    setTimeout(() => { status.className = 'creds-status' }, 3000)
+    return
+  }
+  const result = await window.halq.pinSave(pin)
+  document.getElementById('pin-setup-input').value = ''
+  status.textContent = result.ok ? '✓ PIN set successfully' : '✗ Failed: ' + result.error
+  status.className   = 'creds-status ' + (result.ok ? 'ok' : 'err')
+  setTimeout(() => { status.className = 'creds-status' }, 3000)
+}
+
+async function clearPin () {
+  const result = await window.halq.pinClear()
+  const status = document.getElementById('pin-setup-status')
+  status.textContent = result.ok ? '✓ PIN removed' : '✗ Failed: ' + result.error
+  status.className   = 'creds-status ' + (result.ok ? 'ok' : 'err')
+  setTimeout(() => { status.className = 'creds-status' }, 3000)
+}
+
+// =====================
+// MENU BAR TOGGLE
+// =====================
+function toggleMenuBar(el) {
+  el.classList.toggle('on')
+  const visible = el.classList.contains('on')
+  window.halq.toggleMenuBar(visible)
+}
+
+// =====================
+// CREDENTIALS
+// =====================
+async function saveCreds() {
+  const email    = document.getElementById('creds-email').value.trim()
+  const password = document.getElementById('creds-pass').value
+
+  if (!email || !password) {
+    showCredsStatus('Email and password are required.', false)
+    return
+  }
+
+  const result = await window.halq.credsSave(email, password)
+  if (result.ok) {
+    showCredsStatus('✓ Credentials saved securely.', true)
+    document.getElementById('creds-pass').value = ''
+  } else {
+    showCredsStatus('✗ Save failed: ' + (result.error || 'unknown error'), false)
+  }
+}
+
+async function clearCreds() {
+  const result = await window.halq.credsClear()
+  if (result.ok) {
+    document.getElementById('creds-email').value = ''
+    document.getElementById('creds-pass').value  = ''
+    showCredsStatus('✓ Credentials cleared.', true)
+  } else {
+    showCredsStatus('✗ Clear failed: ' + (result.error || 'unknown error'), false)
+  }
+}
+
+async function loadCredsToUI() {
+  const result = await window.halq.credsLoad()
+  if (result.ok && result.email) {
+    document.getElementById('creds-email').value = result.email
+    // password intentionally left blank for security
+  }
+}
+
+function showCredsStatus(msg, ok) {
+  const el = document.getElementById('creds-status')
+  el.textContent = msg
+  el.className = 'creds-status ' + (ok ? 'ok' : 'err')
+  setTimeout(() => { el.className = 'creds-status' }, 3500)
+}
+
+// =====================
+// CLOCK
+// =====================
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// =====================
+// INIT
+// =====================
+loadCredsToUI()
+loadExcelData().catch(() => renderWOList()) // fallback to sample data if Excel unavailable
+</script>
+</body>
+</html>
