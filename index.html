@@ -93,6 +93,10 @@
   }
   .logo-text { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; }
   .logo-ver { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .sidebar-nav {
+    flex: 1; overflow-y: auto; min-height: 0;
+  }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
   .nav-section { padding: 10px 0; }
   .nav-label {
     padding: 4px 14px; font-size: 9px; color: var(--text3);
@@ -309,24 +313,6 @@
   }
   .detail-input:focus { border-color: var(--accent); }
   .detail-actions { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
-
-  /* MACRO BAR */
-  .macro-bar {
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 6px 12px; display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0; overflow-x: auto;
-  }
-  .macro-label { font-size: 10px; color: var(--text3); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
-  .macro-btn {
-    padding: 4px 10px; border-radius: 5px; font-size: 10px; cursor: pointer;
-    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
-    white-space: nowrap; transition: all 0.15s;
-  }
-  .macro-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .macro-sep { width: 1px; height: 16px; background: var(--border2); flex-shrink: 0; }
-  .macro-run-all {
-    background: rgba(91,156,246,0.1); border-color: var(--accent); color: var(--accent);
-  }
 
   /* BOTTOM BAR */
   .bottombar {
@@ -669,18 +655,20 @@
         <div class="logo-ver">v0.1 ALPHA</div>
       </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Main</div>
-      <div class="nav-item active"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge">101</span></div>
-      <div class="nav-item"><span class="nav-icon">🌐</span><span>Appfolio</span></div>
-      <div class="nav-item"><span class="nav-icon">✉️</span><span>Email</span><span class="nav-badge red">3</span></div>
-      <div class="nav-item"><span class="nav-icon">📝</span><span>Notes</span></div>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Tools</div>
-      <div class="nav-item"><span class="nav-icon">⚡</span><span>Macros</span></div>
-      <div class="nav-item"><span class="nav-icon">📊</span><span>Summary</span></div>
-      <div class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>Settings</span></div>
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge" id="nav-wo-badge"></span></div>
+        <div class="nav-item"><span class="nav-icon">🌐</span><span>Appfolio</span></div>
+        <div class="nav-item"><span class="nav-icon">✉️</span><span>Email</span><span class="nav-badge red">3</span></div>
+        <div class="nav-item"><span class="nav-icon">📝</span><span>Notes</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Tools</div>
+        <div class="nav-item"><span class="nav-icon">⚡</span><span>Macros</span></div>
+        <div class="nav-item"><span class="nav-icon">📊</span><span>Summary</span></div>
+        <div class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>Settings</span></div>
+      </div>
     </div>
     <div class="sidebar-footer">
       <div class="status-pill"><div class="status-dot"></div><span>Excel connected</span></div>
@@ -691,7 +679,7 @@
   <div class="main">
     <div class="topbar">
       <span class="topbar-title">Work Orders</span>
-      <span class="topbar-sub" id="wo-count-label">Active Monitoring · 101 open</span>
+      <span class="topbar-sub" id="wo-count-label">Active Monitoring · 0 open</span>
       <div class="topbar-actions">
         <button class="btn btn-ghost" onclick="triggerImport()">⬆ Import</button>
         <button class="btn btn-primary" onclick="navReload()">↻ Refresh</button>
@@ -819,30 +807,13 @@
           </div>
           <div class="detail-actions">
             <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveWODetail()">💾 Save Changes</button>
-            <button class="btn btn-primary" style="width:100%;justify-content:center;background:var(--surface2);border-color:var(--border2);color:var(--text)" onclick="openInAppfolio()">🌐 Open in Appfolio</button>
-            <button class="btn btn-ghost" style="width:100%;justify-content:center">✉️ Send Notification</button>
-            <button class="btn btn-ghost" style="width:100%;justify-content:center">📝 Add Note</button>
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- MACRO BAR -->
-    <div class="macro-bar">
-      <span class="macro-label">MACROS:</span>
-      <div class="macro-btn" onclick="runMacro(this,'ScanForNewWorkOrders','① Scan New WOs')">① Scan New WOs</div>
-      <div class="macro-sep"></div>
-      <div class="macro-btn" onclick="runQuickTransfer(this)">② Quick Transfer</div>
-      <div class="macro-sep"></div>
-      <div class="macro-btn" onclick="runMacro(this,'RefreshFormulasActiveMonitoring','③ Refresh')">③ Refresh</div>
-      <div class="macro-sep"></div>
-      <div class="macro-btn" onclick="runMacro(this,'SyncOutlookTasksOnly','④ Sync Outlook')">④ Sync Outlook</div>
-      <div class="macro-sep"></div>
-      <div class="macro-btn" onclick="runMacro(this,'TransferToSummary','⑤ Summary')">⑤ Summary</div>
-      <div class="macro-sep"></div>
-      <div class="macro-btn macro-run-all" onclick="runAllMacros()">▶ Run All</div>
-    </div>
+    <!-- MACRO BAR REMOVED -->
   </div>
 </div>
 
@@ -850,7 +821,7 @@
 <div class="bottombar">
   <div class="bb-item"><div class="bb-dot" style="background:var(--green)"></div>Excel Connected</div>
   <div class="bb-item"><div class="bb-dot" style="background:var(--accent)"></div>Appfolio Ready</div>
-  <div class="bb-item">📋 <span id="bb-wo-count">101</span> Active WOs</div>
+  <div class="bb-item">📋 <span id="bb-wo-count">0</span> Active WOs</div>
   <div class="bb-item">⚠️ <span id="bb-overdue">12</span> Overdue</div>
   <div style="margin-left:auto" class="bb-item" id="clock"></div>
 </div>
@@ -953,7 +924,7 @@
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Preferences</div>
-        <div class="toggle-row"><span>Show Macro Bar</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+
         <div class="toggle-row"><span>Color Code WOs</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
         <div class="toggle-row"><span>Auto-search on WO click</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
         <div class="toggle-row"><span>Show Bottom Bar</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
@@ -1141,7 +1112,10 @@ function selectWO(i) {
   const url = `https://talley.appfolio.com/search/advanced_search?full_text_search=${woNum}`;
   document.getElementById('af-url').value = url;
   const view = document.getElementById('appfolio-view');
-  if (view) view.src = url;
+  if (view) {
+    // Use loadURL via navTo to avoid ERR_ABORTED on direct src assignment
+    try { view.loadURL(url) } catch (_) { view.src = url }
+  }
 
   // Open detail drawer
   document.getElementById('wo-detail').classList.add('open');
@@ -1513,116 +1487,11 @@ async function handleImportFile (filePath) {
   const result = await window.halq.excelImport(filePath)
 
   if (result.ok) {
-    showDebug(`✓ ${result.count} rows imported into AppFolio Data — run ① Scan New WOs next`)
-
-    // Pulse the Scan button to guide next step
-    const scanBtn = document.querySelector('.macro-btn')
-    if (scanBtn) {
-      let pulses = 0
-      const pulse = setInterval(() => {
-        scanBtn.style.boxShadow = pulses % 2 === 0 ? '0 0 8px 2px var(--accent)' : 'none'
-        if (++pulses >= 6) { clearInterval(pulse); scanBtn.style.boxShadow = '' }
-      }, 500)
-    }
+    showDebug(`✓ ${result.count} rows ready in import file`)
   } else {
     showDebug('✗ Import failed: ' + result.error)
     showErrorDialog('Import Failed', result.error)
   }
-}
-
-// =====================
-// MACROS
-// =====================
-function setMacroRunning (el, label) {
-  el.dataset.orig      = el.textContent
-  el.style.background  = 'rgba(91,156,246,0.2)'
-  el.style.borderColor = 'var(--accent)'
-  el.style.color       = 'var(--accent)'
-  el.textContent       = '⏳ ' + label + '...'
-  el.style.pointerEvents = 'none'
-}
-
-function setMacroDone (el, ok) {
-  const color = ok ? 'var(--green)' : 'var(--red)'
-  el.style.background  = ok ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'
-  el.style.borderColor = color
-  el.style.color       = color
-  el.textContent       = ok ? '✓ ' + el.dataset.orig : '✗ Failed'
-  setTimeout(() => {
-    el.style.background    = ''
-    el.style.borderColor   = ''
-    el.style.color         = ''
-    el.textContent         = el.dataset.orig
-    el.style.pointerEvents = ''
-  }, 2500)
-}
-
-async function runMacro (el, macroName, label) {
-  setMacroRunning(el, label)
-  const result = await window.halq.macroRun(macroName)
-  setMacroDone(el, result.ok)
-  if (!result.ok) showDebug('Macro failed: ' + result.error)
-  // Reload WO panel after scan or refresh so data stays current
-  if (result.ok && (macroName === 'ScanForNewWorkOrders' || macroName === 'RefreshFormulasActiveMonitoring')) {
-    await loadExcelData()
-  }
-}
-
-// ② Quick Transfer requires manual row selection in Excel first
-function runQuickTransfer (el) {
-  alert(
-    '② Quick Transfer\n\n' +
-    'Steps:\n' +
-    '1. Switch to Excel\n' +
-    '2. Go to the Work Queue sheet\n' +
-    '3. Select the rows you want to transfer\n' +
-    '4. Come back to HALQ and click "Run Transfer Now"\n\n' +
-    'Note: Run ① Scan New WOs first if Work Queue is empty.'
-  )
-  el.textContent     = '▶ Run Transfer Now'
-  el.style.background  = 'rgba(251,191,36,0.15)'
-  el.style.borderColor = 'var(--yellow)'
-  el.style.color       = 'var(--yellow)'
-  el.onclick           = (e) => confirmQuickTransfer(e.currentTarget)
-}
-
-async function confirmQuickTransfer (el) {
-  el.onclick = () => runQuickTransfer(el)  // reset for next time
-  setMacroRunning(el, 'Quick Transfer')
-  const result = await window.halq.macroRun('QuickTransferHighlightedWO')
-  setMacroDone(el, result.ok)
-  el.textContent = '② Quick Transfer'
-  if (!result.ok) showDebug('Quick Transfer failed: ' + result.error)
-  if (result.ok) await loadExcelData()
-}
-
-// Run All: ①③④⑤ in order — ② excluded (needs manual selection)
-async function runAllMacros () {
-  const allBtn = document.querySelector('.macro-run-all')
-  const sequence = [
-    { name: 'ScanForNewWorkOrders',          label: '① Scan'    },
-    { name: 'RefreshFormulasActiveMonitoring', label: '③ Refresh' },
-    { name: 'SyncOutlookTasksOnly',           label: '④ Outlook' },
-    { name: 'TransferToSummary',              label: '⑤ Summary' }
-  ]
-
-  allBtn.style.pointerEvents = 'none'
-  allBtn.textContent         = '⏳ Running...'
-
-  let allOk = true
-  for (const macro of sequence) {
-    allBtn.textContent = '⏳ ' + macro.label
-    const result = await window.halq.macroRun(macro.name)
-    if (!result.ok) {
-      allOk = false
-      showDebug('Run All stopped at ' + macro.label + ': ' + result.error)
-      break
-    }
-  }
-
-  allBtn.style.pointerEvents = ''
-  allBtn.textContent         = '▶ Run All'
-  if (allOk) await loadExcelData()
 }
 
 // =====================
@@ -1638,12 +1507,13 @@ async function loadExcelData () {
   wos.length = 0
   result.wos.forEach(wo => wos.push(wo))
   renderWOList()
-  document.getElementById('wo-count-label').textContent =
-    'Active Monitoring · ' + wos.length + ' open'
-  document.getElementById('bb-wo-count').textContent = wos.length
+  const count   = wos.length
   const overdue = wos.filter(w => w.age > 60).length
-  document.getElementById('bb-overdue').textContent = overdue
-  showDebug('Loaded ' + wos.length + ' WOs from Active Monitoring')
+  document.getElementById('wo-count-label').textContent  = 'Active Monitoring · ' + count + ' open'
+  document.getElementById('bb-wo-count').textContent     = count
+  document.getElementById('bb-overdue').textContent      = overdue
+  document.getElementById('nav-wo-badge').textContent    = count
+  showDebug('Loaded ' + count + ' WOs from Active Monitoring')
 }
 
 // =====================
@@ -2281,7 +2151,16 @@ function catmgrStatus (msg, ok) {
 // INIT
 // =====================
 loadCredsToUI()
-loadExcelData().catch(() => renderWOList()) // fallback to sample data if Excel unavailable
+loadExcelData().catch(() => {
+  renderWOList()
+  const count   = wos.length
+  const overdue = wos.filter(w => w.age > 60).length
+  document.getElementById('wo-count-label').textContent = 'Active Monitoring · ' + count + ' open'
+  document.getElementById('bb-wo-count').textContent    = count
+  document.getElementById('bb-overdue').textContent     = overdue
+  const badge = document.getElementById('nav-wo-badge')
+  if (badge) badge.textContent = count
+})
 </script>
 <!-- CATEGORY MANAGER MODAL -->
 <div class="catmgr-overlay" id="catmgr-overlay" onclick="catmgrClickOutside(event)">

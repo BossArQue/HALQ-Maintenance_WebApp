@@ -136,7 +136,6 @@ const EXCEL_SHEET = 'Active Monitoring'
 const MACRO = {
   scanNewWOs:        'ScanForNewWorkOrders',
   refresh:           'RefreshFormulasActiveMonitoring',
-  syncOutlook:       'SyncOutlookTasksOnly',
   transferToSummary: 'TransferToSummary'
 }
 
@@ -218,65 +217,72 @@ ipcMain.handle('dialog-open', async (_event, options) => {
 
 // =====================
 // EXCEL IMPORT
-// Replicates manual process: skip rows 1-17, paste everything from row 18 down
-// into AppFolio Data sheet. Uses PowerShell COM so Excel can stay open.
-// Writing directly to the .xlsm fails when Excel has the file locked.
+// 1. Read Appfolio export, auto-detect header row
+// 2. Write clean CSV to userdata/import_tmp.csv
+// 3. Write CSV path to userdata/import_cfg.txt so VBA macro knows where to find it
+// 4. Trigger ImportFromCSV VBA macro via PowerShell — macro runs inside user's Excel
+//    This avoids all COM file-open/permission issues
 // =====================
 ipcMain.handle('excel-import', async (_event, exportFilePath) => {
   try {
     if (!fs.existsSync(exportFilePath)) {
       return { ok: false, error: 'Export file not found: ' + exportFilePath }
     }
-    if (!fs.existsSync(EXCEL_PATH)) {
-      return { ok: false, error: 'Workbook not found: ' + EXCEL_PATH }
-    }
 
-    // Read raw Appfolio export — rows 1-17 = report metadata, row 18+ = real data
+    // Read raw Appfolio export
     const exportWb = XLSX.readFile(exportFilePath, { cellDates: true, sheetStubs: true })
     const exportWs = exportWb.Sheets[exportWb.SheetNames[0]]
     const allRows  = XLSX.utils.sheet_to_json(exportWs, { header: 1, defval: '' })
 
-    // Everything from row 18 (index 17) down — same as manual unmerge + copy
-    const pasteData = allRows.slice(17)
-    if (pasteData.length < 2) {
-      return { ok: false, error: 'No data found from row 18 down in export file' }
+    // Auto-detect header row
+    const HEADER_KEYWORDS = ['work order', 'property', 'status', 'vendor', 'unit', 'resident']
+    let headerIdx = -1
+    for (let i = 0; i < Math.min(allRows.length, 30); i++) {
+      const rowText = allRows[i].join(' ').toLowerCase()
+      if (HEADER_KEYWORDS.filter(k => rowText.includes(k)).length >= 3) {
+        headerIdx = i; break
+      }
+    }
+    if (headerIdx === -1) {
+      return { ok: false, error: 'Could not detect header row in export file' }
     }
 
-    // Write clean data to a temp CSV — PowerShell will read this and paste into Excel
+    const pasteData = allRows.slice(headerIdx)
+    if (pasteData.length < 2) {
+      return { ok: false, error: 'No data rows found after header' }
+    }
+
+    // Write clean CSV
     const tmpPath = path.join(USER_DATA_DIR, 'import_tmp.csv')
     const csvWb   = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(csvWb, XLSX.utils.aoa_to_sheet(pasteData), 'Data')
-    XLSX.writeFile(csvWb, tmpPath)  // temp file — Excel is not locking this
+    XLSX.writeFile(csvWb, tmpPath)
 
-    // Write PowerShell script to a temp file — avoids quote/newline escaping issues
-    const psPath = path.join(USER_DATA_DIR, 'import.ps1')
+    // Write path config for VBA macro to read
+    const cfgPath = path.join(USER_DATA_DIR, 'import_cfg.txt')
+    fs.writeFileSync(cfgPath, tmpPath, 'utf8')
+
+    // Trigger ImportFromCSV macro — runs inside user's open Excel instance
+    const psPath   = path.join(USER_DATA_DIR, 'import.ps1')
     const psScript = [
       `$ErrorActionPreference = 'Stop'`,
       `try {`,
       `  try {`,
       `    $excel = [Runtime.InteropServices.Marshal]::GetActiveObject('Excel.Application')`,
       `  } catch {`,
-      `    $excel = New-Object -ComObject Excel.Application`,
-      `    $excel.Visible = $true`,
-      `  }`,
-      `  # List all open workbook names for diagnostics`,
-      `  $names = ($excel.Workbooks | ForEach-Object { $_.Name }) -join '|'`,
-      `  $targetName = 'Work Order Status Update.xlsm'`,
-      `  $wb = $excel.Workbooks | Where-Object { $_.Name -eq $targetName }`,
-      `  if (-not $wb) {`,
-      `    Write-Output "ERR:Workbook not found. Open workbooks: $names"`,
+      `    Write-Output "ERR:Excel is not open. Please open Work Order Status Update.xlsm first."`,
       `    exit`,
       `  }`,
-      `  $tmpWb  = $excel.Workbooks.Open('${tmpPath}')`,
-      `  $tmpWs  = $tmpWb.Sheets(1)`,
-      `  $lastRow = $tmpWs.Cells($tmpWs.Rows.Count, 1).End(-4162).Row`,
-      `  $lastCol = $tmpWs.Cells(1, $tmpWs.Columns.Count).End(-4159).Column`,
-      `  $targetWs = $wb.Sheets('AppFolio Data')`,
-      `  $targetWs.Cells.ClearContents()`,
-      `  $targetWs.Range('A1').Resize($lastRow, $lastCol).Value = $tmpWs.Range($tmpWs.Cells(1,1), $tmpWs.Cells($lastRow, $lastCol)).Value`,
-      `  $tmpWb.Close($false)`,
-      `  $wb.Save()`,
-      `  Write-Output "OK:$lastRow"`,
+      `  $wb = $null`,
+      `  for ($i = 1; $i -le $excel.Workbooks.Count; $i++) {`,
+      `    try { $w = $excel.Workbooks.Item($i); if ($w.Name -like '*Work Order Status Update*') { $wb = $w; break } } catch {}`,
+      `  }`,
+      `  if (-not $wb) {`,
+      `    Write-Output "ERR:Work Order Status Update.xlsm is not open in Excel."`,
+      `    exit`,
+      `  }`,
+      `  $excel.Run("'" + $wb.Name + "'!ImportFromCSV")`,
+      `  Write-Output "OK"`,
       `} catch {`,
       `  Write-Output ('ERR:' + $_.Exception.Message)`,
       `}`
@@ -287,18 +293,21 @@ ipcMain.handle('excel-import', async (_event, exportFilePath) => {
     return new Promise((resolve) => {
       exec(
         `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${psPath}"`,
-        { timeout: 60000 },
+        { timeout: 120000 },
         (err, stdout, stderr) => {
-          try { fs.unlinkSync(tmpPath) } catch (_) {}
-          try { fs.unlinkSync(psPath)  } catch (_) {}
+          try { fs.unlinkSync(psPath) } catch (_) {}
 
-          const output = (stdout || '').trim()
-          if (err || output.startsWith('ERR:')) {
-            const msg = output.startsWith('ERR:') ? output.slice(4) : (stderr || err.message)
+          const output   = (stdout || '').trim()
+          const lines    = output.split('\n').map(l => l.trim()).filter(Boolean)
+          const result   = lines.find(l => l.startsWith('OK') || l.startsWith('ERR:')) || ''
+          const dbgLines = lines.filter(l => l.startsWith('DBG:')).join(' | ')
+          if (dbgLines) console.log('[IMPORT]', dbgLines)
+
+          if (err || result.startsWith('ERR:')) {
+            const msg = result.startsWith('ERR:') ? result.slice(4) : (stderr || err?.message || output)
             resolve({ ok: false, error: msg })
           } else {
-            const rowCount = parseInt(output.replace('OK:', '')) - 1
-            resolve({ ok: true, count: rowCount })
+            resolve({ ok: true, count: pasteData.length - 1 })
           }
         }
       )
@@ -411,6 +420,11 @@ function setupAppfolioSession () {
 
   afSession.setPermissionCheckHandler((_webContents, permission) => {
     return ALLOWED_PERMISSION_SET.has(permission)
+  })
+
+  // Allow all navigation within Appfolio — prevents ERR_ABORTED on search URLs
+  afSession.webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: false })
   })
 }
 
