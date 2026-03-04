@@ -228,22 +228,38 @@
 
   /* APPFOLIO PANEL */
   .af-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .af-tabs {
+  .af-tabs-wrap {
     background: var(--surface); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; padding: 0 8px; gap: 2px;
-    overflow-x: auto; flex-shrink: 0; height: 36px;
+    display: flex; align-items: center; flex-shrink: 0; height: 36px;
+  }
+  .af-tabs-arrow {
+    width: 24px; height: 36px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); cursor: pointer; font-size: 12px;
+    background: var(--surface); transition: color 0.15s;
+    user-select: none;
+  }
+  .af-tabs-arrow:hover { color: var(--accent); }
+  .af-tabs-arrow.disabled { opacity: 0.2; pointer-events: none; }
+  .af-tabs {
+    flex: 1; display: flex; align-items: center; gap: 2px;
+    overflow: hidden; height: 36px; padding: 0 4px;
   }
   .af-tab {
-    padding: 4px 12px; border-radius: 5px 5px 0 0; font-size: 11px;
+    padding: 4px 10px; border-radius: 5px 5px 0 0; font-size: 11px;
     cursor: pointer; color: var(--text3); display: flex; align-items: center; gap: 6px;
-    white-space: nowrap; transition: all 0.15s;
-    border: 1px solid transparent; border-bottom: none;
+    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+    border: 1px solid transparent; border-bottom: none; max-width: 160px;
+  }
+  .af-tab span:first-child {
+    overflow: hidden; text-overflow: ellipsis; max-width: 120px;
   }
   .af-tab:hover { color: var(--text); background: var(--surface2); }
   .af-tab.active { color: var(--text); background: var(--bg); border-color: var(--border); }
-  .af-tab-close { font-size: 10px; color: var(--text3); margin-left: 4px; }
+  .af-tab.loading { color: var(--accent); }
+  .af-tab-close { font-size: 10px; color: var(--text3); margin-left: 2px; flex-shrink: 0; }
   .af-tab-close:hover { color: var(--red); }
-  .af-new-tab { padding: 4px 8px; color: var(--text3); cursor: pointer; font-size: 16px; }
+  .af-new-tab { padding: 4px 8px; color: var(--text3); cursor: pointer; font-size: 16px; flex-shrink: 0; }
   .af-new-tab:hover { color: var(--accent); }
   .af-toolbar {
     background: var(--surface); border-bottom: 1px solid var(--border);
@@ -413,6 +429,183 @@
   .pin-key.wide   { grid-column: span 2; font-size: 12px; color: var(--text3); }
   .pin-error-msg  { font-size: 10px; color: var(--red); min-height: 14px; }
 
+  /* PIN KEYBOARD INPUT */
+  .pin-keyboard-row {
+    display: flex; align-items: center; gap: 8px; width: 100%; margin-top: -4px;
+  }
+  .pin-keyboard-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 7px; padding: 7px 12px; font-size: 18px; letter-spacing: 0.3em;
+    color: var(--text); outline: none; text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.15s;
+  }
+  .pin-keyboard-input:focus { border-color: var(--accent); }
+  .pin-keyboard-input.error { border-color: var(--red); animation: pin-shake 0.35s; }
+  @keyframes pin-shake {
+    0%,100%{ transform: translateX(0) }
+    20%    { transform: translateX(-6px) }
+    40%    { transform: translateX(6px) }
+    60%    { transform: translateX(-4px) }
+    80%    { transform: translateX(4px) }
+  }
+
+  /* FOLLOW-UP DATE PICKER */
+  .followup-wrap { position: relative; }
+  .followup-trigger {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 5px; padding: 5px 10px; font-size: 11px;
+    color: var(--text); width: 100%; cursor: pointer; outline: none;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color 0.15s; user-select: none;
+  }
+  .followup-trigger:hover { border-color: var(--accent); }
+  .followup-trigger .ft-val { flex: 1; }
+  .followup-trigger .ft-arrow { color: var(--text3); font-size: 9px; }
+  .followup-dropdown {
+    position: fixed; z-index: 350;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px; min-width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none; flex-direction: column;
+  }
+  .followup-dropdown.open { display: flex; }
+  .followup-opt {
+    padding: 7px 12px; border-radius: 5px; font-size: 11px;
+    cursor: pointer; color: var(--text2); display: flex;
+    align-items: center; justify-content: space-between; gap: 10px;
+    transition: background 0.1s;
+  }
+  .followup-opt:hover { background: var(--surface2); color: var(--text); }
+  .followup-opt.active { color: var(--accent); background: rgba(91,156,246,0.08); }
+  .followup-opt-date { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .followup-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+  .followup-custom-row {
+    padding: 4px 8px 6px; display: none; flex-direction: column; gap: 4px;
+  }
+  .followup-custom-row.open { display: flex; }
+  .followup-custom-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 5px; padding: 5px 8px; font-size: 11px;
+    color: var(--text); width: 100%; outline: none;
+  }
+  .followup-custom-input:focus { border-color: var(--accent); }
+
+  /* CATEGORIZE */
+  .cat-wrap { position: relative; }
+  .cat-trigger {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 5px; padding: 5px 10px; font-size: 11px;
+    color: var(--text); width: 100%; cursor: pointer; outline: none;
+    display: flex; align-items: center; gap: 6px;
+    transition: border-color 0.15s; user-select: none;
+  }
+  .cat-trigger:hover { border-color: var(--accent); }
+  .cat-trigger-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: transparent; }
+  .cat-trigger-label { flex: 1; }
+  .cat-trigger-arrow { color: var(--text3); font-size: 9px; }
+  .cat-dropdown {
+    position: fixed; z-index: 350;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none; flex-direction: column;
+    max-height: 280px; overflow-y: auto; min-width: 180px;
+  }
+  .cat-dropdown::-webkit-scrollbar { width: 4px; }
+  .cat-dropdown::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .cat-dropdown.open { display: flex; }
+  .cat-opt {
+    padding: 6px 10px; border-radius: 5px; font-size: 11px;
+    cursor: pointer; color: var(--text2);
+    display: flex; align-items: center; gap: 8px;
+    transition: background 0.1s;
+  }
+  .cat-opt:hover { background: var(--surface2); color: var(--text); }
+  .cat-opt.active { color: var(--accent); background: rgba(91,156,246,0.08); }
+  .cat-opt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cat-opt-clear { color: var(--text3); font-style: italic; }
+  .cat-opt-manage { color: var(--accent); }
+  .cat-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+
+  /* CATEGORY MANAGER MODAL */
+  .catmgr-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; z-index: 400; align-items: center; justify-content: center;
+  }
+  .catmgr-overlay.open { display: flex; }
+  .catmgr-modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; width: 480px; max-height: 520px;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .catmgr-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .catmgr-title { font-size: 13px; font-weight: 600; }
+  .catmgr-close { cursor: pointer; color: var(--text3); font-size: 16px; }
+  .catmgr-body { display: flex; flex: 1; overflow: hidden; }
+  .catmgr-list {
+    width: 200px; border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 6px; flex-shrink: 0;
+  }
+  .catmgr-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 11px; color: var(--text2); transition: background 0.1s;
+  }
+  .catmgr-item:hover { background: var(--surface2); color: var(--text); }
+  .catmgr-item.selected { background: var(--surface2); color: var(--accent); }
+  .catmgr-item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .catmgr-actions { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  .catmgr-field-label {
+    font-size: 9px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .catmgr-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 6px 10px; font-size: 11px;
+    color: var(--text); width: 100%; outline: none;
+  }
+  .catmgr-input:focus { border-color: var(--accent); }
+  .catmgr-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+  .catmgr-color {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s;
+  }
+  .catmgr-color:hover { transform: scale(1.15); }
+  .catmgr-color.selected { border-color: #fff; transform: scale(1.1); }
+  .catmgr-btn-row { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .catmgr-btn {
+    flex: 1; padding: 7px; border-radius: 6px; font-size: 11px;
+    font-weight: 500; cursor: pointer; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text2); transition: all 0.15s;
+  }
+  .catmgr-btn:hover { background: var(--border2); color: var(--text); }
+  .catmgr-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .catmgr-btn.primary:hover { filter: brightness(1.15); }
+  .catmgr-btn.danger { border-color: var(--red); color: var(--red); }
+  .catmgr-btn.danger:hover { background: rgba(248,113,113,0.1); }
+  .catmgr-footer {
+    padding: 10px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .catmgr-new-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 6px 10px; font-size: 11px;
+    color: var(--text); outline: none;
+  }
+  .catmgr-new-input:focus { border-color: var(--accent); }
+  .catmgr-status {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px; display: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .catmgr-status.ok  { display: block; color: var(--green); }
+  .catmgr-status.err { display: block; color: var(--red); }
+
   /* DRAG DROP */
   .drop-overlay {
     display: none; position: fixed; inset: 0;
@@ -529,9 +722,17 @@
 
         <!-- APPFOLIO PANEL -->
         <div class="af-panel">
-          <div class="af-tabs" id="af-tabs">
-            <div class="af-tab active" id="tab-main"><span>🏠 Appfolio</span></div>
-            <div class="af-new-tab" onclick="addTab()" title="New Tab">+</div>
+          <div class="af-tabs-wrap">
+            <div class="af-tabs-arrow" id="tabs-arrow-left" onclick="scrollTabs(-1)">◀</div>
+            <div class="af-tabs" id="af-tabs">
+              <div class="af-tab active" id="tab-main"
+                   data-url="https://talley.appfolio.com"
+                   onclick="switchToTab(this)">
+                <span>🏠 Appfolio</span>
+              </div>
+              <div class="af-new-tab" onclick="addTab()" title="New Tab">+</div>
+            </div>
+            <div class="af-tabs-arrow" id="tabs-arrow-right" onclick="scrollTabs(1)">▶</div>
           </div>
           <div class="af-toolbar">
             <div class="af-nav-btn" onclick="navBack()" title="Back">←</div>
@@ -546,7 +747,6 @@
               id="appfolio-view"
               src="https://talley.appfolio.com"
               partition="persist:appfolio"
-              allowpopups
               webpreferences="nodeIntegration=no, contextIsolation=yes"
               style="flex:1;width:100%;height:100%;border:none;">
             </webview>
@@ -570,20 +770,56 @@
             <div class="detail-row"><div class="detail-label">Job Summary</div><div class="detail-val" id="d-job" style="font-size:11px;color:var(--text2);line-height:1.5">—</div></div>
             <div class="detail-row">
               <div class="detail-label">Follow-up Date</div>
-              <input type="date" class="detail-input">
+              <div class="followup-wrap">
+                <div class="followup-trigger" id="followup-trigger" onclick="toggleFollowup()">
+                  <span class="ft-val" id="followup-val">— Not set —</span>
+                  <span class="ft-arrow">▼</span>
+                </div>
+                <div class="followup-dropdown" id="followup-dropdown">
+                  <div class="followup-opt" onclick="setFollowup('tomorrow')">
+                    <span>Tomorrow</span>
+                    <span class="followup-opt-date" id="fo-tomorrow"></span>
+                  </div>
+                  <div class="followup-opt" onclick="setFollowup('nextday')">
+                    <span>The Next Day</span>
+                    <span class="followup-opt-date" id="fo-nextday"></span>
+                  </div>
+                  <div class="followup-sep"></div>
+                  <div class="followup-opt" onclick="setFollowup('thisweek')">
+                    <span>This Week</span>
+                    <span class="followup-opt-date" id="fo-thisweek"></span>
+                  </div>
+                  <div class="followup-opt" onclick="setFollowup('nextweek')">
+                    <span>Next Week</span>
+                    <span class="followup-opt-date" id="fo-nextweek"></span>
+                  </div>
+                  <div class="followup-sep"></div>
+                  <div class="followup-opt" onclick="setFollowup('custom')">
+                    <span>Custom</span>
+                    <span class="followup-opt-date">📅</span>
+                  </div>
+                  <div class="followup-custom-row" id="followup-custom-row">
+                    <input type="date" class="followup-custom-input" id="followup-custom-input"
+                      onchange="setFollowupCustom(this.value)">
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="detail-row">
-              <div class="detail-label">Category Tag</div>
-              <select class="detail-input" id="tag-select">
-                <option value="">— None —</option>
-                <option>Low Monitoring</option>
-                <option>For Invoice</option>
-                <option>Urgent</option>
-              </select>
+              <div class="detail-label">Categorize</div>
+              <div class="cat-wrap" id="cat-wrap">
+                <div class="cat-trigger" id="cat-trigger" onclick="toggleCatDropdown()">
+                  <div class="cat-trigger-dot" id="cat-trigger-dot"></div>
+                  <span class="cat-trigger-label" id="cat-trigger-label">— None —</span>
+                  <span class="cat-trigger-arrow">▼</span>
+                </div>
+                <div class="cat-dropdown" id="cat-dropdown"></div>
+              </div>
             </div>
           </div>
           <div class="detail-actions">
-            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openInAppfolio()">🌐 Open in Appfolio</button>
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveWODetail()">💾 Save Changes</button>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;background:var(--surface2);border-color:var(--border2);color:var(--text)" onclick="openInAppfolio()">🌐 Open in Appfolio</button>
             <button class="btn btn-ghost" style="width:100%;justify-content:center">✉️ Send Notification</button>
             <button class="btn btn-ghost" style="width:100%;justify-content:center">📝 Add Note</button>
           </div>
@@ -631,6 +867,17 @@
       <div class="pin-dot" id="pd3"></div>
     </div>
     <div class="pin-error-msg" id="pin-error"></div>
+    <!-- KEYBOARD INPUT — always visible, auto-focused -->
+    <input
+      class="pin-keyboard-input" id="pin-keyboard-input"
+      type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+      placeholder="••••"
+      oninput="onPinKeyboardInput(this)"
+      onkeydown="if(event.key==='Escape') pinKey('cancel')"
+      autocomplete="off"
+      style="width:100%"
+    >
+    <!-- NUMPAD — always visible below -->
     <div class="pin-keypad">
       <div class="pin-key" onclick="pinKey('1')">1</div>
       <div class="pin-key" onclick="pinKey('2')">2</div>
@@ -746,28 +993,83 @@ function getAgeClass(age) { return age > 60 ? 'old' : age > 20 ? 'mid' : 'new'; 
 function getItemClass(age) { return age > 60 ? 'overdue' : age === 0 ? 'due-today' : 'on-track'; }
 function getStatusClass(s) { return s === 'Assigned' ? 'assigned' : s === 'Scheduled' ? 'scheduled' : 'waiting'; }
 
+function getWeekStart (d) {
+  const day = new Date(d); day.setHours(0,0,0,0)
+  const mon = new Date(day)
+  mon.setDate(day.getDate() - ((day.getDay() + 6) % 7)) // Monday
+  return mon
+}
+
 function renderWOList(data) {
-  const list = document.getElementById('wo-list');
-  if (!data) data = wos;
+  const list = document.getElementById('wo-list')
+  if (!data) data = wos
   if (data.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No work orders found</div>';
-    return;
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No work orders found</div>'
+    return
   }
-  list.innerHTML = data.map(w => `
-    <div class="wo-item ${getItemClass(w.age)}" onclick="selectWO(${wos.indexOf(w)})">
-      <div class="wo-item-top">
-        <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
-        <div class="wo-num">${w.wo}</div>
-        ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
-        <div style="margin-left:auto;font-size:9px;color:var(--text3)">${w.portfolio}</div>
-      </div>
-      <div class="wo-prop">${w.prop}</div>
-      <div class="wo-item-bot">
-        <div class="wo-vendor">${w.vendor}</div>
-        <div class="wo-age ${getAgeClass(w.age)}">${w.age}d</div>
-      </div>
-    </div>
-  `).join('');
+
+  const today    = new Date(); today.setHours(0,0,0,0)
+  const thisWeekMon = getWeekStart(today)
+  const nextWeekMon = new Date(thisWeekMon); nextWeekMon.setDate(thisWeekMon.getDate() + 7)
+  const weekAfterMon = new Date(thisWeekMon); weekAfterMon.setDate(thisWeekMon.getDate() + 14)
+  const weekAfterEnd = new Date(thisWeekMon); weekAfterEnd.setDate(thisWeekMon.getDate() + 21)
+
+  // Split into no-followup (sorted by age desc) and followup groups
+  const noDate    = data.filter(w => !w._followup).sort((a,b) => b.age - a.age)
+  const withDate  = data.filter(w =>  w._followup)
+
+  const thisWeek  = withDate.filter(w => { const d = new Date(w._followup); return d >= thisWeekMon  && d < nextWeekMon  }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const nextWeek  = withDate.filter(w => { const d = new Date(w._followup); return d >= nextWeekMon  && d < weekAfterMon }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const weekAfter = withDate.filter(w => { const d = new Date(w._followup); return d >= weekAfterMon && d < weekAfterEnd }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const later     = withDate.filter(w => { const d = new Date(w._followup); return d >= weekAfterEnd                     }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+
+  function woCard (w) {
+    const cat = getCatById(w._catId)
+    const catDot = cat ? `<div style="width:7px;height:7px;border-radius:50%;background:${cat.color};flex-shrink:0" title="${cat.name}"></div>` : ''
+    const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
+    return `
+      <div class="wo-item ${getItemClass(w.age)}" onclick="selectWO(${wos.indexOf(w)})">
+        <div class="wo-item-top">
+          <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
+          <div class="wo-num">${w.wo}</div>
+          ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
+          <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+            ${catDot}
+            <span style="font-size:9px;color:var(--text3)">${w.portfolio || ''}</span>
+          </div>
+        </div>
+        <div class="wo-prop">${w.prop}</div>
+        <div class="wo-item-bot">
+          <div class="wo-vendor">${w.vendor}</div>
+          <div class="wo-age ${getAgeClass(w.age)}">${w.age}d</div>
+        </div>
+        ${followupLabel}
+      </div>`
+  }
+
+  function sectionHeader (label, count) {
+    return `<div style="
+      padding: 5px 10px 3px; font-size: 9px; font-weight: 600;
+      color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em;
+      border-top: 1px solid var(--border); margin-top: 4px;
+      display:flex; justify-content:space-between; align-items:center
+    "><span>${label}</span><span style="color:var(--border2)">${count}</span></div>`
+  }
+
+  let html = ''
+
+  // No followup date — sorted by age, no header unless other sections exist
+  const hasDateGroups = thisWeek.length || nextWeek.length || weekAfter.length || later.length
+  if (noDate.length) {
+    if (hasDateGroups) html += sectionHeader('Due / No Date', noDate.length)
+    html += noDate.map(woCard).join('')
+  }
+  if (thisWeek.length)  html += sectionHeader('This Week',   thisWeek.length)  + thisWeek.map(woCard).join('')
+  if (nextWeek.length)  html += sectionHeader('Next Week',   nextWeek.length)  + nextWeek.map(woCard).join('')
+  if (weekAfter.length) html += sectionHeader('Week After',  weekAfter.length) + weekAfter.map(woCard).join('')
+  if (later.length)     html += sectionHeader('Later',       later.length)     + later.map(woCard).join('')
+
+  list.innerHTML = html
 }
 
 function filterWOs(query) {
@@ -800,16 +1102,39 @@ function toggleChip(el, filter) {
 function selectWO(i) {
   selectedWO = wos[i];
   document.querySelectorAll('.wo-item').forEach((el, idx) => {
-    el.classList.toggle('active', wos.indexOf(selectedWO) === wos.indexOf(wos[idx]));
+    el.classList.toggle('active', idx === i);
   });
-  document.getElementById('d-wo').textContent = selectedWO.wo;
-  document.getElementById('d-prop').textContent = selectedWO.prop;
-  document.getElementById('d-res').textContent = selectedWO.res || '—';
-  document.getElementById('d-vendor').textContent = selectedWO.vendor;
-  document.getElementById('d-status').textContent = selectedWO.status;
-  document.getElementById('d-age').textContent = selectedWO.age + ' days';
+  document.getElementById('d-wo').textContent        = selectedWO.wo;
+  document.getElementById('d-prop').textContent      = selectedWO.prop;
+  document.getElementById('d-res').textContent       = selectedWO.res || '—';
+  document.getElementById('d-vendor').textContent    = selectedWO.vendor;
+  document.getElementById('d-status').textContent    = selectedWO.status;
+  document.getElementById('d-age').textContent       = selectedWO.age + ' days';
   document.getElementById('d-portfolio').textContent = selectedWO.portfolio;
-  document.getElementById('d-job').textContent = selectedWO.job;
+  document.getElementById('d-job').textContent       = selectedWO.job;
+
+  // Restore saved followup date for this WO
+  currentFollowup = selectedWO._followup || null
+  const ftVal = document.getElementById('followup-val')
+  if (currentFollowup) {
+    try { ftVal.textContent = fmtDate(new Date(currentFollowup + 'T00:00:00')) } catch(_) { ftVal.textContent = currentFollowup }
+  } else {
+    ftVal.textContent = '— Not set —'
+  }
+  document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'))
+
+  // Restore saved category for this WO
+  selectedCatId = selectedWO._catId || null
+  const cat   = getCatById(selectedCatId)
+  const dot   = document.getElementById('cat-trigger-dot')
+  const label = document.getElementById('cat-trigger-label')
+  if (cat) {
+    dot.style.background = cat.color
+    label.textContent    = cat.name
+  } else {
+    dot.style.background = 'transparent'
+    label.textContent    = '— None —'
+  }
 
   // Auto-search in Appfolio
   const woNum = selectedWO.wo.split('-')[0];
@@ -831,6 +1156,32 @@ function openInAppfolio() {
   if (view) view.src = url;
 }
 
+function saveWODetail () {
+  if (!selectedWO) return
+
+  // Commit to WO object
+  selectedWO._followup = currentFollowup || null
+  selectedWO._catId    = selectedCatId   || null
+
+  // Persist keyed by WO number
+  woTags[selectedWO.wo] = {
+    _followup: selectedWO._followup,
+    _catId:    selectedWO._catId
+  }
+  saveWOTags()
+
+  // Visual feedback
+  const btn = document.querySelector('.detail-actions .btn-primary')
+  if (btn) {
+    const orig = btn.textContent
+    btn.textContent  = '✓ Saved'
+    btn.style.background = 'var(--green)'
+    setTimeout(() => { btn.textContent = orig; btn.style.background = '' }, 1500)
+  }
+
+  renderWOList()
+}
+
 // =====================
 // BROWSER CONTROLS
 // =====================
@@ -846,13 +1197,38 @@ function navTo(url) {
 
 // Track URL changes
 document.addEventListener('DOMContentLoaded', () => {
-  const view = document.getElementById('appfolio-view');
+  const view = document.getElementById('appfolio-view')
   if (view) {
-    view.addEventListener('did-navigate',         e => { document.getElementById('af-url').value = e.url; });
-    view.addEventListener('did-navigate-in-page', e => { document.getElementById('af-url').value = e.url; });
-    view.addEventListener('did-stop-loading',     ()  => { tryAutoFill(view); });
+    view.addEventListener('did-navigate',         e => { document.getElementById('af-url').value = e.url })
+    view.addEventListener('did-navigate-in-page', e => { document.getElementById('af-url').value = e.url })
+    view.addEventListener('did-start-loading', () => {
+      const active = document.querySelector('.af-tab.active')
+      if (active) active.classList.add('loading')
+    })
+    view.addEventListener('did-stop-loading', () => {
+      document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('loading'))
+      const active = document.querySelector('.af-tab.active')
+      if (active) active.dataset.url = view.getURL()
+      tryAutoFill(view)
+    })
   }
-});
+
+  updateTabArrows()
+
+  // Poll until window.halq is injected by preload before using any IPC
+  function waitForHalq (fn, attempts) {
+    if (window.halq) { fn(); return }
+    if (attempts <= 0) { console.error('[HALQ] window.halq never became available'); return }
+    setTimeout(() => waitForHalq(fn, attempts - 1), 50)
+  }
+
+  waitForHalq(() => {
+    console.log('[HALQ] window.halq ready')
+    window.halq.onNewTab(url => addTab(url))
+    loadCategories()
+    loadWOTags()
+  }, 40) // 40 x 50ms = 2 seconds max wait
+})
 
 // =====================
 // WEBVIEW AUTO-FILL
@@ -992,7 +1368,8 @@ async function tryAutoFill (view) {
           passField.dispatchEvent(new Event('change', { bubbles: true }))
           passField.dispatchEvent(new Event('blur',   { bubbles: true }))
 
-          if (submitBtn) setTimeout(() => submitBtn.click(), 600)
+          // Do not auto-submit — Appfolio flags it as bot activity (401)
+          // Fields are filled; user presses Enter or clicks Login
           return 'filled'
         }
 
@@ -1013,26 +1390,75 @@ async function tryAutoFill (view) {
 // =====================
 // TABS
 // =====================
-let tabCount = 1;
-function addTab() {
-  tabCount++;
-  const tabs = document.getElementById('af-tabs');
-  const tab = document.createElement('div');
-  tab.className = 'af-tab';
-  tab.innerHTML = `<span>New Tab ${tabCount}</span><span class="af-tab-close" onclick="removeTab(this)">✕</span>`;
-  tab.onclick = function(e) {
-    if (e.target.classList.contains('af-tab-close')) return;
-    document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-  };
-  tabs.insertBefore(tab, tabs.lastElementChild);
-  document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
+// TABS
+// All tabs share the single webview — same persist:appfolio session/cookies throughout.
+// Each tab stores its URL in dataset.url. Clicking switches the webview to that URL.
+// =====================
+let tabCount = 1
+
+function switchToTab (tab) {
+  document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'))
+  tab.classList.add('active')
+  const url = tab.dataset.url
+  if (url) navTo(url)
+  updateTabArrows()
 }
-function removeTab(btn) {
-  btn.parentElement.remove();
-  const tabs = document.querySelectorAll('.af-tab');
-  if (tabs.length) tabs[tabs.length - 1].classList.add('active');
+
+function addTab (url) {
+  tabCount++
+  let label = 'New Tab ' + tabCount
+  try { if (url) label = new URL(url).hostname.replace('www.', '') } catch (_) {}
+
+  const tabsEl = document.getElementById('af-tabs')
+  const tab    = document.createElement('div')
+  tab.className   = 'af-tab'
+  tab.dataset.url = url || ''
+  tab.innerHTML   = `<span title="${url || ''}">${label}</span><span class="af-tab-close" onclick="closeTab(event,this)">✕</span>`
+  tab.onclick     = function (e) {
+    if (e.target.classList.contains('af-tab-close')) return
+    switchToTab(tab)
+    tab.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }
+  // Insert before the + button
+  tabsEl.insertBefore(tab, tabsEl.lastElementChild)
+  switchToTab(tab)
+  tab.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  updateTabArrows()
+}
+
+function closeTab (e, btn) {
+  e.stopPropagation()
+  const tab      = btn.parentElement
+  const tabsEl   = document.getElementById('af-tabs')
+  const allTabs  = Array.from(tabsEl.querySelectorAll('.af-tab'))
+  const idx      = allTabs.indexOf(tab)
+  const wasActive = tab.classList.contains('active')
+  tab.remove()
+
+  if (wasActive) {
+    // Activate nearest remaining tab
+    const remaining = Array.from(tabsEl.querySelectorAll('.af-tab'))
+    if (remaining.length) {
+      const next = remaining[Math.min(idx, remaining.length - 1)]
+      switchToTab(next)
+    }
+  }
+  updateTabArrows()
+}
+
+function scrollTabs (dir) {
+  const tabsEl = document.getElementById('af-tabs')
+  tabsEl.scrollBy({ left: dir * 120, behavior: 'smooth' })
+  setTimeout(updateTabArrows, 200)
+}
+
+function updateTabArrows () {
+  const tabsEl = document.getElementById('af-tabs')
+  const left   = document.getElementById('tabs-arrow-left')
+  const right  = document.getElementById('tabs-arrow-right')
+  if (!left || !right) return
+  left.classList.toggle('disabled',  tabsEl.scrollLeft <= 0)
+  right.classList.toggle('disabled', tabsEl.scrollLeft + tabsEl.clientWidth >= tabsEl.scrollWidth - 2)
 }
 
 function toggleDetail() { document.getElementById('wo-detail').classList.toggle('open'); }
@@ -1285,17 +1711,18 @@ let pinBuffer = ''
 async function openSettings () {
   const result = await window.halq.pinLoad()
   if (!result.ok) {
-    // No PIN set — open directly
     document.getElementById('settings-overlay').classList.add('open')
     return
   }
-  // PIN exists — show lock modal
   pinBuffer = ''
   updatePinDots()
-  document.getElementById('pin-error').textContent = ''
-  document.getElementById('pin-sub').textContent   = 'Enter your PIN to continue'
+  document.getElementById('pin-error').textContent    = ''
+  document.getElementById('pin-sub').textContent      = 'Enter your PIN to continue'
+  document.getElementById('pin-keyboard-input').value = ''
+  document.getElementById('pin-keyboard-input').classList.remove('error')
   document.getElementById('pin-overlay').classList.add('open')
   document.getElementById('pin-overlay')._savedPin = result.pin
+  setTimeout(() => document.getElementById('pin-keyboard-input').focus(), 50)
 }
 
 function pinKey (key) {
@@ -1307,10 +1734,26 @@ function pinKey (key) {
   if (key === 'back') {
     pinBuffer = pinBuffer.slice(0, -1)
     updatePinDots()
+    syncPinInput()
     return
   }
   if (pinBuffer.length >= 4) return
   pinBuffer += key
+  updatePinDots()
+  syncPinInput()
+  if (pinBuffer.length === 4) verifyPin()
+}
+
+function syncPinInput () {
+  // Keep keyboard input field in sync with pinBuffer so both inputs reflect same state
+  const input = document.getElementById('pin-keyboard-input')
+  if (input) input.value = pinBuffer
+}
+
+function onPinKeyboardInput (input) {
+  // Strip non-digits
+  input.value = input.value.replace(/\D/g, '').slice(0, 4)
+  pinBuffer = input.value
   updatePinDots()
   if (pinBuffer.length === 4) verifyPin()
 }
@@ -1330,15 +1773,17 @@ async function verifyPin () {
     document.getElementById('settings-overlay').classList.add('open')
     pinBuffer = ''
   } else {
-    for (let i = 0; i < 4; i++) {
-      const dot = document.getElementById('pd' + i)
-      dot.classList.add('error')
-    }
+    for (let i = 0; i < 4; i++) document.getElementById('pd' + i).classList.add('error')
     document.getElementById('pin-error').textContent = 'Incorrect PIN'
+    const kbInput = document.getElementById('pin-keyboard-input')
+    kbInput.classList.add('error')
     setTimeout(() => {
       pinBuffer = ''
       updatePinDots()
       document.getElementById('pin-error').textContent = ''
+      kbInput.classList.remove('error')
+      kbInput.value = ''
+      kbInput.focus()
     }, 900)
   }
 }
@@ -1433,10 +1878,452 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // =====================
+// FOLLOW-UP DATE
+// =====================
+let currentFollowup = null
+
+function getNextFriday (fromDate, weeksAhead) {
+  const d = new Date(fromDate)
+  const day = d.getDay() // 0=Sun,5=Fri
+  // Days until Friday of this week (or next if already past Friday)
+  let diff = 5 - day
+  if (diff <= 0) diff += 7  // already Friday or past — go to next week's Friday
+  diff += (weeksAhead || 0) * 7
+  d.setDate(d.getDate() + diff)
+  return d
+}
+
+function fmtDate (d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function fmtDateISO (d) {
+  return d.toISOString().split('T')[0]
+}
+
+function initFollowupDates () {
+  const today = new Date()
+  today.setHours(0,0,0,0)
+
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+  const nextday  = new Date(today); nextday.setDate(today.getDate() + 2)
+  const thisweek = getNextFriday(today, 0)
+  const nextweek = getNextFriday(today, 1)
+
+  document.getElementById('fo-tomorrow').textContent = fmtDate(tomorrow)
+  document.getElementById('fo-nextday').textContent  = fmtDate(nextday)
+  document.getElementById('fo-thisweek').textContent = fmtDate(thisweek) + ' (Fri)'
+  document.getElementById('fo-nextweek').textContent = fmtDate(nextweek) + ' (Fri)'
+}
+
+function toggleFollowup () {
+  const dd      = document.getElementById('followup-dropdown')
+  const trigger = document.getElementById('followup-trigger')
+  const isOpen  = dd.classList.contains('open')
+  closeAllDropdowns()
+  if (!isOpen) {
+    dd.classList.add('open')
+    initFollowupDates()
+    const rect = trigger.getBoundingClientRect()
+    dd.style.width = rect.width + 'px'
+    const spaceBelow = window.innerHeight - rect.bottom
+    if (spaceBelow < 280 && rect.top > 280) {
+      dd.style.top    = ''
+      dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px'
+    } else {
+      dd.style.bottom = ''
+      dd.style.top    = (rect.bottom + 4) + 'px'
+    }
+    dd.style.left = rect.left + 'px'
+  }
+}
+
+function setFollowup (key) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  let date
+
+  if (key === 'tomorrow') {
+    date = new Date(today); date.setDate(today.getDate() + 1)
+  } else if (key === 'nextday') {
+    date = new Date(today); date.setDate(today.getDate() + 2)
+  } else if (key === 'thisweek') {
+    date = getNextFriday(today, 0)
+  } else if (key === 'nextweek') {
+    date = getNextFriday(today, 1)
+  } else if (key === 'custom') {
+    // Toggle custom input row — don't close dropdown
+    const row = document.getElementById('followup-custom-row')
+    row.classList.toggle('open')
+    if (row.classList.contains('open')) {
+      document.getElementById('followup-custom-input').focus()
+    }
+    return
+  }
+
+  currentFollowup = fmtDateISO(date)
+  document.getElementById('followup-val').textContent = fmtDate(date)
+
+  // Mark active
+  document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'))
+  event.currentTarget.classList.add('active')
+  closeAllDropdowns()
+}
+
+function setFollowupCustom (isoVal) {
+  if (!isoVal) return
+  const d = new Date(isoVal + 'T00:00:00')
+  currentFollowup = isoVal
+  document.getElementById('followup-val').textContent = fmtDate(d)
+  document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'))
+  closeAllDropdowns()
+}
+
+// =====================
+// CATEGORIES
+// =====================
+const CAT_COLORS = [
+  // Reds / Pinks
+  '#f87171','#ef4444','#dc2626','#fca5a5',
+  '#f472b6','#ec4899','#db2777','#fbcfe8',
+  // Oranges / Yellows
+  '#fb923c','#f97316','#ea580c','#fed7aa',
+  '#fbbf24','#f59e0b','#d97706','#fde68a',
+  // Greens
+  '#4ade80','#22c55e','#16a34a','#bbf7d0',
+  '#34d399','#10b981','#059669','#a7f3d0',
+  // Teals / Cyans
+  '#22d3ee','#06b6d4','#0891b2','#a5f3fc',
+  '#2dd4bf','#14b8a6','#0d9488','#99f6e4',
+  // Blues
+  '#60a5fa','#3b82f6','#2563eb','#bfdbfe',
+  '#38bdf8','#0ea5e9','#0284c7','#bae6fd',
+  // Purples / Indigos
+  '#818cf8','#6366f1','#4f46e5','#c7d2fe',
+  '#a78bfa','#8b5cf6','#7c3aed','#ddd6fe',
+  '#c084fc','#a855f7','#9333ea','#e9d5ff',
+  // Neutrals
+  '#94a3b8','#64748b','#475569','#cbd5e1',
+  '#9ca3af','#6b7280','#4b5563','#d1d5db',
+  '#a16207','#854d0e','#78350f','#fef08a',
+]
+
+let categories = [
+  { id: 1, name: 'Low Monitoring', color: '#60a5fa' },
+  { id: 2, name: 'For Invoice',    color: '#fbbf24' },
+  { id: 3, name: 'Urgent',         color: '#f87171' }
+]
+let nextCatId = 4
+
+// =====================
+// WO TAGS PERSISTENCE
+// Keyed by WO number — survives Ctrl+R and full restarts
+// =====================
+let woTags = {} // { 'WO#': { _followup, _catId } }
+
+async function loadWOTags () {
+  try {
+    const result = await window.halq.woTagsLoad()
+    if (result.ok && result.tags) {
+      woTags = result.tags
+      // Apply saved tags back onto wos array
+      wos.forEach(w => {
+        if (woTags[w.wo]) {
+          w._followup = woTags[w.wo]._followup || null
+          w._catId    = woTags[w.wo]._catId    || null
+        }
+      })
+      renderWOList()
+    }
+  } catch (e) { console.error('[TAGS] load error:', e) }
+}
+
+async function saveWOTags () {
+  try {
+    await window.halq.woTagsSave(woTags)
+  } catch (e) { console.error('[TAGS] save error:', e) }
+}
+
+async function loadCategories () {
+  try {
+    const result = await window.halq.categoriesLoad()
+    console.log('[CAT] load result:', JSON.stringify(result))
+    if (result.ok && result.categories.length) {
+      categories = result.categories
+      nextCatId  = Math.max(...categories.map(c => c.id)) + 1
+      console.log('[CAT] loaded', categories.length, 'categories')
+    } else {
+      console.log('[CAT] no saved categories found — using defaults')
+    }
+  } catch (e) {
+    console.error('[CAT] load error:', e)
+  }
+}
+
+async function saveCategories () {
+  try {
+    console.log('[CAT] saving', categories.length, 'categories:', categories.map(c => c.name))
+    const result = await window.halq.categoriesSave(categories)
+    console.log('[CAT] save result:', JSON.stringify(result))
+  } catch (e) {
+    console.error('[CAT] save error:', e)
+  }
+}
+let selectedCatId = null   // for current WO
+let catMgrSelected = null  // for manager modal
+
+function getCatById (id) { return categories.find(c => c.id === id) || null }
+
+function renderCatDropdown () {
+  const dd = document.getElementById('cat-dropdown')
+  const activeCat = getCatById(selectedCatId)
+
+  dd.innerHTML = `
+    <div class="cat-opt cat-opt-clear" onclick="selectCat(null)">
+      <div class="cat-opt-dot" style="background:var(--border2)"></div>
+      <span>Clear tag</span>
+    </div>
+    <div class="cat-sep"></div>
+    ${categories.map(c => `
+      <div class="cat-opt ${selectedCatId === c.id ? 'active' : ''}" onclick="selectCat(${c.id})">
+        <div class="cat-opt-dot" style="background:${c.color}"></div>
+        <span>${c.name}</span>
+      </div>
+    `).join('')}
+    <div class="cat-sep"></div>
+    <div class="cat-opt cat-opt-manage" onclick="openCatMgr()">
+      <span>⚙ All Categories...</span>
+    </div>
+  `
+}
+
+function toggleCatDropdown () {
+  const dd      = document.getElementById('cat-dropdown')
+  const trigger = document.getElementById('cat-trigger')
+  const isOpen  = dd.classList.contains('open')
+  closeAllDropdowns()
+  if (!isOpen) {
+    renderCatDropdown()
+    dd.classList.add('open')
+    // Position fixed dropdown aligned to trigger
+    const rect = trigger.getBoundingClientRect()
+    dd.style.width = rect.width + 'px'
+    // Decide whether to open upward or downward
+    const spaceBelow = window.innerHeight - rect.bottom
+    if (spaceBelow < 300 && rect.top > 300) {
+      // Open upward
+      dd.style.top    = ''
+      dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px'
+    } else {
+      dd.style.bottom = ''
+      dd.style.top    = (rect.bottom + 4) + 'px'
+    }
+    dd.style.left = rect.left + 'px'
+  }
+}
+
+function selectCat (id) {
+  selectedCatId = id
+  const cat = getCatById(id)
+  const dot   = document.getElementById('cat-trigger-dot')
+  const label = document.getElementById('cat-trigger-label')
+  if (cat) {
+    dot.style.background = cat.color
+    label.textContent    = cat.name
+  } else {
+    dot.style.background = 'transparent'
+    label.textContent    = '— None —'
+  }
+  // Update WO item color in list
+  if (selectedWO) selectedWO._catId = id
+  closeAllDropdowns()
+}
+
+// =====================
+// CLOSE ALL DROPDOWNS (click-outside helper)
+// =====================
+function closeAllDropdowns () {
+  document.getElementById('followup-dropdown').classList.remove('open')
+  document.getElementById('followup-custom-row').classList.remove('open')
+  document.getElementById('cat-dropdown').classList.remove('open')
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.followup-wrap')) {
+    document.getElementById('followup-dropdown').classList.remove('open')
+    document.getElementById('followup-custom-row').classList.remove('open')
+  }
+  if (!e.target.closest('.cat-wrap')) {
+    document.getElementById('cat-dropdown').classList.remove('open')
+  }
+})
+
+// =====================
+// CATEGORY MANAGER MODAL
+// =====================
+let catMgrEditId   = null
+let catMgrEditColor = null
+
+function openCatMgr () {
+  closeAllDropdowns()
+  catMgrEditId    = null
+  catMgrEditColor = null
+  renderCatMgrList()
+  showCatMgrPlaceholder()
+  document.getElementById('catmgr-new-input').value = ''
+  document.getElementById('catmgr-status').className = 'catmgr-status'
+  document.getElementById('catmgr-overlay').classList.add('open')
+}
+
+function closeCatMgr () {
+  document.getElementById('catmgr-overlay').classList.remove('open')
+  renderCatDropdown()
+}
+
+function catmgrClickOutside (e) {
+  if (e.target === document.getElementById('catmgr-overlay')) closeCatMgr()
+}
+
+function renderCatMgrList () {
+  const list = document.getElementById('catmgr-list')
+  list.innerHTML = categories.map(c => `
+    <div class="catmgr-item ${catMgrEditId === c.id ? 'selected' : ''}"
+         onclick="catmgrSelect(${c.id})">
+      <div class="catmgr-item-dot" style="background:${c.color}"></div>
+      <span>${c.name}</span>
+    </div>
+  `).join('') || '<div style="padding:10px;font-size:11px;color:var(--text3)">No categories yet</div>'
+}
+
+function catmgrSelect (id) {
+  catMgrEditId = id
+  const cat = getCatById(id)
+  if (!cat) return
+  catMgrEditColor = cat.color
+  document.getElementById('catmgr-rename-input').value = cat.name
+  renderCatMgrList()
+  renderCatMgrColors()
+  document.getElementById('catmgr-placeholder').style.display  = 'none'
+  document.getElementById('catmgr-edit-panel').style.display   = 'flex'
+  document.getElementById('catmgr-status').className = 'catmgr-status'
+}
+
+function renderCatMgrColors () {
+  const wrap = document.getElementById('catmgr-colors')
+  wrap.innerHTML = CAT_COLORS.map(c => `
+    <div class="catmgr-color ${catMgrEditColor === c ? 'selected' : ''}"
+         style="background:${c}"
+         onclick="catmgrPickColor('${c}')">
+    </div>
+  `).join('')
+}
+
+function catmgrPickColor (color) {
+  catMgrEditColor = color
+  renderCatMgrColors()
+}
+
+function showCatMgrPlaceholder () {
+  catMgrEditId = null
+  document.getElementById('catmgr-placeholder').style.display = 'block'
+  document.getElementById('catmgr-edit-panel').style.display  = 'none'
+}
+
+function catmgrSaveEdit () {
+  const name = document.getElementById('catmgr-rename-input').value.trim()
+  const status = document.getElementById('catmgr-status')
+  if (!name) { catmgrStatus('Name cannot be empty', false); return }
+  if (!catMgrEditColor) { catmgrStatus('Pick a color', false); return }
+  const cat = getCatById(catMgrEditId)
+  if (!cat) return
+  cat.name  = name
+  cat.color = catMgrEditColor
+  renderCatMgrList()
+  catmgrStatus('✓ Saved', true)
+  saveCategories()
+  if (selectedCatId === catMgrEditId) selectCat(catMgrEditId)
+}
+
+function catmgrDelete () {
+  const idx = categories.findIndex(c => c.id === catMgrEditId)
+  if (idx === -1) return
+  categories.splice(idx, 1)
+  if (selectedCatId === catMgrEditId) selectCat(null)
+  showCatMgrPlaceholder()
+  renderCatMgrList()
+  saveCategories()
+}
+
+function catmgrAdd () {
+  const input = document.getElementById('catmgr-new-input')
+  const name  = input.value.trim()
+  if (!name) return
+  if (categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    catmgrStatus('Already exists', false); return
+  }
+  // Pick first color not already in use
+  const usedColors = new Set(categories.map(c => c.color))
+  const color = CAT_COLORS.find(c => !usedColors.has(c)) || CAT_COLORS[categories.length % CAT_COLORS.length]
+  categories.push({ id: nextCatId++, name, color })
+  input.value = ''
+  renderCatMgrList()
+  catmgrStatus('✓ Added: ' + name, true)
+  saveCategories()
+}
+
+function catmgrStatus (msg, ok) {
+  const el = document.getElementById('catmgr-status')
+  el.textContent = msg
+  el.className   = 'catmgr-status ' + (ok ? 'ok' : 'err')
+  setTimeout(() => { el.className = 'catmgr-status' }, 2500)
+}
+
+// =====================
 // INIT
 // =====================
 loadCredsToUI()
 loadExcelData().catch(() => renderWOList()) // fallback to sample data if Excel unavailable
 </script>
+<!-- CATEGORY MANAGER MODAL -->
+<div class="catmgr-overlay" id="catmgr-overlay" onclick="catmgrClickOutside(event)">
+  <div class="catmgr-modal">
+    <div class="catmgr-header">
+      <span class="catmgr-title">🏷 Manage Categories</span>
+      <span class="catmgr-close" onclick="closeCatMgr()">✕</span>
+    </div>
+    <div class="catmgr-body">
+      <!-- LEFT: list -->
+      <div class="catmgr-list" id="catmgr-list"></div>
+      <!-- RIGHT: actions -->
+      <div class="catmgr-actions" id="catmgr-actions">
+        <div id="catmgr-placeholder" style="color:var(--text3);font-size:11px;margin:auto;text-align:center">
+          Select a category<br>to rename or delete it
+        </div>
+        <div id="catmgr-edit-panel" style="display:none;flex-direction:column;gap:12px;flex:1">
+          <div>
+            <div class="catmgr-field-label">Name</div>
+            <input class="catmgr-input" id="catmgr-rename-input" type="text" placeholder="Category name">
+          </div>
+          <div>
+            <div class="catmgr-field-label">Color</div>
+            <div class="catmgr-colors" id="catmgr-colors"></div>
+          </div>
+          <div class="catmgr-status" id="catmgr-status"></div>
+          <div class="catmgr-btn-row">
+            <button class="catmgr-btn primary" onclick="catmgrSaveEdit()">💾 Save</button>
+            <button class="catmgr-btn danger"  onclick="catmgrDelete()">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- FOOTER: new category -->
+    <div class="catmgr-footer">
+      <input class="catmgr-new-input" id="catmgr-new-input" type="text"
+        placeholder="New category name..." maxlength="40"
+        onkeydown="if(event.key==='Enter') catmgrAdd()">
+      <button class="catmgr-btn primary" style="flex:none;padding:6px 14px" onclick="catmgrAdd()">+ Add</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

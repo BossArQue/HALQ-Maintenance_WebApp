@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, safeStorage, session, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, session, dialog, shell } = require('electron')
 const path     = require('path')
 const fs       = require('fs')
 const { exec } = require('child_process')
@@ -9,6 +9,7 @@ const USER_DATA_DIR = path.join(__dirname, 'userdata')
 const CRED_PATH     = path.join(USER_DATA_DIR, 'creds.enc')
 
 app.setPath('userData', USER_DATA_DIR)
+app.setPath('sessionData', path.join(USER_DATA_DIR, 'session'))
 
 let win
 
@@ -99,6 +100,21 @@ function createWindow () {
   })
 
   win.setMenuBarVisibility(false)
+
+  // Block new BrowserWindow spawns from the main window itself.
+  // Without this, Electron creates a second HALQ app window instead of a tab.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    console.log('[HALQ] main window setWindowOpenHandler fired — url:', url)
+    if (url.startsWith('mailto:')) {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    }
+    if (url && url !== 'about:blank') {
+      win.webContents.send('open-new-tab', url)
+    }
+    return { action: 'deny' }
+  })
+
   win.loadFile('index.html')
 }
 
@@ -136,6 +152,59 @@ const AM_COL = {
   vendor:   12,  // L — Vendor name
   notified: 15   // O — Tenant Notified (Yes/No)
 }
+
+// =====================
+// WO TAGS PERSISTENCE
+// Saves/loads per-WO followup dates and category assignments
+// keyed by WO number to userdata/wo-tags.json
+// =====================
+const WO_TAGS_PATH = path.join(USER_DATA_DIR, 'wo-tags.json')
+
+ipcMain.handle('wo-tags-save', async (_event, tags) => {
+  try {
+    fs.mkdirSync(path.dirname(WO_TAGS_PATH), { recursive: true })
+    fs.writeFileSync(WO_TAGS_PATH, JSON.stringify(tags, null, 2), 'utf8')
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('wo-tags-load', async () => {
+  try {
+    if (!fs.existsSync(WO_TAGS_PATH)) return { ok: false }
+    const data = JSON.parse(fs.readFileSync(WO_TAGS_PATH, 'utf8'))
+    return { ok: true, tags: data }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+// =====================
+// CATEGORIES PERSISTENCE
+// Saves/loads category list to userdata/categories.json
+// =====================
+const CAT_PATH = path.join(USER_DATA_DIR, 'categories.json')
+
+ipcMain.handle('categories-save', async (_event, categories) => {
+  try {
+    fs.mkdirSync(path.dirname(CAT_PATH), { recursive: true })
+    fs.writeFileSync(CAT_PATH, JSON.stringify(categories, null, 2), 'utf8')
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('categories-load', async () => {
+  try {
+    if (!fs.existsSync(CAT_PATH)) return { ok: false }
+    const data = JSON.parse(fs.readFileSync(CAT_PATH, 'utf8'))
+    return { ok: true, categories: data }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
 
 // =====================
 // NATIVE FILE DIALOG
@@ -346,11 +415,23 @@ function setupAppfolioSession () {
 }
 
 // =====================
-// WEBVIEW AUTO-LOGIN
-// Auto-fill is handled renderer-side in index.html via webview.executeJavaScript
-// which works correctly with contextIsolation. Main process executeJavaScript
-// into a webview is blocked when contextIsolation is enabled.
+// WEBVIEW LINK HANDLING
 // =====================
+app.on('web-contents-created', (_e, contents) => {
+  const type = contents.getType()
+
+  if (type !== 'webview') return
+
+  contents.setWindowOpenHandler(({ url }) => {
+    console.log('[HALQ] webview setWindowOpenHandler fired — url:', url)
+    if (url.startsWith('mailto:')) {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    }
+    if (win && !win.isDestroyed()) win.webContents.send('open-new-tab', url)
+    return { action: 'deny' }
+  })
+})
 
 // =====================
 // IPC

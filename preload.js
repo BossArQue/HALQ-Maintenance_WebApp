@@ -25,6 +25,17 @@ contextBridge.exposeInMainWorld('halq', {
   macroRun:    (macroName)      => ipcRenderer.invoke('macro-run', macroName),
 
   // --- Menu bar ---
-  toggleMenuBar: (visible) => ipcRenderer.send('toggle-menubar', visible)
+  toggleMenuBar: (visible) => ipcRenderer.send('toggle-menubar', visible),
+
+  // --- WO Tags ---
+  woTagsSave: (tags) => ipcRenderer.invoke('wo-tags-save', tags),
+  woTagsLoad: ()     => ipcRenderer.invoke('wo-tags-load'),
+
+  // --- Categories ---
+  categoriesSave: (cats) => ipcRenderer.invoke('categories-save', cats),
+  categoriesLoad: ()     => ipcRenderer.invoke('categories-load'),
+
+  // --- New tab from webview link ---
+  onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_e, url) => callback(url))
 
 })
