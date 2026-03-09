@@ -2,23 +2,37 @@ const { app, BrowserWindow, ipcMain, safeStorage, session, dialog, shell } = req
 const path     = require('path')
 const fs       = require('fs')
 const https    = require('https')
-const { exec } = require('child_process')
+const { exec, execFile } = require('child_process')
 const XLSX     = require('xlsx')
 
 // =====================
 // UPDATER CONFIG
 // Set UPDATE_URL to wherever you host version.json + app.asar
-// e.g. 'https://raw.githubusercontent.com/yourname/halq/main/releases'
 // =====================
-const APP_VERSION  = '1.0.0'           // bump this when you push a new build
-const UPDATE_URL = 'https://raw.githubusercontent.com/BossArQue/HALQ-Maintenance/main/releases'
+const APP_VERSION = '1.0.0'
+const UPDATE_URL  = 'https://raw.githubusercontent.com/BossArQue/HALQ-Maintenance/main/releases'
 
-// Derive paths from project root — no hardcoded absolute paths in source
-const USER_DATA_DIR = path.join(__dirname, 'userdata')
+// =====================
+// MULTI-PROFILE
+// Parse --profile=<id> from argv.  If not supplied, fall back to 'default'.
+// All data paths are scoped under userdata/profiles/<profileId>/
+// =====================
+const BASE_DIR    = path.join(__dirname, 'userdata')
+const PROFILES_DB = path.join(BASE_DIR, 'profiles.json')   // shared across all profiles
+
+const _profileArg = process.argv.find(a => a.startsWith('--profile='))
+const PROFILE_ID  = _profileArg ? _profileArg.split('=')[1] : 'default'
+
+const USER_DATA_DIR = path.join(BASE_DIR, 'profiles', PROFILE_ID)
 const CRED_PATH     = path.join(USER_DATA_DIR, 'creds.enc')
 
-app.setPath('userData', USER_DATA_DIR)
-app.setPath('sessionData', path.join(USER_DATA_DIR, 'session'))
+// Electron's own userData (cache, devTools) scoped per profile too
+app.setPath('userData',     path.join(USER_DATA_DIR, 'electron'))
+app.setPath('sessionData',  path.join(USER_DATA_DIR, 'session'))
+
+// Session partition names are scoped so two profiles never share cookies
+const AF_PARTITION      = `persist:appfolio-${PROFILE_ID}`
+const OUTLOOK_PARTITION = `persist:outlook-${PROFILE_ID}`
 
 let win
 
@@ -54,6 +68,25 @@ ipcMain.handle('creds-clear', async () => {
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err.message }
+  }
+})
+
+// =====================
+// PROFILE INFO
+// Lets the renderer know which profile it's running as
+// =====================
+ipcMain.handle('profile-info', () => {
+  try {
+    let name  = PROFILE_ID
+    let color = null
+    if (fs.existsSync(PROFILES_DB)) {
+      const db = JSON.parse(fs.readFileSync(PROFILES_DB, 'utf8'))
+      const p  = (db.profiles || []).find(x => x.id === PROFILE_ID)
+      if (p) { name = p.name; color = p.color || null }
+    }
+    return { ok: true, id: PROFILE_ID, name, color }
+  } catch (err) {
+    return { ok: false, id: PROFILE_ID, name: PROFILE_ID }
   }
 })
 
@@ -94,24 +127,35 @@ ipcMain.handle('pin-clear', async () => {
 // WINDOW
 // =====================
 function createWindow () {
+  // Load profile display name for window title
+  let profileName = PROFILE_ID
+  try {
+    if (fs.existsSync(PROFILES_DB)) {
+      const db = JSON.parse(fs.readFileSync(PROFILES_DB, 'utf8'))
+      const p  = (db.profiles || []).find(x => x.id === PROFILE_ID)
+      if (p) profileName = p.name
+    }
+  } catch (_) {}
+
   win = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 900,
     minHeight: 600,
     frame: true,
+    title: profileName === 'default' ? 'HALQ' : `HALQ — ${profileName}`,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: true
+      webviewTag: true,
+      additionalArguments: [`--halq-profile=${PROFILE_ID}`, `--halq-profile-name=${profileName}`]
     }
   })
 
   win.setMenuBarVisibility(false)
 
   // Block new BrowserWindow spawns from the main window itself.
-  // Without this, Electron creates a second HALQ app window instead of a tab.
   win.webContents.setWindowOpenHandler(({ url }) => {
     console.log('[HALQ] main window setWindowOpenHandler fired — url:', url)
     if (url.startsWith('mailto:')) {
@@ -130,8 +174,6 @@ function createWindow () {
 // =====================
 // CONSTANTS
 // =====================
-const AF_PARTITION      = 'persist:appfolio'
-const OUTLOOK_PARTITION = 'persist:outlook'
 const ALLOWED_PERMISSION_SET = new Set([
   'media', 'geolocation', 'notifications',
   'fullscreen', 'pointerLock', 'openExternal'

@@ -54,6 +54,9 @@ contextBridge.exposeInMainWorld('halq', {
   settingsLoad: ()       => ipcRenderer.invoke('settings-load'),
   settingsSave: (data)   => ipcRenderer.invoke('settings-save', data),
 
+  // --- Profile info (which profile this window is running as) ---
+  profileInfo: () => ipcRenderer.invoke('profile-info'),
+
   // --- Auto-updater ---
   updateCheck:    ()         => ipcRenderer.invoke('update-check'),
   updateDownload: (asarUrl)  => ipcRenderer.invoke('update-download', asarUrl),

@@ -966,8 +966,15 @@
       <div class="logo-icon">H</div>
       <div>
         <div class="logo-text">HALQ</div>
-        <div class="logo-ver" id="app-version-label">v0.1 ALPHA</div>
+        <div class="logo-ver" id="app-version-label">v1.0.0</div>
       </div>
+      <div id="profile-badge" style="
+        display:none; margin-left:auto; padding: 2px 8px;
+        border-radius: 6px; font-size: 9px; font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap; max-width: 100px;
+        overflow: hidden; text-overflow: ellipsis;
+      "></div>
     </div>
     <div class="sidebar-nav">
       <div class="nav-section">
@@ -1653,6 +1660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[HALQ] window.halq ready')
     window.halq.onNewTab(url => addTab(url))
     loadCategories()
+    loadProfileInfo()
     // loadWOTags called after loadExcelData in _halqReady so tags apply to real data
     checkStartupRequirements()
     // Check for updates 3 seconds after startup — non-blocking
@@ -2273,6 +2281,26 @@ async function checkStartupRequirements () {
       showSetupPrompt('excel')
     }
   } catch (e) { console.error('[STARTUP] check error:', e) }
+}
+
+
+// =====================
+// PROFILE INFO
+// =====================
+async function loadProfileInfo () {
+  try {
+    const info  = await window.halq.profileInfo()
+    const badge = document.getElementById('profile-badge')
+    if (!info.ok || info.id === 'default') return
+    if (badge) {
+      const color = info.color || 'var(--accent)'
+      badge.textContent      = info.name
+      badge.style.background = color + '22'
+      badge.style.border     = `1px solid ${color}55`
+      badge.style.color      = color
+      badge.style.display    = ''
+    }
+  } catch (e) { console.warn('[PROFILE] info load failed:', e) }
 }
 
 // =====================

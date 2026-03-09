@@ -1,20 +1,61 @@
 {
-  "name": "halq-maintenance",
+  "name": "halq",
   "version": "1.0.0",
-  "description": "HALQ - Maintenance Command Center",
+  "description": "HALQ Maintenance Command Center",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "electron": "^40.8.0"
+    "start":          "electron .",
+    "start:launcher": "electron launcher/main.js",
+    "build":          "electron-builder --win",
+    "build:dir":      "electron-builder --win --dir"
   },
   "dependencies": {
-    "imap": "^0.8.17",
-    "mailparser": "^3.9.3",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId":       "com.bossarque.halq",
+    "productName": "HALQ",
+
+    "directories": {
+      "output": "dist"
+    },
+
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "launcher/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*"
+    ],
+
+    "extraResources": [],
+
+    "asar": true,
+
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico"
+    },
+
+    "nsis": {
+      "oneClick":                       false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon":                  "assets/icon.ico",
+      "uninstallerIcon":                "assets/icon.ico",
+      "createDesktopShortcut":          true,
+      "createStartMenuShortcut":        true,
+      "shortcutName":                   "HALQ"
+    },
+
+    "extraMetadata": {
+      "main": "main.js"
+    }
   }
 }

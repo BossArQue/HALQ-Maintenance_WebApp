@@ -1878,3 +1878,76 @@ Lightweight update system that lets new versions be pushed to all users without 
 - Remote: `https://github.com/BossArQue/HALQ-Maintenance.git`
 - Branch: `main`
 - Initial push includes all source files and documentation
+---
+
+## Session 5 — 2026-03-09
+
+---
+
+### [2026-03-09] Feature — Multi-Profile Full Implementation
+
+#### Architecture
+- All HALQ data is now scoped to `userdata/profiles/<profileId>/`
+- Each profile gets its own: `creds.enc`, `pin.enc`, `settings.json`, `wo-tags.json`, `categories.json`, `notes/`, `session/`, `electron/`
+- Appfolio and Outlook session partitions scoped per profile: `persist:appfolio-<id>`, `persist:outlook-<id>`
+- Shared across all profiles: `userdata/profiles.json` (profile registry)
+
+#### `main.js` — Profile scoping
+- Added `BASE_DIR = userdata/`, `PROFILES_DB = userdata/profiles.json`
+- Added `--profile=<id>` CLI arg parsing; falls back to `'default'` if not supplied
+- `USER_DATA_DIR` now resolves to `userdata/profiles/<PROFILE_ID>/`
+- `app.setPath('userData')` and `app.setPath('sessionData')` scoped per profile
+- `AF_PARTITION` / `OUTLOOK_PARTITION` constants moved to top, scoped as `persist:appfolio-<id>` / `persist:outlook-<id>`
+- `createWindow()`: reads `profiles.json` to get display name → sets window title to `HALQ — <name>`; passes `--halq-profile=<id>` via `additionalArguments`
+- Added `UPDATE_URL` corrected to `https://raw.githubusercontent.com/BossArQue/HALQ-Maintenance/main/releases`
+- Added `profile-info` IPC handler: returns `{ id, name, color }` from profiles.json
+
+#### `preload.js`
+- Added `profileInfo()` bridge → `ipcRenderer.invoke('profile-info')`
+
+#### `index.html`
+- Sidebar logo: added `#profile-badge` — shows profile name with profile color when running in a non-default profile
+- Added `loadProfileInfo()` function: fetches `profileInfo`, styles and shows the badge
+- `waitForHalq` block: calls `loadProfileInfo()` on startup
+
+---
+
+### [2026-03-09] Feature — HALQ Launcher (Real Electron App)
+
+Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html`
+
+#### `launcher/main.js`
+- Reads/writes `userdata/profiles.json` (shared registry)
+- Tracks running processes in a `Map<profileId, {pid}>` with `isAlive(pid)` check
+- `launchProfile(id)`: spawns `electron . --profile=<id>` (dev) or `HALQ.exe --profile=<id>` (prod), detached + unref'd
+- IPC handlers: `profiles-load` (annotates with running state), `profiles-save`, `profile-launch`, `profile-running-state`, `profile-delete-data`
+- Polls every 5s, pushes `running-state-update` event to renderer
+- Window: 520×620, non-resizable below 420×480, menu bar hidden
+
+#### `launcher/preload.js`
+- Exposes `window.launcher`: `profilesLoad`, `profilesSave`, `profileLaunch`, `profileRunningState`, `profileDeleteData`, `onRunningUpdate`
+
+#### `launcher/index.html`
+- Full UI converted from React JSX preview to pure HTML/CSS/JS — zero dependencies
+- Profile cards: avatar (initials + color), name, Appfolio URL, running pill with animated dot
+- Per-card ▶ Launch / ↗ Focus button (Focus when already running)
+- Per-card ⋮ kebab menu: Edit Profile, Delete Profile
+- Select-all checkbox (three-state: unchecked / indeterminate / all-checked)
+- Launch Selected (only shown when ≥1 checked; badge shows count of not-yet-running; disabled if all selected are running)
+- Launch All (disabled when all profiles running)
+- New Profile modal: name, Appfolio URL, 8-color picker
+- Edit Profile modal: pre-filled with existing values
+- Delete Profile confirmation modal: warns about permanent data loss
+- Live running-state updates: `onRunningUpdate` subscription refreshes cards every 5s
+- Bottom status bar: animated green dot when any profile running, status message, clock
+- All profile saves call `persistProfiles()` which strips `running` flag before writing
+
+#### Files Changed
+- `main.js` — profile scoping, profile-info IPC, corrected UPDATE_URL, exec → execFile import
+- `preload.js` — profileInfo bridge added
+- `index.html` — profile badge in sidebar, loadProfileInfo() added
+- `launcher/main.js` — new file
+- `launcher/preload.js` — new file
+- `launcher/index.html` — new file
+- `package.json` — new file: npm scripts, electron-builder config, both entry points
+- `CHANGELOG.md` — this entry

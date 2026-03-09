@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALQ Launcher</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --bg:       #1c1c1c;
+    --surface:  #252525;
+    --surface2: #2e2e2e;
+    --border:   #3a3a3a;
+    --border2:  #484848;
+    --accent:   #5b9cf6;
+    --accent2:  #a78bfa;
+    --green:    #4ade80;
+    --red:      #f87171;
+    --orange:   #fb923c;
+    --text:     #f0f0f0;
+    --text2:    #a0a0a0;
+    --text3:    #666666;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  button { transition: filter 0.1s; cursor: pointer; font-family: inherit; }
+  button:not(:disabled):hover { filter: brightness(1.14); }
+  button:disabled { cursor: not-allowed; opacity: 0.45; }
+  input { font-family: inherit; }
+  input:focus { outline: none; border-color: var(--accent) !important; }
+
+  /* ── TITLEBAR ── */
+  .titlebar {
+    height: 36px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 14px; gap: 8px; flex-shrink: 0;
+  }
+  .tb-logo {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 11px; color: #fff;
+  }
+  .tb-halq {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+  }
+  .tb-launcher {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--text3); margin-left: 2px;
+  }
+
+  /* ── BODY ── */
+  .body {
+    flex: 1; overflow-y: auto; padding: 22px 26px;
+    max-width: 640px; width: 100%; margin: 0 auto;
+  }
+  .body::-webkit-scrollbar { width: 5px; }
+  .body::-webkit-scrollbar-track { background: transparent; }
+  .body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── TOP ROW ── */
+  .top-row {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 16px;
+  }
+  .top-row-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .top-row-sub {
+    font-size: 10px; color: var(--text3); margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .btn-new {
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center; padding: 48px 20px;
+    color: var(--text3); font-size: 12px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-sub { font-size: 11px; margin-top: 6px; }
+
+  /* ── SELECT-ALL BAR ── */
+  .select-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; margin-bottom: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .select-bar-label { flex: 1; font-size: 11px; color: var(--text3); }
+  .select-bar-label.has-selection { color: var(--text2); }
+
+  .btn-launch-sel {
+    padding: 5px 13px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-launch-sel:disabled { background: var(--surface2); color: var(--text3); }
+  .btn-launch-sel .badge {
+    background: rgba(255,255,255,0.22); border-radius: 8px;
+    padding: 1px 6px; font-size: 9px; font-weight: 700;
+  }
+
+  .btn-launch-all {
+    padding: 5px 13px; border-radius: 6px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); font-size: 11px; font-weight: 500;
+  }
+  .btn-launch-all:disabled { border-color: var(--border); color: var(--text3); }
+
+  /* ── CHECKBOX ── */
+  .cb {
+    width: 15px; height: 15px; flex-shrink: 0; border-radius: 3px;
+    border: 1.5px solid var(--border2); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.1s;
+  }
+  .cb.checked, .cb.indeterminate { border-color: var(--accent); }
+  .cb.checked { background: var(--accent); }
+  .cb svg { display: none; }
+  .cb.checked svg { display: block; }
+  .cb-dash {
+    width: 7px; height: 1.5px; background: var(--accent);
+    border-radius: 1px; display: none;
+  }
+  .cb.indeterminate .cb-dash { display: block; }
+
+  /* ── CARDS ── */
+  .cards { display: flex; flex-direction: column; gap: 6px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    transition: all 0.12s; position: relative;
+  }
+  .card.selected {
+    background: rgba(91,156,246,0.055);
+    border-color: rgba(91,156,246,0.35);
+  }
+  .card.running-card {
+    border-color: rgba(91,156,246,0.3);
+    box-shadow: 0 0 0 1px rgba(91,156,246,0.1);
+  }
+
+  .avatar {
+    width: 38px; height: 38px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .card-info { flex: 1; min-width: 0; }
+  .card-name {
+    font-size: 12px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-url {
+    font-size: 10px; color: var(--text3); margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  .running-pill {
+    display: flex; align-items: center; gap: 5px;
+    border-radius: 10px; padding: 3px 8px;
+    font-size: 9px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.27); color: var(--green);
+  }
+  .running-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .btn-card-launch {
+    padding: 4px 12px; border-radius: 6px; border: none;
+    font-size: 11px; font-weight: 500; color: #fff;
+  }
+  .btn-card-focus {
+    padding: 4px 12px; border-radius: 6px; border: none;
+    font-size: 11px; font-weight: 500;
+    background: var(--surface2); color: var(--text2);
+  }
+
+  .btn-kebab {
+    width: 26px; height: 26px; border-radius: 5px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text3); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── KEBAB MENU ── */
+  .kebab-menu {
+    display: none; position: absolute; right: 14px; top: 46px; z-index: 100;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 150px;
+  }
+  .kebab-menu.open { display: block; }
+  .kebab-item {
+    padding: 7px 12px; border-radius: 5px; font-size: 11px;
+    cursor: pointer; color: var(--text2);
+    display: flex; align-items: center; gap: 8px;
+    transition: background 0.08s;
+  }
+  .kebab-item:hover { background: var(--surface2); }
+  .kebab-divider { height: 1px; background: var(--border); margin: 3px 4px; }
+  .kebab-item.danger { color: var(--red); }
+  .kebab-item.danger:hover { background: rgba(248,113,113,0.1); }
+
+  /* ── BOTTOM BAR ── */
+  .bottombar {
+    height: 26px; background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 14px; gap: 10px; flex-shrink: 0;
+  }
+  .bb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text3); flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .bb-dot.running { background: var(--green); animation: blink 2s infinite; }
+  .bb-msg {
+    font-size: 10px; color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bb-clock {
+    font-size: 10px; color: var(--text3);
+    font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  }
+
+  /* ── OVERLAYS ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 22px 26px; width: 340px;
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-title { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label {
+    font-size: 9px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+  }
+  .field-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 6px 10px; font-size: 11px;
+    color: var(--text); width: 100%;
+  }
+
+  .color-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .color-dot {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .color-dot.active { border-color: #fff; transform: scale(1.15); }
+
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel {
+    padding: 7px 16px; border-radius: 6px;
+    border: 1px solid var(--border2); background: none;
+    color: var(--text2); font-size: 12px;
+  }
+  .btn-save {
+    padding: 7px 20px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 500;
+  }
+  .btn-delete-confirm {
+    padding: 7px 20px; border-radius: 6px; border: none;
+    background: var(--red); color: #fff;
+    font-size: 12px; font-weight: 500;
+  }
+
+  .confirm-msg { font-size: 12px; color: var(--text2); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <div class="tb-logo">H</div>
+  <span class="tb-halq">HALQ</span>
+  <span class="tb-launcher">LAUNCHER</span>
+</div>
+
+<!-- BODY -->
+<div class="body" id="body">
+
+  <!-- Top row -->
+  <div class="top-row">
+    <div>
+      <div class="top-row-title">Profiles</div>
+      <div class="top-row-sub" id="profile-count-label">0 profiles</div>
+    </div>
+    <button class="btn-new" onclick="openNewModal()">
+      <span style="font-size:15px;line-height:1">+</span> New Profile
+    </button>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty" id="empty-state">
+    <div class="empty-icon">👤</div>
+    <div>No profiles yet.</div>
+    <div class="empty-sub">Create one to get started.</div>
+  </div>
+
+  <!-- Profile list (hidden when empty) -->
+  <div id="profile-list-wrap" style="display:none">
+
+    <!-- Select-all bar -->
+    <div class="select-bar">
+      <div class="cb" id="select-all-cb" onclick="toggleAll()">
+        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+          <path d="M1 3L3 5L7 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="cb-dash"></div>
+      </div>
+      <span class="select-bar-label" id="select-label">Select all</span>
+      <button class="btn-launch-sel" id="btn-launch-sel" onclick="launchSelected()" disabled style="display:none">
+        ▶ Launch Selected
+        <span class="badge" id="sel-badge"></span>
+      </button>
+      <button class="btn-launch-all" id="btn-launch-all" onclick="launchAll()">▶▶ Launch All</button>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards" id="cards"></div>
+  </div>
+
+</div><!-- end .body -->
+
+<!-- BOTTOM BAR -->
+<div class="bottombar">
+  <div class="bb-dot" id="bb-dot"></div>
+  <div class="bb-msg" id="bb-msg">Ready</div>
+  <div class="bb-clock" id="bb-clock"></div>
+</div>
+
+<!-- NEW / EDIT PROFILE MODAL -->
+<div class="overlay" id="profile-modal" onclick="profileModalClickOutside(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="profile-modal-title">+ New Profile</div>
+    <div class="field">
+      <div class="field-label">Profile Name</div>
+      <input class="field-input" id="pm-name" type="text" placeholder="e.g. Talley Properties"
+             onkeydown="if(event.key==='Enter')saveProfile()">
+    </div>
+    <div class="field">
+      <div class="field-label">Appfolio URL</div>
+      <input class="field-input" id="pm-url" type="text" placeholder="yourcompany.appfolio.com"
+             onkeydown="if(event.key==='Enter')saveProfile()">
+    </div>
+    <div class="field">
+      <div class="field-label">Color</div>
+      <div class="color-row" id="pm-colors"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
+      <button class="btn-save" id="profile-modal-save-btn" onclick="saveProfile()">+ Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay" id="delete-modal" onclick="closeDeleteModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">⚠ Delete Profile</div>
+    <div class="confirm-msg" id="delete-modal-msg"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-delete-confirm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================
+// CONSTANTS
+// =====================
+const AVATAR_COLORS = [
+  '#5b9cf6','#a78bfa','#4ade80','#fb923c',
+  '#f87171','#fbbf24','#34d399','#22d3ee',
+]
+
+function uid () {
+  return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+}
+
+function initials (name) {
+  return name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
+// =====================
+// STATE
+// =====================
+let profiles    = []   // [ { id, name, url, color, running } ]
+let selected    = new Set()
+let editTarget  = null  // profile being edited
+let deleteTarget = null
+
+// =====================
+// INIT
+// =====================
+async function init () {
+  buildColorPicker()
+  updateClock()
+  setInterval(updateClock, 1000)
+
+  // Load profiles from main process
+  const result = await window.launcher.profilesLoad()
+  if (result.ok) {
+    profiles = result.profiles
+    render()
+  }
+
+  // Subscribe to live running-state updates (every 5s from main)
+  window.launcher.onRunningUpdate(state => {
+    profiles = profiles.map(p => ({ ...p, running: !!state[p.id] }))
+    renderCards()
+    updateBottomBar()
+  })
+}
+
+// =====================
+// RENDER
+// =====================
+function render () {
+  const isEmpty = profiles.length === 0
+  document.getElementById('empty-state').style.display    = isEmpty ? '' : 'none'
+  document.getElementById('profile-list-wrap').style.display = isEmpty ? 'none' : ''
+
+  const running = profiles.filter(p => p.running).length
+  document.getElementById('profile-count-label').textContent =
+    profiles.length + ' profile' + (profiles.length !== 1 ? 's' : '') +
+    (running > 0 ? ` · ${running} running` : '')
+
+  renderCards()
+  renderSelectBar()
+  updateBottomBar()
+}
+
+function renderCards () {
+  const container = document.getElementById('cards')
+  container.innerHTML = ''
+  profiles.forEach(p => {
+    container.appendChild(buildCard(p))
+  })
+}
+
+function buildCard (p) {
+  const isSel = selected.has(p.id)
+  const card  = document.createElement('div')
+  card.className = 'card' + (isSel ? ' selected' : '') + (p.running ? ' running-card' : '')
+  card.dataset.id = p.id
+
+  // Checkbox
+  const cb = document.createElement('div')
+  cb.className = 'cb' + (isSel ? ' checked' : '')
+  cb.innerHTML = `<svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+    <path d="M1 3L3 5L7 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg><div class="cb-dash"></div>`
+  cb.onclick = e => { e.stopPropagation(); toggleOne(p.id) }
+  card.appendChild(cb)
+
+  // Avatar
+  const av = document.createElement('div')
+  av.className = 'avatar'
+  av.style.cssText = `background:${p.color}22;border:1px solid ${p.color}55;color:${p.color}`
+  av.textContent = initials(p.name)
+  card.appendChild(av)
+
+  // Info
+  const info = document.createElement('div')
+  info.className = 'card-info'
+  info.innerHTML = `<div class="card-name">${escHtml(p.name)}</div>
+    <div class="card-url">${escHtml(p.url || '—')}</div>`
+  card.appendChild(info)
+
+  // Actions
+  const actions = document.createElement('div')
+  actions.className = 'card-actions'
+
+  if (p.running) {
+    const pill = document.createElement('div')
+    pill.className = 'running-pill'
+    pill.innerHTML = '<div class="running-dot"></div>Running'
+    actions.appendChild(pill)
+  }
+
+  const launchBtn = document.createElement('button')
+  launchBtn.className = p.running ? 'btn-card-focus' : 'btn-card-launch'
+  if (!p.running) launchBtn.style.background = p.color
+  launchBtn.textContent = p.running ? '↗ Focus' : '▶ Launch'
+  launchBtn.onclick = () => cardLaunch(p)
+  actions.appendChild(launchBtn)
+
+  // Kebab
+  const kebabWrap = document.createElement('div')
+  kebabWrap.style.position = 'relative'
+
+  const kebabBtn = document.createElement('button')
+  kebabBtn.className = 'btn-kebab'
+  kebabBtn.textContent = '⋮'
+  kebabBtn.onclick = e => { e.stopPropagation(); toggleKebab(p.id) }
+
+  const menu = document.createElement('div')
+  menu.className = 'kebab-menu'
+  menu.id = `kebab-${p.id}`
+  menu.innerHTML = `
+    <div class="kebab-item" onclick="event.stopPropagation();openEditModal('${p.id}')">✎ &nbsp;Edit Profile</div>
+    <div class="kebab-divider"></div>
+    <div class="kebab-item danger" onclick="event.stopPropagation();openDeleteModal('${p.id}')">🗑 &nbsp;Delete Profile</div>
+  `
+
+  kebabWrap.appendChild(kebabBtn)
+  kebabWrap.appendChild(menu)
+  actions.appendChild(kebabWrap)
+  card.appendChild(actions)
+
+  return card
+}
+
+function renderSelectBar () {
+  const allIds  = profiles.map(p => p.id)
+  const allChk  = allIds.length > 0 && allIds.every(id => selected.has(id))
+  const someChk = allIds.some(id => selected.has(id)) && !allChk
+  const selList = profiles.filter(p => selected.has(p.id))
+  const notRunning = selList.filter(p => !p.running).length
+  const allRunning = profiles.length > 0 && profiles.every(p => p.running)
+
+  // Select-all checkbox
+  const cb = document.getElementById('select-all-cb')
+  cb.className = 'cb' + (allChk ? ' checked' : someChk ? ' indeterminate' : '')
+
+  // Label
+  const lbl = document.getElementById('select-label')
+  if (selected.size === 0) {
+    lbl.textContent = 'Select all'
+    lbl.className = 'select-bar-label'
+  } else {
+    lbl.textContent = selected.size + ' of ' + profiles.length + ' selected'
+    lbl.className = 'select-bar-label has-selection'
+  }
+
+  // Launch Selected button
+  const btnSel = document.getElementById('btn-launch-sel')
+  const badge  = document.getElementById('sel-badge')
+  if (selected.size > 0) {
+    btnSel.style.display = ''
+    btnSel.disabled = notRunning === 0
+    if (notRunning > 0) {
+      btnSel.style.background = 'var(--accent)'
+      btnSel.style.color = '#fff'
+      badge.textContent = notRunning
+      badge.style.display = ''
+    } else {
+      btnSel.style.background = 'var(--surface2)'
+      btnSel.style.color = 'var(--text3)'
+      badge.style.display = 'none'
+    }
+  } else {
+    btnSel.style.display = 'none'
+  }
+
+  // Launch All
+  const btnAll = document.getElementById('btn-launch-all')
+  btnAll.disabled = allRunning
+  if (allRunning) {
+    btnAll.style.borderColor = 'var(--border)'
+    btnAll.style.color = 'var(--text3)'
+  } else {
+    btnAll.style.borderColor = 'var(--border2)'
+    btnAll.style.color = 'var(--text2)'
+  }
+}
+
+function updateBottomBar () {
+  const running = profiles.filter(p => p.running).length
+  const dot = document.getElementById('bb-dot')
+  if (running > 0) {
+    dot.className = 'bb-dot running'
+  } else {
+    dot.className = 'bb-dot'
+  }
+}
+
+// =====================
+// SELECTION
+// =====================
+function toggleOne (id) {
+  if (selected.has(id)) selected.delete(id)
+  else selected.add(id)
+  renderCards()
+  renderSelectBar()
+}
+
+function toggleAll () {
+  const allIds  = profiles.map(p => p.id)
+  const allChk  = allIds.every(id => selected.has(id))
+  selected = allChk ? new Set() : new Set(allIds)
+  renderCards()
+  renderSelectBar()
+}
+
+// =====================
+// LAUNCH
+// =====================
+async function cardLaunch (profile) {
+  if (profile.running) {
+    setStatus('Focused: ' + profile.name)
+    return
+  }
+  setStatus('Launching ' + profile.name + '…')
+  const res = await window.launcher.profileLaunch(profile.id)
+  if (res.ok) {
+    profiles = profiles.map(p => p.id === profile.id ? { ...p, running: true } : p)
+    renderCards()
+    renderSelectBar()
+    updateBottomBar()
+    setStatus('Launched: ' + profile.name)
+  } else {
+    setStatus('✗ Failed to launch: ' + (res.error || 'unknown error'))
+  }
+}
+
+async function launchSelected () {
+  const toStart = profiles.filter(p => selected.has(p.id) && !p.running)
+  if (!toStart.length) return
+  setStatus('Launching ' + toStart.length + ' profile' + (toStart.length > 1 ? 's' : '') + '…')
+  for (const p of toStart) {
+    await window.launcher.profileLaunch(p.id)
+    profiles = profiles.map(q => q.id === p.id ? { ...q, running: true } : q)
+  }
+  renderCards()
+  renderSelectBar()
+  updateBottomBar()
+  setStatus('Launched ' + toStart.length + ' profile' + (toStart.length > 1 ? 's' : ''))
+}
+
+async function launchAll () {
+  const toStart = profiles.filter(p => !p.running)
+  if (!toStart.length) return
+  setStatus('Launching all…')
+  for (const p of toStart) {
+    await window.launcher.profileLaunch(p.id)
+    profiles = profiles.map(q => q.id === p.id ? { ...q, running: true } : q)
+  }
+  renderCards()
+  renderSelectBar()
+  updateBottomBar()
+  setStatus('All profiles launched')
+}
+
+// =====================
+// KEBAB MENU
+// =====================
+let openKebabId = null
+
+function toggleKebab (id) {
+  // Close any open kebab first
+  if (openKebabId) {
+    const existing = document.getElementById('kebab-' + openKebabId)
+    if (existing) existing.classList.remove('open')
+  }
+  if (openKebabId === id) { openKebabId = null; return }
+  openKebabId = id
+  const menu = document.getElementById('kebab-' + id)
+  if (menu) menu.classList.add('open')
+}
+
+document.addEventListener('click', () => {
+  if (openKebabId) {
+    const menu = document.getElementById('kebab-' + openKebabId)
+    if (menu) menu.classList.remove('open')
+    openKebabId = null
+  }
+})
+
+// =====================
+// NEW / EDIT MODAL
+// =====================
+let currentModalColor = AVATAR_COLORS[0]
+
+function buildColorPicker () {
+  const row = document.getElementById('pm-colors')
+  AVATAR_COLORS.forEach(c => {
+    const dot = document.createElement('div')
+    dot.className = 'color-dot' + (c === currentModalColor ? ' active' : '')
+    dot.style.background = c
+    dot.dataset.color = c
+    dot.onclick = () => selectModalColor(c)
+    row.appendChild(dot)
+  })
+}
+
+function selectModalColor (color) {
+  currentModalColor = color
+  document.querySelectorAll('.color-dot').forEach(d => {
+    d.classList.toggle('active', d.dataset.color === color)
+  })
+}
+
+function openNewModal () {
+  editTarget = null
+  document.getElementById('profile-modal-title').textContent = '+ New Profile'
+  document.getElementById('profile-modal-save-btn').textContent = '+ Create'
+  document.getElementById('pm-name').value = ''
+  document.getElementById('pm-url').value  = ''
+  selectModalColor(AVATAR_COLORS[0])
+  document.getElementById('profile-modal').classList.add('open')
+  setTimeout(() => document.getElementById('pm-name').focus(), 50)
+}
+
+function openEditModal (id) {
+  const p = profiles.find(x => x.id === id)
+  if (!p) return
+  editTarget = p
+  document.getElementById('profile-modal-title').textContent = '✎ Edit Profile'
+  document.getElementById('profile-modal-save-btn').textContent = '💾 Save'
+  document.getElementById('pm-name').value = p.name
+  document.getElementById('pm-url').value  = p.url || ''
+  selectModalColor(p.color || AVATAR_COLORS[0])
+  document.getElementById('profile-modal').classList.add('open')
+  setTimeout(() => document.getElementById('pm-name').focus(), 50)
+}
+
+function closeProfileModal () {
+  document.getElementById('profile-modal').classList.remove('open')
+  editTarget = null
+}
+
+function profileModalClickOutside (e) {
+  if (e.target === document.getElementById('profile-modal')) closeProfileModal()
+}
+
+async function saveProfile () {
+  const name  = document.getElementById('pm-name').value.trim()
+  const url   = document.getElementById('pm-url').value.trim()
+  const color = currentModalColor
+  if (!name) { document.getElementById('pm-name').focus(); return }
+
+  if (editTarget) {
+    profiles = profiles.map(p =>
+      p.id === editTarget.id ? { ...p, name, url, color } : p
+    )
+  } else {
+    profiles.push({ id: uid(), name, url, color, running: false })
+  }
+
+  closeProfileModal()
+  await persistProfiles()
+  render()
+  setStatus(editTarget ? 'Profile updated' : 'Profile created: ' + name)
+}
+
+// =====================
+// DELETE MODAL
+// =====================
+function openDeleteModal (id) {
+  const p = profiles.find(x => x.id === id)
+  if (!p) return
+  deleteTarget = p
+  document.getElementById('delete-modal-msg').textContent =
+    `Delete "${p.name}"? This will permanently erase all saved credentials, settings, and notes for this profile.`
+  document.getElementById('delete-modal').classList.add('open')
+}
+
+function closeDeleteModal () {
+  document.getElementById('delete-modal').classList.remove('open')
+  deleteTarget = null
+}
+
+async function confirmDelete () {
+  if (!deleteTarget) return
+  const name = deleteTarget.name
+  const id   = deleteTarget.id
+
+  // Remove from list
+  profiles = profiles.filter(p => p.id !== id)
+  selected.delete(id)
+
+  closeDeleteModal()
+
+  // Persist updated list
+  await persistProfiles()
+
+  // Delete data folder from disk
+  await window.launcher.profileDeleteData(id)
+
+  render()
+  setStatus('Deleted: ' + name)
+}
+
+// =====================
+// PERSIST
+// =====================
+async function persistProfiles () {
+  // Strip running flag — that's runtime state, not persisted
+  const toSave = profiles.map(({ running, ...rest }) => rest)
+  await window.launcher.profilesSave(toSave)
+}
+
+// =====================
+// UTILS
+// =====================
+function escHtml (str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function setStatus (msg) {
+  document.getElementById('bb-msg').textContent = msg
+}
+
+function updateClock () {
+  document.getElementById('bb-clock').textContent =
+    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+}
+
+// =====================
+// BOOT
+// =====================
+document.addEventListener('DOMContentLoaded', () => {
+  function waitForLauncher (fn, tries) {
+    if (window.launcher) { fn(); return }
+    if (tries <= 0) return
+    setTimeout(() => waitForLauncher(fn, tries - 1), 50)
+  }
+  waitForLauncher(init, 40)
+})
+</script>
+</body>
+</html>
