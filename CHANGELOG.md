@@ -1951,3 +1951,62 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - `launcher/index.html` — new file
 - `package.json` — new file: npm scripts, electron-builder config, both entry points
 - `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-09] Fix — Single-Exe Merge + Critical Path Fixes
+
+#### Architecture change: Launcher + HALQ merged into one exe
+
+Previously the launcher and HALQ app required two separate executables. Both are now driven by a single `main.js` entry point with mode detection at startup.
+
+**Mode detection logic:**
+- No `--profile=` arg → **Launcher mode** → loads `launcher/index.html` with `launcher/preload.js`
+- `--profile=<id>` arg → **HALQ mode** → loads `index.html` with `preload.js`
+
+When a profile is launched from the launcher, it spawns `process.execPath --profile=<id>` (same exe, different args).
+
+#### `main.js` — merged + fixed
+
+- Absorbed all `launcher/main.js` IPC handlers (`profiles-load`, `profiles-save`, `profile-launch`, `profile-running-state`, `profile-delete-data`) directly into root `main.js`
+- Removed `launcher/main.js` as a separate file — no longer needed
+- Added `IS_LAUNCHER` / `PROFILE_ID` constants derived from `process.argv`
+- Added `createLauncherWindow()` and `createHalqWindow()` — called conditionally based on mode
+- `app.whenReady()`: skips `setupAppfolioSession()` / `setupOutlookSession()` in launcher mode
+- Running process poll (`setInterval` every 5s) only fires in launcher mode
+
+#### Bug fix — `ENOTDIR: not a directory` (profiles path collision)
+
+`profiles.json` and `profiles/` directory cannot coexist in the same folder on Windows.
+
+- Renamed `userdata/profiles.json` → `userdata/profiles-db.json` to free the `profiles/` name for use as a directory
+
+#### Bug fix — `ENOTDIR: not a directory` (Electron userData in launcher mode)
+
+In launcher mode, `app.setPath('userData')` was pointing to `userdata/` root — the same folder where `profiles-db.json` lives — causing Electron's internal storage to collide with app data files.
+
+- Added `ELECTRON_DATA_DIR`: launcher uses `userdata/launcher/`, HALQ profiles use `userdata/profiles/<id>/`
+- `app.setPath('userData')` and `app.setPath('sessionData')` now always point into isolated subfolders
+
+#### Bug fix — `userdata/` never created in packaged app
+
+Inside a packaged asar, `__dirname` is a virtual path inside the read-only archive. `path.join(__dirname, 'userdata')` silently pointed into the asar and all file writes failed.
+
+- `BASE_DIR` now uses `path.dirname(process.execPath)` when `app.isPackaged` is true
+- In dev mode, `__dirname` is still used (points to project root as expected)
+- Result: `userdata/` is now correctly created next to `HALQ.exe` on disk
+
+#### `package.json`
+
+- Removed `start:launcher` script — no longer needed (single entry point)
+- Updated `files` array: includes `launcher/index.html`, `launcher/preload.js`, `releases/**/*`
+- Removed `launcher/main.js` from files (merged into root `main.js`)
+
+#### Files changed
+- `main.js` — merged launcher, all three bug fixes applied
+- `package.json` — build config updated for single-exe
+- `launcher/main.js` — **deleted** (merged into root `main.js`)
+- `launcher/preload.js` — unchanged
+- `launcher/index.html` — unchanged
+- `preload.js` — unchanged
+- `index.html` — unchanged
