@@ -1,8 +1,17 @@
 const { app, BrowserWindow, ipcMain, safeStorage, session, dialog, shell } = require('electron')
 const path     = require('path')
 const fs       = require('fs')
+const https    = require('https')
 const { exec } = require('child_process')
 const XLSX     = require('xlsx')
+
+// =====================
+// UPDATER CONFIG
+// Set UPDATE_URL to wherever you host version.json + app.asar
+// e.g. 'https://raw.githubusercontent.com/yourname/halq/main/releases'
+// =====================
+const APP_VERSION  = '1.0.0'           // bump this when you push a new build
+const UPDATE_URL = 'https://raw.githubusercontent.com/BossArQue/HALQ-Maintenance/main/releases'
 
 // Derive paths from project root — no hardcoded absolute paths in source
 const USER_DATA_DIR = path.join(__dirname, 'userdata')
@@ -121,14 +130,14 @@ function createWindow () {
 // =====================
 // CONSTANTS
 // =====================
-const AF_PARTITION   = 'persist:appfolio'
+const AF_PARTITION      = 'persist:appfolio'
+const OUTLOOK_PARTITION = 'persist:outlook'
 const ALLOWED_PERMISSION_SET = new Set([
   'media', 'geolocation', 'notifications',
   'fullscreen', 'pointerLock', 'openExternal'
 ])
 
-// Excel workbook — path only, all logic stays inside the .xlsm macros
-const EXCEL_PATH  = 'D:\\OneDrive\\Talley Properties\\Work Order Status Update.xlsm'
+// Excel workbook — path loaded dynamically from settings (no hardcoded path)
 const EXCEL_SHEET = 'Active Monitoring'
 
 // VBA macro names exactly as defined in the .xlsm
@@ -148,8 +157,7 @@ const AM_COL = {
   age:      8,   // H — Age in days (formula result)
   job:      9,   // I — Job summary
   status:   11,  // K — Status
-  vendor:   12,  // L — Vendor name
-  notified: 15   // O — Tenant Notified (Yes/No)
+  vendor:   12   // L — Vendor name
 }
 
 // =====================
@@ -206,7 +214,37 @@ ipcMain.handle('categories-load', async () => {
 })
 
 // =====================
-// NATIVE FILE DIALOG
+// SETTINGS PERSISTENCE
+// Stores app settings (Excel file path, etc.) to userdata/settings.json
+// Separate from encrypted creds — settings are plain JSON
+// =====================
+const SETTINGS_PATH = path.join(USER_DATA_DIR, 'settings.json')
+
+function loadSettings () {
+  try {
+    if (!fs.existsSync(SETTINGS_PATH)) return {}
+    return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'))
+  } catch { return {} }
+}
+
+function saveSettings (data) {
+  fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true })
+  const current = loadSettings()
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify({ ...current, ...data }, null, 2), 'utf8')
+}
+
+ipcMain.handle('settings-load', async () => {
+  try   { return { ok: true, settings: loadSettings() } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('settings-save', async (_event, data) => {
+  try   { saveSettings(data); return { ok: true } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+
+
 // contextIsolation prevents file.path from working in renderer
 // Use main-process dialog instead to get the real file system path
 // =====================
@@ -321,11 +359,16 @@ ipcMain.handle('excel-import', async (_event, exportFilePath) => {
 // =====================
 ipcMain.handle('excel-load', async () => {
   try {
-    if (!fs.existsSync(EXCEL_PATH)) {
-      return { ok: false, error: 'Excel file not found at: ' + EXCEL_PATH }
+    const settings  = loadSettings()
+    const excelPath = settings.excelPath || ''
+    if (!excelPath) {
+      return { ok: false, error: 'Excel file path not configured. Go to Settings → Accounts to set it.' }
+    }
+    if (!fs.existsSync(excelPath)) {
+      return { ok: false, error: 'Excel file not found at: ' + excelPath }
     }
 
-    const workbook    = XLSX.readFile(EXCEL_PATH, { cellDates: true, sheetStubs: true })
+    const workbook    = XLSX.readFile(excelPath, { cellDates: true, sheetStubs: true })
     const worksheet   = workbook.Sheets[EXCEL_SHEET]
     if (!worksheet) {
       return { ok: false, error: 'Sheet "' + EXCEL_SHEET + '" not found in workbook' }
@@ -333,22 +376,22 @@ ipcMain.handle('excel-load', async () => {
 
     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
 
-    // Skip header row (row 0), map each data row using AM_COL indices (convert to 0-based)
+    // Skip header row (row 0), map each data row using AM_COL indices (1-based → 0-based)
+    // Active Monitoring col C holds the street address directly — read it straight.
     const wos = rows.slice(1)
       .filter(row => {
         const wo = String(row[AM_COL.wo - 1] || '').trim()
         return wo !== '' && wo !== '0' && wo.length >= 2
       })
       .map(row => ({
-        wo:       String(row[AM_COL.wo       - 1] || '').trim(),
-        prop:     String(row[AM_COL.property - 1] || '').trim(),
-        unit:     String(row[AM_COL.unit     - 1] || '').trim(),
-        res:      String(row[AM_COL.resident - 1] || '').trim(),
-        age:      Number(row[AM_COL.age      - 1]) || 0,
-        job:      String(row[AM_COL.job      - 1] || '').trim(),
-        status:   String(row[AM_COL.status   - 1] || '').trim(),
-        vendor:   String(row[AM_COL.vendor   - 1] || '').trim(),
-        notified: String(row[AM_COL.notified - 1] || '').trim()
+        wo:     String(row[AM_COL.wo       - 1] || '').trim(),
+        prop:   String(row[AM_COL.property - 1] || '').trim(),
+        unit:   String(row[AM_COL.unit     - 1] || '').trim(),
+        res:    String(row[AM_COL.resident - 1] || '').trim(),
+        age:    Number(row[AM_COL.age      - 1]) || 0,
+        job:    String(row[AM_COL.job      - 1] || '').trim(),
+        status: String(row[AM_COL.status   - 1] || '').trim(),
+        vendor: String(row[AM_COL.vendor   - 1] || '').trim()
       }))
 
     return { ok: true, wos }
@@ -366,8 +409,10 @@ ipcMain.handle('excel-load', async () => {
 // =====================
 ipcMain.handle('macro-run', async (_event, macroName) => {
   return new Promise((resolve) => {
-    const psPath   = path.join(USER_DATA_DIR, 'macro.ps1')
-    const psScript = [
+    const settings  = loadSettings()
+    const excelPath = settings.excelPath || ''
+    const psPath    = path.join(USER_DATA_DIR, 'macro.ps1')
+    const psScript  = [
       `$ErrorActionPreference = 'Stop'`,
       `try {`,
       `  try {`,
@@ -378,7 +423,7 @@ ipcMain.handle('macro-run', async (_event, macroName) => {
       `  }`,
       `  $targetName = 'Work Order Status Update.xlsm'`,
       `  $wb = $excel.Workbooks | Where-Object { $_.Name -eq $targetName }`,
-      `  if (-not $wb) { $wb = $excel.Workbooks.Open('${EXCEL_PATH}') }`,
+      `  if (-not $wb) { $wb = $excel.Workbooks.Open('${excelPath}') }`,
       `  $excel.Run('${macroName}')`,
       `  Write-Output 'OK'`,
       `} catch {`,
@@ -428,6 +473,22 @@ function setupAppfolioSession () {
   })
 }
 
+function setupOutlookSession () {
+  const olSession = session.fromPartition(OUTLOOK_PARTITION)
+
+  olSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(ALLOWED_PERMISSION_SET.has(permission))
+  })
+
+  olSession.setPermissionCheckHandler((_webContents, permission) => {
+    return ALLOWED_PERMISSION_SET.has(permission)
+  })
+
+  olSession.webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: false })
+  })
+}
+
 // =====================
 // WEBVIEW LINK HANDLING
 // =====================
@@ -450,15 +511,395 @@ app.on('web-contents-created', (_e, contents) => {
 // =====================
 // IPC
 // =====================
+// =====================
+// NOTES
+// Storage: userdata/notes/notebooks.json (tree metadata)
+//          userdata/notes/pages/[id].html (page content)
+//          userdata/notes/assets/[id]/    (images, files per page)
+// =====================
+const NOTES_DIR    = path.join(USER_DATA_DIR, 'notes')
+const NOTES_META   = path.join(NOTES_DIR, 'notebooks.json')
+const NOTES_PAGES  = path.join(NOTES_DIR, 'pages')
+const NOTES_ASSETS = path.join(NOTES_DIR, 'assets')
+
+function notesEnsureDirs () {
+  ;[NOTES_DIR, NOTES_PAGES, NOTES_ASSETS].forEach(d => {
+    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true })
+  })
+}
+
+function notesLoadMeta () {
+  notesEnsureDirs()
+  if (!fs.existsSync(NOTES_META)) return { notebooks: [] }
+  try { return JSON.parse(fs.readFileSync(NOTES_META, 'utf8')) }
+  catch { return { notebooks: [] } }
+}
+
+ipcMain.handle('notes-meta-load', () => {
+  try   { return { ok: true, data: notesLoadMeta() } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-meta-save', (_e, data) => {
+  try   { notesEnsureDirs(); fs.writeFileSync(NOTES_META, JSON.stringify(data, null, 2), 'utf8'); return { ok: true } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-page-load', (_e, pageId) => {
+  try {
+    const p = path.join(NOTES_PAGES, `${pageId}.html`)
+    return { ok: true, content: fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '' }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-page-save', (_e, pageId, content) => {
+  try {
+    notesEnsureDirs()
+    fs.writeFileSync(path.join(NOTES_PAGES, `${pageId}.html`), content, 'utf8')
+    return { ok: true }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-page-delete', (_e, pageId) => {
+  try {
+    const p = path.join(NOTES_PAGES, `${pageId}.html`)
+    const a = path.join(NOTES_ASSETS, pageId)
+    if (fs.existsSync(p)) fs.unlinkSync(p)
+    if (fs.existsSync(a)) fs.rmSync(a, { recursive: true, force: true })
+    return { ok: true }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-asset-save', (_e, pageId, fileName, base64Data) => {
+  try {
+    notesEnsureDirs()
+    const dir      = path.join(NOTES_ASSETS, pageId)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filePath = path.join(dir, safeName)
+    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'))
+    return { ok: true, src: `file://${filePath.replace(/\\/g, '/')}` }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-file-read', (_e, filePath) => {
+  try   { return { ok: true, base64: fs.readFileSync(filePath).toString('base64') } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('notes-asset-open', (_e, filePath) => {
+  try   { shell.openPath(filePath); return { ok: true } }
+  catch (err) { return { ok: false, error: err.message } }
+})
+
+// =====================
+// NOTES — EXPORT
+// opts: { type: 'notebook'|'section'|'page', nbId, secId?, pgId? }
+// =====================
+ipcMain.handle('notes-export', async (_e, opts) => {
+  try {
+    notesEnsureDirs()
+    const { dialog } = require('electron')
+    const meta = notesLoadMeta()
+    const { type, nbId, secId, pgId } = opts || {}
+
+    async function embedPage (pg) {
+      const pagePath = path.join(NOTES_PAGES, `${pg.id}.html`)
+      const html     = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, 'utf8') : ''
+      const assets   = {}
+      const assetDir = path.join(NOTES_ASSETS, pg.id)
+      if (fs.existsSync(assetDir)) {
+        for (const f of fs.readdirSync(assetDir))
+          assets[f] = fs.readFileSync(path.join(assetDir, f)).toString('base64')
+      }
+      return { ...pg, html, assets }
+    }
+
+    let payload, defaultName
+
+    if (type === 'page') {
+      const nb  = meta.notebooks.find(n => n.id === nbId)
+      const sec = nb?.sections?.find(s => s.id === secId)
+      const pg  = sec?.pages?.find(p => p.id === pgId)
+      if (!pg) return { ok: false, error: 'Page not found' }
+      defaultName = (pg.title || 'Untitled').replace(/[^a-zA-Z0-9_-]/g, '_')
+      payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(),
+        exportType: 'page', notebookName: nb?.name, sectionName: sec?.name,
+        page: await embedPage(pg) }, null, 2)
+
+    } else if (type === 'section') {
+      const nb  = meta.notebooks.find(n => n.id === nbId)
+      const sec = nb?.sections?.find(s => s.id === secId)
+      if (!sec) return { ok: false, error: 'Section not found' }
+      defaultName = sec.name.replace(/[^a-zA-Z0-9_-]/g, '_')
+      payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(),
+        exportType: 'section', notebookName: nb?.name,
+        section: { ...sec, pages: await Promise.all((sec.pages || []).map(embedPage)) } }, null, 2)
+
+    } else {
+      const nb = meta.notebooks.find(n => n.id === nbId)
+      if (!nb) return { ok: false, error: 'Notebook not found' }
+      defaultName = nb.name.replace(/[^a-zA-Z0-9_-]/g, '_')
+      payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(),
+        exportType: 'notebook',
+        notebook: { ...nb, sections: await Promise.all((nb.sections || []).map(async sec => ({
+          ...sec, pages: await Promise.all((sec.pages || []).map(embedPage))
+        }))) } }, null, 2)
+    }
+
+    const res = await dialog.showSaveDialog({
+      title: 'Export Notes',
+      defaultPath: `${defaultName}.halqnote`,
+      filters: [{ name: 'HALQ Note', extensions: ['halqnote'] }, { name: 'All Files', extensions: ['*'] }]
+    })
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true }
+    fs.writeFileSync(res.filePath, payload, 'utf8')
+    return { ok: true, filePath: res.filePath }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+// =====================
+// NOTES — IMPORT
+// Supports: .halqnote, .html, .htm, .txt
+// OneNote (.one / .onepkg): export from OneNote as HTML, then import the HTML file.
+// =====================
+
+
+ipcMain.handle('notes-import', async (_e) => {
+  try {
+    const { dialog } = require('electron')
+    const dlg = await dialog.showOpenDialog({
+      title: 'Import Notes',
+      filters: [
+        { name: 'All Supported', extensions: ['halqnote','html','htm','txt'] },
+        { name: 'HALQ Note',     extensions: ['halqnote'] },
+        { name: 'HTML',          extensions: ['html','htm'] },
+        { name: 'Text',          extensions: ['txt'] },
+        { name: 'All Files',     extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    })
+    if (dlg.canceled || !dlg.filePaths.length) return { ok: false, canceled: true }
+
+    const filePath = dlg.filePaths[0]
+    const ext      = path.extname(filePath).toLowerCase()
+    notesEnsureDirs()
+    const uid = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,5)
+
+    function writePage (pg, newId) {
+      let html = pg.html || ''
+      if (pg.assets && Object.keys(pg.assets).length) {
+        const dir = path.join(NOTES_ASSETS, newId)
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+        for (const [n, b64] of Object.entries(pg.assets)) {
+          const safe = n.replace(/[^a-zA-Z0-9._-]/g,'_')
+          fs.writeFileSync(path.join(dir, safe), Buffer.from(b64, 'base64'))
+          html = html.replaceAll(pg.id, newId)
+        }
+      }
+      fs.writeFileSync(path.join(NOTES_PAGES, `${newId}.html`), html, 'utf8')
+    }
+
+    // ── .halqnote ────────────────────────────────────────────────────────────
+    if (ext === '.halqnote') {
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+      const meta = notesLoadMeta()
+
+      if (data.exportType === 'page' && data.page) {
+        return { ok: true, type: 'page', name: data.page.title || 'Imported Page', html: data.page.html || '' }
+      }
+
+      if (data.exportType === 'section' && data.section) {
+        const sec      = data.section
+        const newSecId = uid()
+        const newPages = (sec.pages || []).map(pg => {
+          const nid = uid(); writePage(pg, nid); return { id: nid, title: pg.title || 'Untitled' }
+        })
+        let nb = meta.notebooks.find(n => n.name === data.notebookName)
+        if (!nb) { nb = { id: uid(), name: data.notebookName || 'Imported', open: true, sections: [] }; meta.notebooks.push(nb) }
+        nb.sections.push({ id: newSecId, name: sec.name, color: sec.color, open: false, pages: newPages })
+        fs.writeFileSync(NOTES_META, JSON.stringify(meta, null, 2), 'utf8')
+        return { ok: true, type: 'halqnote', notebookName: nb.name }
+      }
+
+      // Full notebook
+      const nb = data.notebook || data
+      if (!nb?.sections) return { ok: false, error: 'Invalid .halqnote file' }
+      const newSecs = (nb.sections || []).map(sec => {
+        const sid = uid()
+        const pgs = (sec.pages || []).map(pg => { const nid = uid(); writePage(pg, nid); return { id: nid, title: pg.title || 'Untitled' } })
+        return { id: sid, name: sec.name, color: sec.color, open: false, pages: pgs }
+      })
+      meta.notebooks.push({ id: uid(), name: (nb.name || 'Imported') + ' (imported)', open: true, sections: newSecs })
+      fs.writeFileSync(NOTES_META, JSON.stringify(meta, null, 2), 'utf8')
+      return { ok: true, type: 'halqnote', notebookName: (nb.name || 'Imported') + ' (imported)' }
+    }
+
+    // ── .html ─────────────────────────────────────────────────────────────────
+    if (ext === '.html' || ext === '.htm') {
+      return { ok: true, type: 'page', name: path.basename(filePath, ext), html: fs.readFileSync(filePath, 'utf8') }
+    }
+
+    // ── .txt ──────────────────────────────────────────────────────────────────
+    if (ext === '.txt') {
+      const txt  = fs.readFileSync(filePath, 'utf8')
+      const name = path.basename(filePath, ext)
+      const html = txt.split('\n').map(l =>
+        l.trim() === '' ? '<br>' : `<p>${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`
+      ).join('\n')
+      return { ok: true, type: 'page', name, html }
+    }
+
+    // ── Unsupported (including .one / .onepkg) ────────────────────────────────
+    if (ext === '.one' || ext === '.onepkg') {
+      return { ok: false, error: 'OneNote files cannot be imported directly.\n\nIn OneNote: File → Export → Export As → HTML (*.htm).\nThen import the .htm file here.' }
+    }
+
+    return { ok: false, error: `Unsupported file type: ${ext || '(none)'}.\nSupported formats: .halqnote  .html  .txt` }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
 ipcMain.on('toggle-menubar', (event, visible) => {
   win.setMenuBarVisibility(visible)
 })
+
+// ── Notes cleanup: remove orphaned page files + purge deleted-flag entries ──
+ipcMain.handle('notes-cleanup', async () => {
+  try {
+    notesEnsureDirs()
+    const meta = notesLoadMeta()
+
+    // Collect all valid page IDs from meta
+    const validIds = new Set()
+    for (const nb of (meta.notebooks || [])) {
+      for (const sec of (nb.sections || [])) {
+        for (const pg of (sec.pages || [])) {
+          if (pg && pg.id) validIds.add(pg.id)
+        }
+      }
+    }
+
+    // Delete orphaned .html page files
+    let orphanCount = 0
+    const pageFiles = fs.readdirSync(NOTES_PAGES).filter(f => f.endsWith('.html'))
+    for (const f of pageFiles) {
+      const id = f.replace(/\.html$/, '')
+      if (!validIds.has(id)) {
+        fs.unlinkSync(path.join(NOTES_PAGES, f))
+        orphanCount++
+      }
+    }
+
+    // Also clean up orphaned asset folders
+    let assetCount = 0
+    if (fs.existsSync(NOTES_ASSETS)) {
+      const assetDirs = fs.readdirSync(NOTES_ASSETS)
+      for (const d of assetDirs) {
+        if (!validIds.has(d)) {
+          fs.rmSync(path.join(NOTES_ASSETS, d), { recursive: true, force: true })
+          assetCount++
+        }
+      }
+    }
+
+    return { ok: true, orphanCount, assetCount, validPageCount: validIds.size }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+// =====================
+// AUTO-UPDATER
+// Flow: renderer calls 'update-check' → main fetches version.json from UPDATE_URL
+//   → if newer version found, returns { available: true, version, asarUrl }
+//   → renderer calls 'update-download' → main downloads new app.asar to temp
+//   → replaces live app.asar → returns ok → renderer prompts restart
+//   → renderer calls 'update-restart' → main relaunches
+// =====================
+
+// Promisified HTTPS GET — returns body string
+function httpsGet (url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'HALQ-Updater' } }, res => {
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        return httpsGet(res.headers.location).then(resolve).catch(reject)
+      }
+      let data = ''
+      res.on('data', chunk => { data += chunk })
+      res.on('end', () => resolve(data))
+    }).on('error', reject)
+  })
+}
+
+// Promisified HTTPS binary download
+function httpsDownload (url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath)
+    function get (u) {
+      https.get(u, { headers: { 'User-Agent': 'HALQ-Updater' } }, res => {
+        if (res.statusCode === 301 || res.statusCode === 302) return get(res.headers.location)
+        res.pipe(file)
+        file.on('finish', () => file.close(resolve))
+      }).on('error', err => { fs.unlink(destPath, () => {}); reject(err) })
+    }
+    get(url)
+  })
+}
+
+// Compare semver strings — returns true if remote > local
+function isNewer (local, remote) {
+  const parse = v => v.replace(/^v/, '').split('.').map(Number)
+  const [la, lb, lc] = parse(local)
+  const [ra, rb, rc] = parse(remote)
+  if (ra !== la) return ra > la
+  if (rb !== lb) return rb > lb
+  return rc > lc
+}
+
+ipcMain.handle('update-check', async () => {
+  try {
+    const body = await httpsGet(`${UPDATE_URL}/version.json`)
+    const info = JSON.parse(body)           // { version, asarUrl, notes }
+    if (isNewer(APP_VERSION, info.version)) {
+      return { available: true, current: APP_VERSION, ...info }
+    }
+    return { available: false, current: APP_VERSION }
+  } catch (err) {
+    return { available: false, error: err.message }
+  }
+})
+
+ipcMain.handle('update-download', async (_event, asarUrl) => {
+  try {
+    // asar lives at: <installDir>/resources/app.asar
+    const asarPath = path.join(process.resourcesPath || __dirname, 'app.asar')
+    const tmpPath  = asarPath + '.update'
+
+    await httpsDownload(asarUrl, tmpPath)
+
+    // Swap: rename live → .bak, move download → live
+    const bakPath = asarPath + '.bak'
+    if (fs.existsSync(bakPath)) fs.unlinkSync(bakPath)
+    if (fs.existsSync(asarPath)) fs.renameSync(asarPath, bakPath)
+    fs.renameSync(tmpPath, asarPath)
+
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('update-restart', () => {
+  app.relaunch()
+  app.exit(0)
+})
+
+ipcMain.handle('update-version', () => APP_VERSION)
 
 // =====================
 // APP LIFECYCLE
 // =====================
 app.whenReady().then(() => {
   setupAppfolioSession()
+  setupOutlookSession()
   createWindow()
 })
 

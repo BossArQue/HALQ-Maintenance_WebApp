@@ -173,29 +173,61 @@
   /* CONTENT */
   .content { flex: 1; overflow: hidden; display: flex; }
   .panel-layout { display: flex; flex: 1; overflow: hidden; }
+  /* Shared panel container for Email and Notes — sits inside .content like .panel-layout */
+  .view-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
   .panel-layout.vertical { flex-direction: column; }
+
+  /* Resizable divider */
+  .resize-divider {
+    width: 5px; background: var(--border); cursor: col-resize; flex-shrink: 0;
+    transition: background 0.15s; position: relative; z-index: 1;
+  }
+  .resize-divider:hover, .resize-divider.dragging { background: var(--accent); }
+  .resize-divider-h {
+    height: 5px; background: var(--border); cursor: row-resize; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .resize-divider-h:hover, .resize-divider-h.dragging { background: var(--accent); }
 
   /* WO PANEL */
   .wo-panel {
     width: 340px; flex-shrink: 0; background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden; min-width: 200px;
   }
   .panel-layout.vertical .wo-panel { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid var(--border); }
   .wo-panel-header {
     padding: 10px 12px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; gap: 8px;
   }
+  .wo-search-wrap { flex: 1; position: relative; display: flex; align-items: center; }
   .wo-search {
     flex: 1; background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: 6px; padding: 5px 10px; font-size: 11px;
-    color: var(--text); outline: none;
+    border-radius: 6px; padding: 5px 28px 5px 10px; font-size: 11px;
+    color: var(--text); outline: none; width: 100%;
   }
   .wo-search:focus { border-color: var(--accent); }
   .wo-search::placeholder { color: var(--text3); }
+  .wo-search-clear {
+    position: absolute; right: 8px; background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 12px; padding: 0; line-height: 1;
+    display: none;
+  }
+  .wo-search-clear.visible { display: block; }
+  .wo-search-clear:hover { color: var(--text); }
+  .wo-filters-wrap {
+    display: flex; align-items: center; border-bottom: 1px solid var(--border);
+    padding: 6px 4px; gap: 2px;
+  }
+  .wo-filters-arrow {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 10px; padding: 2px 4px; flex-shrink: 0; line-height: 1;
+    border-radius: 3px; transition: all 0.15s;
+  }
+  .wo-filters-arrow:hover { color: var(--text); background: var(--surface2); }
+  .wo-filters-arrow.disabled { opacity: 0.2; pointer-events: none; }
   .wo-filters {
-    padding: 6px 12px; display: flex; gap: 4px;
-    border-bottom: 1px solid var(--border); overflow-x: auto;
+    flex: 1; display: flex; gap: 4px;
+    overflow: hidden; scroll-behavior: smooth;
   }
   .filter-chip {
     padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
@@ -316,20 +348,25 @@
 
   /* BOTTOM BAR */
   .bottombar {
-    height: 24px; background: var(--surface); border-top: 1px solid var(--border);
-    display: flex; align-items: center; padding: 0 12px; gap: 12px; flex-shrink: 0;
+    height: 26px; background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 16px; flex-shrink: 0;
   }
-  .bb-item { font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; }
+  .bb-item {
+    font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  }
+  .bb-item span { font-size: 12px; font-weight: 700; color: var(--text); }
+  .bb-item:nth-child(2) span { color: var(--orange); }
   .bb-dot { width: 5px; height: 5px; border-radius: 50%; }
 
   /* SETTINGS */
   .settings-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    display: none; z-index: 100; align-items: flex-start; justify-content: flex-end;
+    display: none; z-index: 10000; align-items: flex-start; justify-content: flex-end;
   }
   .settings-overlay.open { display: flex; }
   .settings-panel {
-    width: 300px; height: 100vh; background: var(--surface);
+    width: 340px; height: 100vh; background: var(--surface);
     border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto;
   }
   .settings-header {
@@ -364,6 +401,14 @@
   .toggle.on { background: var(--accent); }
   .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: transform 0.2s; }
   .toggle.on::after { transform: translateX(14px); }
+
+  /* SETTINGS TABS */
+  .settings-tab {
+    padding: 8px 14px; font-size: 11px; cursor: pointer; color: var(--text3);
+    border-bottom: 2px solid transparent; transition: all 0.15s; flex: 1; text-align: center;
+  }
+  .settings-tab:hover { color: var(--text); }
+  .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   /* CREDENTIALS */
   .creds-input {
@@ -600,48 +645,317 @@
     font-size: 18px; color: var(--accent); flex-direction: column; gap: 10px;
   }
   .drop-overlay.active { display: flex; }
+
+  /* =====================
+     NOTES VIEW
+  ===================== */
+  /* .notes-view overlay removed — Notes now lives inside .app as #notes-panel */
+
+  /* Notes top nav */
+  .notes-topbar {
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+    flex-shrink: 0; height: 40px;
+  }
+  .notes-nav-tab {
+    padding: 0 18px; height: 100%; display: flex; align-items: center;
+    font-size: 12px; color: var(--text3); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap;
+  }
+  .notes-nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .notes-nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .notes-topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; padding-right: 12px; }
+  .nt-topbar-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .nt-topbar-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface); }
+  .nt-topbar-btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .nt-topbar-btn.accent:hover { opacity: 0.85; }
+
+
+  /* Export modal */
+  .nt-export-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+  }
+  .nt-export-overlay.on { display: flex; }
+  .nt-export-box {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 22px 26px; width: 380px; max-width: 90vw; display: flex; flex-direction: column; gap: 14px;
+  }
+  .nt-export-ttl { font-size: 14px; font-weight: 600; color: var(--text); }
+  .nt-export-row { display: flex; flex-direction: column; gap: 5px; }
+  .nt-export-lbl { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .nt-export-scope { display: flex; gap: 6px; }
+  .nt-scope-btn {
+    flex: 1; padding: 7px 4px; text-align: center; border-radius: 6px; font-size: 11px; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); transition: all 0.15s;
+  }
+  .nt-scope-btn:hover { border-color: var(--accent); color: var(--text); }
+  .nt-scope-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .nt-export-sel {
+    width: 100%; padding: 7px 9px; border-radius: 6px; font-size: 12px; outline: none;
+    background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+  }
+  .nt-export-sel:focus { border-color: var(--accent); }
+  .nt-export-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
+  .nt-exp-cancel {
+    padding: 7px 16px; border-radius: 6px; border: 1px solid var(--border2);
+    background: none; color: var(--text2); cursor: pointer; font-size: 12px;
+  }
+  .nt-exp-cancel:hover { background: var(--surface2); }
+  .nt-exp-ok {
+    padding: 7px 20px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff; cursor: pointer; font-size: 12px; font-weight: 500;
+  }
+  .nt-exp-ok:hover { opacity: 0.85; }
+
+  /* Notes 3-panel body */
+  .notes-body-wrap { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+  /* Left: Notebook/Section tree */
+  .notes-nb-panel {
+    width: 200px; min-width: 120px; background: var(--surface);
+    display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+  }
+  .notes-nb-hd {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .notes-nb-hd-title { flex: 1; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .notes-tree { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .notes-tree::-webkit-scrollbar { display: none; }
+
+  /* Middle: Pages list */
+  .notes-pg-panel {
+    width: 180px; min-width: 120px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+  }
+  .notes-pg-hd {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .notes-pg-hd-title { flex: 1; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .notes-pg-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .notes-pg-list::-webkit-scrollbar { display: none; }
+  .notes-pg-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; cursor: pointer; font-size: 11px; color: var(--text3);
+    border-left: 2px solid transparent; user-select: none; transition: all 0.1s;
+  }
+  .notes-pg-item:hover { background: var(--surface2); color: var(--text2); }
+  .notes-pg-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(91,156,246,0.08); }
+  .notes-pg-item .pg-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .notes-pg-item .pg-acts { display: none; gap: 2px; }
+  .notes-pg-item:hover .pg-acts { display: flex; }
+  .notes-pg-empty { padding: 14px 10px; font-size: 11px; color: var(--text3); text-align: center; }
+
+  /* Tree buttons */
+  .ntree-btn {
+    background: none; border: none; color: var(--text3);
+    font-size: 12px; cursor: pointer; padding: 2px 5px; border-radius: 3px; line-height: 1;
+  }
+  .ntree-btn:hover { background: var(--surface2); color: var(--text); }
+
+  /* Notebook row */
+  .nt-nb-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; cursor: pointer; border-radius: 5px;
+    color: var(--text2); font-size: 12px; font-weight: 600; user-select: none;
+  }
+  .nt-nb-row:hover { background: var(--surface2); color: var(--text); }
+  .nt-nb-row .arrow { font-size: 8px; color: var(--text3); transition: transform 0.15s; }
+  .nt-nb.open > .nt-nb-row .arrow { transform: rotate(90deg); }
+  .nt-nb-row .nb-label { flex: 1; }
+  .nt-nb-row .nb-acts { display: none; gap: 2px; }
+  .nt-nb-row:hover .nb-acts { display: flex; }
+
+  /* Section row — no expand arrow, clicking highlights and shows pages in middle panel */
+  .nt-secs { display: none; padding-left: 12px; }
+  .nt-nb.open > .nt-secs { display: block; }
+  .nt-sec-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 8px; cursor: pointer; border-radius: 4px;
+    color: var(--text2); font-size: 11px; font-weight: 500; user-select: none;
+    border-left: 2px solid transparent;
+  }
+  .nt-sec-row:hover { background: var(--surface2); color: var(--text); }
+  .nt-sec-row.active { color: var(--accent); border-left-color: var(--accent); background: rgba(91,156,246,0.08); }
+  .nt-sec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .nt-sec-row .sec-label { flex: 1; }
+  .nt-sec-row .sec-acts { display: none; gap: 2px; }
+  .nt-sec-row:hover .sec-acts { display: flex; }
+
+  /* Editor area — white background */
+  .notes-editor { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: #ffffff; }
+
+  /* Toolbar */
+  .notes-tb {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+    padding: 5px 10px; background: #efefef;
+    border-bottom: 1px solid #d0d0d0; flex-shrink: 0;
+    opacity: 0.4; pointer-events: none;
+  }
+  .notes-tb.enabled { opacity: 1; pointer-events: all; }
+  .notes-tb-sep { width: 1px; height: 16px; background: #ccc; margin: 0 3px; }
+  .nbt {
+    background: none; border: 1px solid transparent; color: #333;
+    padding: 3px 7px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; line-height: 1.4; white-space: nowrap;
+  }
+  .nbt:hover { background: #ddd; border-color: #bbb; color: #000; }
+  .nbt.on { background: rgba(91,156,246,0.18); border-color: #5b9cf6; color: #2266cc; }
+  .nbt-sel {
+    background: #fff; border: 1px solid #ccc; color: #333;
+    padding: 3px 5px; border-radius: 4px; font-size: 11px; max-width: 85px;
+  }
+  .notes-draw-bar {
+    display: none; align-items: center; gap: 6px;
+    padding: 3px 8px; background: rgba(91,156,246,0.1); border-radius: 5px; flex-shrink: 0;
+  }
+  .notes-draw-bar.on { display: flex; }
+  .notes-draw-bar input[type=color] {
+    width: 26px; height: 22px; border: none; background: none; cursor: pointer;
+  }
+  .notes-draw-bar input[type=range] { width: 70px; }
+
+  /* Page area */
+  .notes-page-area { flex: 1; overflow-y: auto; background: var(--bg); position: relative; }
+  .notes-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; color: var(--text3); gap: 8px;
+  }
+  .notes-page-inner { max-width: 840px; margin: 0 auto; padding: 28px 44px 80px; position: relative; }
+  .notes-pg-title {
+    width: 100%; background: none; border: none;
+    border-bottom: 2px solid var(--border); color: var(--text);
+    font-size: 22px; font-weight: 700; padding: 6px 0 10px;
+    margin-bottom: 14px; outline: none;
+  }
+  .notes-pg-title:focus { border-bottom-color: var(--accent); }
+
+  /* Canvas overlay for drawing */
+  .notes-canvas-wrap {
+    display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 10;
+  }
+  .notes-canvas-wrap.on { display: block; pointer-events: all; }
+  #notes-canvas { width: 100%; height: 100%; cursor: crosshair; }
+
+  /* Content editable */
+  .notes-body {
+    min-height: 480px; outline: none; color: var(--text);
+    font-size: 14px; line-height: 1.8; caret-color: var(--accent);
+  }
+  .notes-body:empty:before { content: 'Start typing...'; color: var(--text3); pointer-events: none; }
+  .notes-body h1 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; }
+  .notes-body h2 { font-size: 16px; font-weight: 600; margin: 12px 0 5px; }
+  .notes-body h3 { font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+  .notes-body ul, .notes-body ol { padding-left: 22px; margin: 4px 0; }
+  .notes-body li { margin: 2px 0; }
+  .notes-body p { margin: 3px 0; }
+  .notes-body table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  .notes-body table td,
+  .notes-body table th { border: 1px solid var(--border2); padding: 5px 9px; min-width: 70px; }
+  .notes-body table th { background: var(--surface2); font-weight: 600; }
+  .notes-body img { max-width: 100%; border-radius: 5px; margin: 6px 0; display: block; }
+  .notes-body .nt-file {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 11px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: 5px;
+    cursor: pointer; margin: 3px 0; color: var(--text2); font-size: 12px;
+  }
+  .notes-body .nt-file:hover { border-color: var(--accent); color: var(--text); }
+  .notes-body input[type=checkbox] { margin-right: 5px; cursor: pointer; }
+
+  /* Custom prompt modal */
+  .nt-prompt-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 9999;
+    align-items: center; justify-content: center;
+  }
+  .nt-prompt-overlay.on { display: flex; }
+  .nt-prompt-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 20px; min-width: 280px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .nt-prompt-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 10px; }
+  .nt-prompt-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 7px 9px; border-radius: 6px;
+    font-size: 13px; outline: none; box-sizing: border-box;
+  }
+  .nt-prompt-input:focus { border-color: var(--accent); }
+  .nt-prompt-btns { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .nt-prompt-cancel {
+    background: none; border: 1px solid var(--border2); color: var(--text2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .nt-prompt-ok {
+    background: var(--accent); border: none; color: #fff;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+
+  /* UPDATE BANNER */
+  .update-banner {
+    display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 12px 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 9000; gap: 12px; align-items: center;
+    font-size: 12px; white-space: nowrap;
+    animation: slideUp 0.25s ease;
+  }
+  .update-banner.visible { display: flex; }
+  @keyframes slideUp {
+    from { opacity:0; transform: translateX(-50%) translateY(12px); }
+    to   { opacity:1; transform: translateX(-50%) translateY(0); }
+  }
+  .update-banner-text { color: var(--text2); }
+  .update-banner-text strong { color: var(--text); }
+  .update-banner-install {
+    background: var(--accent); border: none; color: #fff;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 11px; font-weight: 500;
+  }
+  .update-banner-dismiss {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
+  }
+  .update-banner-progress {
+    font-size: 10px; color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
 </style>
 </head>
 <body data-theme="dark">
-
-<!-- DRAG DROP OVERLAY -->
-<div class="drop-overlay" id="drop-overlay">
-  <div style="font-size:48px">📂</div>
-  <div>Drop your Appfolio Work Order file here</div>
-  <div style="font-size:12px;opacity:0.7">work_order-[date].xlsx</div>
-</div>
 
 <!-- TITLEBAR -->
 <div class="titlebar">
   <div class="tb-title">HALQ — Maintenance Command</div>
   <div class="tb-controls">
-    <div class="tb-btn active" onclick="toggleNav('sidebar')" id="nav-sidebar-btn">⊞ Sidebar</div>
-    <div class="tb-btn" onclick="toggleNav('topnav')" id="nav-topnav-btn">↕ Top Nav</div>
-    <div class="tb-btn" onclick="toggleNav('tabs')" id="nav-tabs-btn">⊟ Tabs</div>
-    <div style="width:1px;height:14px;background:var(--border2);margin:0 2px"></div>
-    <div class="tb-btn active" onclick="toggleLayout('side')" id="layout-side-btn">◫ Split</div>
-    <div class="tb-btn" onclick="toggleLayout('vertical')" id="layout-vert-btn">⊟ Stack</div>
-    <div style="width:1px;height:14px;background:var(--border2);margin:0 2px"></div>
     <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
   </div>
 </div>
 
 <!-- TOP NAV -->
 <div class="top-nav" id="top-nav">
-  <div class="top-nav-item active">📋 Work Orders</div>
-  <div class="top-nav-item">🌐 Appfolio</div>
-  <div class="top-nav-item">✉️ Email</div>
-  <div class="top-nav-item">📝 Notes</div>
-  <div class="top-nav-item">⚡ Macros</div>
+  <div class="top-nav-item active" id="topnav-wo"    onclick="switchMainView('wo')">📋 Work Orders</div>
+  <div class="top-nav-item"        id="topnav-email" onclick="switchMainView('email')">✉ Email</div>
+  <div class="top-nav-item"        id="topnav-notes" onclick="switchMainView('notes')">📝 Notes</div>
 </div>
 
 <!-- SECTION TABS -->
 <div class="section-tabs" id="section-tabs">
-  <div class="section-tab active">Work Orders</div>
-  <div class="section-tab">Appfolio</div>
-  <div class="section-tab">Email</div>
-  <div class="section-tab">Notes</div>
-  <div class="section-tab">Macros</div>
+  <div class="section-tab active" id="sectab-wo"    onclick="switchMainView('wo')">Work Orders</div>
+  <div class="section-tab"        id="sectab-email" onclick="switchMainView('email')">Email</div>
+  <div class="section-tab"        id="sectab-notes" onclick="switchMainView('notes')">Notes</div>
 </div>
 
 <div class="app">
@@ -652,36 +966,27 @@
       <div class="logo-icon">H</div>
       <div>
         <div class="logo-text">HALQ</div>
-        <div class="logo-ver">v0.1 ALPHA</div>
+        <div class="logo-ver" id="app-version-label">v0.1 ALPHA</div>
       </div>
     </div>
     <div class="sidebar-nav">
       <div class="nav-section">
         <div class="nav-label">Main</div>
-        <div class="nav-item active"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge" id="nav-wo-badge"></span></div>
-        <div class="nav-item"><span class="nav-icon">🌐</span><span>Appfolio</span></div>
-        <div class="nav-item"><span class="nav-icon">✉️</span><span>Email</span><span class="nav-badge red">3</span></div>
-        <div class="nav-item"><span class="nav-icon">📝</span><span>Notes</span></div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Tools</div>
-        <div class="nav-item"><span class="nav-icon">⚡</span><span>Macros</span></div>
-        <div class="nav-item"><span class="nav-icon">📊</span><span>Summary</span></div>
-        <div class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>Settings</span></div>
+        <div class="nav-item active" id="nav-wo"    onclick="switchMainView('wo')"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge" id="nav-wo-badge"></span></div>
+        <div class="nav-item"        id="nav-email" onclick="switchMainView('email')"><span class="nav-icon">✉</span><span>Email</span></div>
+        <div class="nav-item"        id="nav-notes" onclick="switchMainView('notes')"><span class="nav-icon">📝</span><span>Notes</span></div>
       </div>
     </div>
     <div class="sidebar-footer">
-      <div class="status-pill"><div class="status-dot"></div><span>Excel connected</span></div>
+      <div class="status-pill" id="sidebar-status"></div>
     </div>
   </div>
 
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <span class="topbar-title">Work Orders</span>
-      <span class="topbar-sub" id="wo-count-label">Active Monitoring · 0 open</span>
-      <div class="topbar-actions">
-        <button class="btn btn-ghost" onclick="triggerImport()">⬆ Import</button>
+      <span class="topbar-title" id="topbar-title">Work Orders</span>
+      <div class="topbar-actions" id="topbar-actions">
         <button class="btn btn-primary" onclick="navReload()">↻ Refresh</button>
       </div>
     </div>
@@ -692,21 +997,29 @@
         <!-- WO LIST -->
         <div class="wo-panel">
           <div class="wo-panel-header">
-            <input class="wo-search" placeholder="🔍  Search WO#, property, vendor..." oninput="filterWOs(this.value)">
+            <div class="wo-search-wrap">
+              <input class="wo-search" id="wo-search-input" placeholder="🔍  Search WO#, property, vendor..." oninput="filterWOs(this.value);updateSearchClear(this)">
+              <button class="wo-search-clear" id="wo-search-clear" onclick="clearSearch()" title="Clear">✕</button>
+            </div>
             <button class="btn btn-ghost" style="padding:4px 8px" onclick="toggleDetail()">⊞</button>
           </div>
-          <div class="wo-filters">
-            <div class="filter-chip active" onclick="toggleChip(this,'all')">All</div>
-            <div class="filter-chip" onclick="toggleChip(this,'overdue')">Overdue</div>
-            <div class="filter-chip" onclick="toggleChip(this,'today')">Due Today</div>
-            <div class="filter-chip" onclick="toggleChip(this,'assigned')">Assigned</div>
-            <div class="filter-chip" onclick="toggleChip(this,'waiting')">Waiting</div>
-            <div class="filter-chip" onclick="toggleChip(this,'urgent')">Urgent</div>
-            <div class="filter-chip" onclick="toggleChip(this,'BH')">BH</div>
-            <div class="filter-chip" onclick="toggleChip(this,'Talley')">Talley</div>
+          <div class="wo-filters-wrap">
+            <button class="wo-filters-arrow disabled" id="chips-arrow-left" onclick="scrollChips(-1)">◀</button>
+            <div class="wo-filters" id="wo-filters">
+              <div class="filter-chip active" onclick="toggleChip(this,'all')">All</div>
+              <div class="filter-chip" onclick="toggleChip(this,'overdue')">Overdue</div>
+              <div class="filter-chip" onclick="toggleChip(this,'today')">Due Today</div>
+              <div class="filter-chip" onclick="toggleChip(this,'assigned')">Assigned</div>
+              <div class="filter-chip" onclick="toggleChip(this,'waiting')">Waiting</div>
+              <div class="filter-chip" onclick="toggleChip(this,'urgent')">Urgent</div>
+            </div>
+            <button class="wo-filters-arrow" id="chips-arrow-right" onclick="scrollChips(1)">▶</button>
           </div>
           <div class="wo-list" id="wo-list"></div>
         </div>
+
+        <!-- RESIZABLE DIVIDER -->
+        <div class="resize-divider" id="wo-resize-divider"></div>
 
         <!-- APPFOLIO PANEL -->
         <div class="af-panel">
@@ -714,7 +1027,7 @@
             <div class="af-tabs-arrow" id="tabs-arrow-left" onclick="scrollTabs(-1)">◀</div>
             <div class="af-tabs" id="af-tabs">
               <div class="af-tab active" id="tab-main"
-                   data-url="https://talley.appfolio.com"
+                   data-url=""
                    onclick="switchToTab(this)">
                 <span>🏠 Appfolio</span>
               </div>
@@ -726,16 +1039,17 @@
             <div class="af-nav-btn" onclick="navBack()" title="Back">←</div>
             <div class="af-nav-btn" onclick="navForward()" title="Forward">→</div>
             <div class="af-nav-btn" onclick="navReload()" title="Reload">↻</div>
-            <input class="af-url" id="af-url" value="https://talley.appfolio.com"
+            <input class="af-url" id="af-url" value=""
               onkeydown="if(event.key==='Enter') navTo(this.value)">
             <button class="af-go-btn" onclick="navTo(document.getElementById('af-url').value)">Go</button>
           </div>
           <div class="af-content">
             <webview
               id="appfolio-view"
-              src="https://talley.appfolio.com"
+              src=""
               partition="persist:appfolio"
-              webpreferences="nodeIntegration=no, contextIsolation=yes"
+              allowpopups
+              webpreferences="nodeIntegration=no, contextIsolation=yes, webSecurity=no"
               style="flex:1;width:100%;height:100%;border:none;">
             </webview>
           </div>
@@ -754,7 +1068,6 @@
             <div class="detail-row"><div class="detail-label">Vendor</div><div class="detail-val" id="d-vendor">—</div></div>
             <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val" id="d-status">—</div></div>
             <div class="detail-row"><div class="detail-label">Age (Days)</div><div class="detail-val" id="d-age">—</div></div>
-            <div class="detail-row"><div class="detail-label">Portfolio</div><div class="detail-val" id="d-portfolio">—</div></div>
             <div class="detail-row"><div class="detail-label">Job Summary</div><div class="detail-val" id="d-job" style="font-size:11px;color:var(--text2);line-height:1.5">—</div></div>
             <div class="detail-row">
               <div class="detail-label">Follow-up Date</div>
@@ -810,19 +1123,78 @@
           </div>
         </div>
 
-      </div>
-    </div>
+      </div><!-- end .panel-layout -->
 
-    <!-- MACRO BAR REMOVED -->
+      <!-- =====================
+           EMAIL PANEL — Outlook Web embedded (mirrors Appfolio webview pattern)
+           ===================== -->
+      <div class="view-panel" id="email-panel" style="display:none;flex:1;overflow:hidden">
+
+        <div class="af-panel">
+          <!-- Tab bar -->
+          <div class="af-tabs-wrap">
+            <div class="af-tabs-arrow disabled" id="em-tabs-arrow-left" onclick="emScrollTabs(-1)">◀</div>
+            <div class="af-tabs" id="em-tabs">
+              <div class="af-tab active" id="em-tab-main"
+                   data-url="https://outlook.office.com/mail"
+                   onclick="emSwitchToTab(this)">
+                <span>✉ Outlook</span>
+              </div>
+              <div class="af-new-tab" onclick="emAddTab()" title="New Tab">+</div>
+            </div>
+            <div class="af-tabs-arrow" id="em-tabs-arrow-right" onclick="emScrollTabs(1)">▶</div>
+          </div>
+
+          <!-- Toolbar: back/forward/reload + URL bar -->
+          <div class="af-toolbar">
+            <div class="af-nav-btn" onclick="emNavBack()"    title="Back">←</div>
+            <div class="af-nav-btn" onclick="emNavForward()" title="Forward">→</div>
+            <div class="af-nav-btn" onclick="emRefresh()"    title="Reload">↻</div>
+            <input class="af-url" id="em-url" value="https://outlook.office.com/mail"
+              onkeydown="if(event.key==='Enter') emNavTo(this.value)">
+            <button class="af-go-btn" onclick="emNavTo(document.getElementById('em-url').value)">Go</button>
+          </div>
+
+          <!-- Webview — separate session from Appfolio -->
+          <div class="af-content">
+            <webview
+              id="email-view"
+              src="https://outlook.office.com/mail"
+              partition="persist:outlook"
+              webpreferences="nodeIntegration=no, contextIsolation=yes"
+              style="flex:1;width:100%;height:100%;border:none;">
+            </webview>
+          </div>
+        </div>
+
+      </div><!-- end email-panel -->
+
+      <!-- =====================
+           NOTES PANEL — shares sidebar, topbar, bottombar with WO
+           ===================== -->
+      <div class="view-panel" id="notes-panel" style="display:none;flex:1;overflow:hidden">
+      </div><!-- end notes-panel (body populated by ntRenderInPanel) -->
+
+    </div><!-- end .content -->
+
+  </div><!-- end .main -->
+</div><!-- end .app -->
+
+<!-- UPDATE BANNER -->
+<div class="update-banner" id="update-banner">
+  <div class="update-banner-text">
+    <strong id="update-version-label">v1.0.0</strong>
+    <span id="update-banner-msg"> is available</span>
   </div>
+  <span class="update-banner-progress" id="update-progress" style="display:none">⏳ Downloading…</span>
+  <button class="update-banner-install" id="update-install-btn" onclick="updateInstall()">Install &amp; Restart</button>
+  <button class="update-banner-dismiss" onclick="updateDismiss()" title="Dismiss">✕</button>
 </div>
 
 <!-- BOTTOM BAR -->
 <div class="bottombar">
-  <div class="bb-item"><div class="bb-dot" style="background:var(--green)"></div>Excel Connected</div>
-  <div class="bb-item"><div class="bb-dot" style="background:var(--accent)"></div>Appfolio Ready</div>
-  <div class="bb-item">📋 <span id="bb-wo-count">0</span> Active WOs</div>
-  <div class="bb-item">⚠️ <span id="bb-overdue">12</span> Overdue</div>
+  <div class="bb-item">📋 <span id="bb-wo-count">—</span> Active WOs</div>
+  <div class="bb-item">⚠️ <span id="bb-overdue">—</span> Overdue</div>
   <div style="margin-left:auto" class="bb-item" id="clock"></div>
 </div>
 
@@ -873,63 +1245,131 @@
       <span class="settings-title">⚙ HALQ Settings</span>
       <span class="settings-close" onclick="closeSettings()">✕</span>
     </div>
-    <div class="settings-body">
-      <div class="settings-section">
-        <div class="settings-section-title">Appfolio Credentials</div>
-        <div class="detail-label" style="margin-bottom:2px">Email</div>
-        <input class="creds-input" id="creds-email" type="email" placeholder="your@email.com" autocomplete="username">
-        <div class="detail-label" style="margin-bottom:2px;margin-top:8px">Password</div>
-        <input class="creds-input" id="creds-pass" type="password" placeholder="••••••••" autocomplete="current-password">
-        <div class="creds-status" id="creds-status"></div>
-        <div style="display:flex;gap:6px;margin-top:10px">
-          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveCreds()">💾 Save</button>
-          <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="clearCreds()">🗑 Clear</button>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Settings PIN Lock</div>
-        <div class="detail-label" style="margin-bottom:2px">New PIN (4 digits)</div>
-        <input class="creds-input" id="pin-setup-input" type="password"
-               maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*">
-        <div class="creds-status" id="pin-setup-status"></div>
-        <div style="display:flex;gap:6px;margin-top:10px">
-          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="savePin()">💾 Set PIN</button>
-          <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="clearPin()">🗑 Remove PIN</button>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Theme</div>
-        <div class="theme-grid">
-          <div class="theme-option active" onclick="setTheme('dark',this)"><div class="theme-dot" style="background:#3a3a3a;border:1px solid #666"></div>Gray Dark</div>
-          <div class="theme-option" onclick="setTheme('light',this)"><div class="theme-dot" style="background:#e8ecf5;border:1px solid #ccc"></div>Light</div>
-          <div class="theme-option" onclick="setTheme('midnight',this)"><div class="theme-dot" style="background:#6366f1"></div>Midnight</div>
-          <div class="theme-option" onclick="setTheme('forest',this)"><div class="theme-dot" style="background:#3ecf8e"></div>Forest</div>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Layout</div>
-        <div class="layout-options">
-          <div class="layout-option active" onclick="setLayoutOpt('side',this)">◫ Side by Side</div>
-          <div class="layout-option" onclick="setLayoutOpt('vertical',this)">⊟ Stacked</div>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Navigation</div>
-        <div class="layout-options">
-          <div class="layout-option active" onclick="setNavOpt('sidebar',this)">⊞ Left Sidebar</div>
-          <div class="layout-option" onclick="setNavOpt('topnav',this)">↕ Top Bar</div>
-          <div class="layout-option" onclick="setNavOpt('tabs',this)">⊟ Tabs</div>
-          <div class="layout-option" onclick="setNavOpt('none',this)">✕ Hidden</div>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-section-title">Preferences</div>
 
-        <div class="toggle-row"><span>Color Code WOs</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-        <div class="toggle-row"><span>Auto-search on WO click</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-        <div class="toggle-row"><span>Show Bottom Bar</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-        <div class="toggle-row"><span>Show Menu Bar</span><div class="toggle" id="menubar-toggle" onclick="toggleMenuBar(this)"></div></div>
+    <!-- Tab nav inside settings -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div class="settings-tab active" id="stab-accounts"  onclick="switchSettingsTab('accounts')">Accounts</div>
+      <div class="settings-tab"        id="stab-appearance" onclick="switchSettingsTab('appearance')">Appearance</div>
+      <div class="settings-tab"        id="stab-prefs"     onclick="switchSettingsTab('prefs')">Preferences</div>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- ── ACCOUNTS TAB ── -->
+      <div id="stab-content-accounts">
+
+        <div class="settings-section">
+          <div class="settings-section-title">Appfolio Login</div>
+          <div class="detail-label" style="margin-bottom:2px">Appfolio URL</div>
+          <input class="creds-input" id="appfolio-url-input" type="url" placeholder="https://yourcompany.appfolio.com" style="margin-bottom:8px">
+          <div class="detail-label" style="margin-bottom:2px">Email</div>
+          <input class="creds-input" id="creds-email" type="email" placeholder="your@email.com" autocomplete="username">
+          <div class="detail-label" style="margin-bottom:2px;margin-top:8px">Password</div>
+          <input class="creds-input" id="creds-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+          <div class="creds-status" id="creds-status"></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveCreds()">💾 Save</button>
+            <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="clearCreds()">🗑 Clear</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Email</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6">
+            Email is accessed via the <strong style="color:var(--text2)">Outlook Web</strong> tab.<br>
+            Sign in directly in the Email view — your session is saved automatically.
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Excel File Location</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Set the path to your Work Order Status Update .xlsm file. HALQ will auto-detect and load it on startup.</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="creds-input" id="excel-path-input" type="text" placeholder="C:\Path\To\WorkOrders.xlsm" style="flex:1;margin-top:0">
+            <button class="btn btn-ghost" onclick="browseExcelPath()" style="flex-shrink:0;margin-top:0">📂 Browse</button>
+          </div>
+          <div class="creds-status" id="excel-path-status"></div>
+          <div style="margin-top:10px">
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveExcelPath()">💾 Save Path</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Settings PIN Lock</div>
+          <div class="detail-label" style="margin-bottom:2px">New PIN (4 digits)</div>
+          <input class="creds-input" id="pin-setup-input" type="password"
+                 maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*">
+          <div class="creds-status" id="pin-setup-status"></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="savePin()">💾 Set PIN</button>
+            <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="clearPin()">🗑 Remove PIN</button>
+          </div>
+        </div>
+
       </div>
+
+      <!-- ── APPEARANCE TAB ── -->
+      <div id="stab-content-appearance" style="display:none">
+
+        <div class="settings-section">
+          <div class="settings-section-title">Theme</div>
+          <div class="theme-grid">
+            <div class="theme-option active" onclick="setTheme('dark',this)"><div class="theme-dot" style="background:#3a3a3a;border:1px solid #666"></div>Gray Dark</div>
+            <div class="theme-option" onclick="setTheme('light',this)"><div class="theme-dot" style="background:#e8ecf5;border:1px solid #ccc"></div>Light</div>
+            <div class="theme-option" onclick="setTheme('midnight',this)"><div class="theme-dot" style="background:#6366f1"></div>Midnight</div>
+            <div class="theme-option" onclick="setTheme('forest',this)"><div class="theme-dot" style="background:#3ecf8e"></div>Forest</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Layout</div>
+          <div class="layout-options">
+            <div class="layout-option active" onclick="setLayoutOpt('side',this)">◫ Side by Side</div>
+            <div class="layout-option" onclick="setLayoutOpt('vertical',this)">⊟ Stacked</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Navigation Style</div>
+          <div class="layout-options">
+            <div class="layout-option active" onclick="setNavOpt('sidebar',this)">⊞ Left Sidebar</div>
+            <div class="layout-option" onclick="setNavOpt('topnav',this)">↕ Top Bar</div>
+            <div class="layout-option" onclick="setNavOpt('tabs',this)">⊟ Tabs</div>
+            <div class="layout-option" onclick="setNavOpt('none',this)">✕ Hidden</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── PREFERENCES TAB ── -->
+      <div id="stab-content-prefs" style="display:none">
+
+        <div class="settings-section">
+          <div class="settings-section-title">Work Orders</div>
+          <div class="toggle-row">
+            <span>Color Code WOs by Age</span>
+            <div class="toggle on" id="pref-color-code" onclick="togglePref(this,'colorCodeWOs')"></div>
+          </div>
+          <div class="toggle-row">
+            <span>Auto-search on WO Click</span>
+            <div class="toggle on" id="pref-auto-search" onclick="togglePref(this,'autoSearch')"></div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Interface</div>
+          <div class="toggle-row">
+            <span>Show Bottom Bar</span>
+            <div class="toggle on" id="pref-bottom-bar" onclick="togglePref(this,'showBottomBar')"></div>
+          </div>
+          <div class="toggle-row">
+            <span>Show Menu Bar</span>
+            <div class="toggle" id="menubar-toggle" onclick="toggleMenuBar(this)"></div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </div>
 </div>
@@ -940,28 +1380,23 @@
 // =====================
 
 // =====================
-// SAMPLE DATA
+// WORK ORDER DATA
+// Source of truth is Excel — loaded via loadExcelData() on startup
+// Empty until Excel loads; WO tags (followup, category) are applied after load
 // =====================
-const wos = [
-  {wo:'49638-1',prop:'3106 Creighton Drive',res:'Latta, Howard',vendor:'Homeslam INC',status:'Assigned',age:90,job:'Install smoke detectors in the bedrooms. Install 10-year lithium-ion tamper-proof units.',tag:'Urgent',portfolio:'BH'},
-  {wo:'49670-1',prop:'701 Louise Avenue #1',res:'Fishero, Joshua',vendor:'CE Inc.',status:'Assigned',age:88,job:'Ceiling leaking still. Attached a photo.',tag:'Low Monitoring',portfolio:'BH'},
-  {wo:'49706-1',prop:'1100 Dresden Drive',res:'Quick, John',vendor:'Biggs, Mark',status:'Assigned',age:85,job:'Resident Update 02/20/2026: I would like to schedule a time.',tag:'',portfolio:'Talley'},
-  {wo:'50236-1',prop:'1320 Briar Creek Road',res:'Chavez, Douglas',vendor:'Homeslam INC',status:'Assigned',age:40,job:'Install 10 year lithium smoke detectors.',tag:'',portfolio:'BH'},
-  {wo:'50284-1',prop:'1709 Fulton Avenue',res:'Gilliard, Virginia',vendor:'Homeslam INC',status:'Scheduled',age:35,job:'Install 10 year lithium smoke detectors.',tag:'For Invoice',portfolio:'BH'},
-  {wo:'50310-1',prop:'1905 Finchley Drive',res:'Waddell, Kenneth',vendor:'Biggs, Mark',status:'Assigned',age:34,job:'Install 10 year lithium smoke detectors.',tag:'',portfolio:'Talley'},
-  {wo:'50338-1',prop:'North Main Street',res:'Mosorjak, Therese M.',vendor:'Steele Jones Dev.',status:'Scheduled',age:31,job:'The kitchen floor tile is cracked.',tag:'',portfolio:'Talley'},
-  {wo:'50472-1',prop:'6601 Rosecran Drive',res:'Suber, Sigcourtney R.',vendor:'Blue Chip Maintenance',status:'Scheduled',age:19,job:'Replace the hot water heater.',tag:'',portfolio:'Talley'},
-  {wo:'50483-1',prop:'9632 Terrier Way',res:'Stroble, Erika R.',vendor:'Waiting',status:'Waiting',age:18,job:'UNIT - SPIDERS: Tenant Erika called in requesting.',tag:'Urgent',portfolio:'Talley'},
-  {wo:'50490-1',prop:'1711 Harrill Street',res:'Beattie, Sheila A.',vendor:'Homeslam INC',status:'Assigned',age:16,job:'The remote for the fan in the living room needs.',tag:'',portfolio:'BH'},
-  {wo:'50597-1',prop:'524-B Wakefield Drive',res:'',vendor:'AR Comfort LLC',status:'Scheduled',age:5,job:'Rekey to master and bring lockbox back to office.',tag:'',portfolio:'Talley'},
-  {wo:'50643-1',prop:'7600 Woodstream Drive',res:'',vendor:'Biggs, Mark',status:'Assigned',age:2,job:'Resident Update 03/01/2026: The poison ivy.',tag:'',portfolio:'BH'},
-];
+const wos = [];
 
 let currentFilter = 'all';
 let selectedWO = null;
 
-function getAgeClass(age) { return age > 60 ? 'old' : age > 20 ? 'mid' : 'new'; }
-function getItemClass(age) { return age > 60 ? 'overdue' : age === 0 ? 'due-today' : 'on-track'; }
+function getAgeClass(age) {
+  if (document.getElementById('pref-color-code') && !document.getElementById('pref-color-code').classList.contains('on')) return ''
+  return age > 60 ? 'old' : age > 20 ? 'mid' : 'new';
+}
+function getItemClass(age) {
+  if (document.getElementById('pref-color-code') && !document.getElementById('pref-color-code').classList.contains('on')) return ''
+  return age > 60 ? 'overdue' : age === 0 ? 'due-today' : 'on-track';
+}
 function getStatusClass(s) { return s === 'Assigned' ? 'assigned' : s === 'Scheduled' ? 'scheduled' : 'waiting'; }
 
 function getWeekStart (d) {
@@ -999,14 +1434,13 @@ function renderWOList(data) {
     const catDot = cat ? `<div style="width:7px;height:7px;border-radius:50%;background:${cat.color};flex-shrink:0" title="${cat.name}"></div>` : ''
     const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
     return `
-      <div class="wo-item ${getItemClass(w.age)}" onclick="selectWO(${wos.indexOf(w)})">
+      <div class="wo-item ${getItemClass(w.age)}" data-wo="${w.wo}">
         <div class="wo-item-top">
           <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
           <div class="wo-num">${w.wo}</div>
           ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
           <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
             ${catDot}
-            <span style="font-size:9px;color:var(--text3)">${w.portfolio || ''}</span>
           </div>
         </div>
         <div class="wo-prop">${w.prop}</div>
@@ -1041,6 +1475,11 @@ function renderWOList(data) {
   if (later.length)     html += sectionHeader('Later',       later.length)     + later.map(woCard).join('')
 
   list.innerHTML = html
+
+  // Wire clicks via delegation — avoids any inline onclick string-escaping issues
+  list.querySelectorAll('.wo-item').forEach(el => {
+    el.addEventListener('click', () => selectWO(el.dataset.wo))
+  })
 }
 
 function filterWOs(query) {
@@ -1061,19 +1500,18 @@ function toggleChip(el, filter) {
   currentFilter = filter;
   let filtered = wos;
   if (filter === 'overdue') filtered = wos.filter(w => w.age > 60);
-  else if (filter === 'today') filtered = wos.filter(w => w.age === 0);
+  else if (filter === 'today') filtered = wos.filter(w => w.age <= 1);
   else if (filter === 'assigned') filtered = wos.filter(w => w.status === 'Assigned');
   else if (filter === 'waiting') filtered = wos.filter(w => w.status === 'Waiting');
-  else if (filter === 'urgent') filtered = wos.filter(w => w.tag === 'Urgent');
-  else if (filter === 'BH') filtered = wos.filter(w => w.portfolio === 'BH');
-  else if (filter === 'Talley') filtered = wos.filter(w => w.portfolio === 'Talley');
+  else if (filter === 'urgent') filtered = wos.filter(w => { const cat = getCatById(w._catId); return cat && cat.name.toLowerCase() === 'urgent'; });
   renderWOList(filtered);
 }
 
-function selectWO(i) {
-  selectedWO = wos[i];
-  document.querySelectorAll('.wo-item').forEach((el, idx) => {
-    el.classList.toggle('active', idx === i);
+function selectWO(woNum) {
+  selectedWO = wos.find(w => w.wo === woNum);
+  if (!selectedWO) return;
+  document.querySelectorAll('.wo-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.wo === woNum);
   });
   document.getElementById('d-wo').textContent        = selectedWO.wo;
   document.getElementById('d-prop').textContent      = selectedWO.prop;
@@ -1081,7 +1519,6 @@ function selectWO(i) {
   document.getElementById('d-vendor').textContent    = selectedWO.vendor;
   document.getElementById('d-status').textContent    = selectedWO.status;
   document.getElementById('d-age').textContent       = selectedWO.age + ' days';
-  document.getElementById('d-portfolio').textContent = selectedWO.portfolio;
   document.getElementById('d-job').textContent       = selectedWO.job;
 
   // Restore saved followup date for this WO
@@ -1107,14 +1544,16 @@ function selectWO(i) {
     label.textContent    = '— None —'
   }
 
-  // Auto-search in Appfolio
-  const woNum = selectedWO.wo.split('-')[0];
-  const url = `https://talley.appfolio.com/search/advanced_search?full_text_search=${woNum}`;
-  document.getElementById('af-url').value = url;
-  const view = document.getElementById('appfolio-view');
-  if (view) {
-    // Use loadURL via navTo to avoid ERR_ABORTED on direct src assignment
-    try { view.loadURL(url) } catch (_) { view.src = url }
+  // Auto-search in Appfolio (only if pref is on)
+  const autoSearchOn = !document.getElementById('pref-auto-search') || document.getElementById('pref-auto-search').classList.contains('on')
+  if (autoSearchOn) {
+    const woSearch = selectedWO.wo.split('-')[0];
+    const url = afBaseUrl ? `${afBaseUrl}/search/advanced_search?full_text_search=${woSearch}` : ''
+    if (url) {
+      document.getElementById('af-url').value = url;
+      const view = document.getElementById('appfolio-view');
+      if (view) view.src = url
+    }
   }
 
   // Open detail drawer
@@ -1124,10 +1563,11 @@ function selectWO(i) {
 function openInAppfolio() {
   if (!selectedWO) return;
   const woNum = selectedWO.wo.split('-')[0];
-  const url = `https://talley.appfolio.com/search/advanced_search?full_text_search=${woNum}`;
+  const url = afBaseUrl ? `${afBaseUrl}/search/advanced_search?full_text_search=${woNum}` : ''
+  if (!url) return
   document.getElementById('af-url').value = url;
   const view = document.getElementById('appfolio-view');
-  if (view) view.src = url;
+  if (view) view.src = url
 }
 
 function saveWODetail () {
@@ -1159,14 +1599,20 @@ function saveWODetail () {
 // =====================
 // BROWSER CONTROLS
 // =====================
-function navBack() { const v = document.getElementById('appfolio-view'); if (v) v.goBack(); }
+// afBaseUrl — the configured Appfolio origin (e.g. https://talley.appfolio.com).
+// Set once by applyAppfolioUrl() from saved settings. Used by all WO search
+// URL builders — never derived from the current webview URL, which can be
+// a temporary OAuth/Keycloak domain mid-redirect.
+let afBaseUrl = ''
+
+function navBack()    { const v = document.getElementById('appfolio-view'); if (v) v.goBack(); }
 function navForward() { const v = document.getElementById('appfolio-view'); if (v) v.goForward(); }
-function navReload() { const v = document.getElementById('appfolio-view'); if (v) v.reload(); }
+function navReload()  { const v = document.getElementById('appfolio-view'); if (v) v.reload(); }
 function navTo(url) {
-  if (!url.startsWith('http')) url = 'https://' + url;
-  document.getElementById('af-url').value = url;
-  const v = document.getElementById('appfolio-view');
-  if (v) v.src = url;
+  if (!url.startsWith('http')) url = 'https://' + url
+  document.getElementById('af-url').value = url
+  const v = document.getElementById('appfolio-view')
+  if (v) v.src = url
 }
 
 // Track URL changes
@@ -1188,7 +1634,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   updateTabArrows()
+  updateChipArrows()
 
+  // Resizable dividers
+  const woPanel = document.querySelector('.wo-panel')
+  const afPanel = document.querySelector('.af-panel')
+  if (woPanel && afPanel) initResizeDivider('wo-resize-divider', woPanel, afPanel, 'v')
+
+  // Notes dividers initialized when notes view opens (panels may not exist yet)
   // Poll until window.halq is injected by preload before using any IPC
   function waitForHalq (fn, attempts) {
     if (window.halq) { fn(); return }
@@ -1200,7 +1653,10 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[HALQ] window.halq ready')
     window.halq.onNewTab(url => addTab(url))
     loadCategories()
-    loadWOTags()
+    // loadWOTags called after loadExcelData in _halqReady so tags apply to real data
+    checkStartupRequirements()
+    // Check for updates 3 seconds after startup — non-blocking
+    setTimeout(checkForUpdate, 3000)
   }, 40) // 40 x 50ms = 2 seconds max wait
 })
 
@@ -1279,10 +1735,11 @@ function showDebug (msg) {
 }
 
 async function tryAutoFill (view) {
-  const url = view.getURL()
+  const url     = view.getURL()
+  const afHost  = afBaseUrl ? new URL(afBaseUrl).hostname : 'appfolio.com'
   showDebug('page loaded: ' + url.slice(0, 60))
 
-  if (!url.includes('appfolio.com')) { showDebug('skip — not appfolio'); return }
+  if (!url.includes(afHost)) { showDebug('skip — not appfolio'); return }
 
   // 2FA page — cannot auto-fill, just notify and wait for manual code entry
   const is2FA = url.includes('two_factor') || url.includes('otp') ||
@@ -1438,124 +1895,227 @@ function updateTabArrows () {
 function toggleDetail() { document.getElementById('wo-detail').classList.toggle('open'); }
 
 // =====================
-// IMPORT
-// Reads raw Appfolio export, strips rows 1-17 (report metadata),
-// keeps row 18 as headers and row 19+ as WO data rows only,
-// writes clean result into AppFolio Data sheet of the .xlsm
+// SEARCH CLEAR
 // =====================
-document.body.addEventListener('dragover', e => {
-  e.preventDefault()
-  document.getElementById('drop-overlay').classList.add('active')
-})
-document.body.addEventListener('dragleave', e => {
-  if (e.relatedTarget === null) document.getElementById('drop-overlay').classList.remove('active')
-})
-document.body.addEventListener('drop', e => {
-  e.preventDefault()
-  document.getElementById('drop-overlay').classList.remove('active')
-  const file = e.dataTransfer.files[0]
-  if (file && file.path) handleImportFile(file.path)
-})
-
-async function triggerImport () {
-  const result = await window.halq.dialogOpen({
-    title:       'Select Appfolio Work Order Export',
-    buttonLabel: 'Import',
-    filters:     [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }],
-    properties:  ['openFile']
-  })
-
-  if (result.canceled || !result.filePaths.length) return
-  handleImportFile(result.filePaths[0])
+function updateSearchClear (input) {
+  const btn = document.getElementById('wo-search-clear')
+  if (btn) btn.classList.toggle('visible', input.value.length > 0)
+}
+function clearSearch () {
+  const input = document.getElementById('wo-search-input')
+  if (input) { input.value = ''; filterWOs(''); updateSearchClear(input); input.focus() }
 }
 
-async function handleImportFile (filePath) {
-  if (!filePath) return
+// =====================
+// FILTER CHIP ARROWS
+// =====================
+function scrollChips (dir) {
+  const el = document.getElementById('wo-filters')
+  if (el) el.scrollLeft += dir * 80
+  setTimeout(updateChipArrows, 50)
+}
+function updateChipArrows () {
+  const el = document.getElementById('wo-filters')
+  if (!el) return
+  const left  = document.getElementById('chips-arrow-left')
+  const right = document.getElementById('chips-arrow-right')
+  if (left)  left.classList.toggle('disabled',  el.scrollLeft <= 0)
+  if (right) right.classList.toggle('disabled', el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)
+}
 
-  const fileName = filePath.split('\\').pop().split('/').pop()
+// =====================
+// RESIZABLE DIVIDERS
+// =====================
+function initResizeDivider (dividerId, prevEl, nextEl, dir) {
+  const divider = document.getElementById(dividerId)
+  if (!divider) return
+  let dragging = false, startPos = 0, startSizePrev = 0
 
-  if (!fileName.toLowerCase().includes('work_order')) {
-    const go = confirm(
-      `"${fileName}" doesn't look like an Appfolio work_order export.\n\n` +
-      `Expected: work_order-[date].xlsx\n\nImport anyway?`
-    )
-    if (!go) return
+  divider.addEventListener('mousedown', e => {
+    dragging = true; startPos = dir === 'h' ? e.clientY : e.clientX
+    startSizePrev = dir === 'h' ? prevEl.offsetHeight : prevEl.offsetWidth
+    divider.classList.add('dragging')
+    document.body.style.cursor = dir === 'h' ? 'row-resize' : 'col-resize'
+    document.body.style.userSelect = 'none'
+    e.preventDefault()
+  })
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return
+    const delta = (dir === 'h' ? e.clientY : e.clientX) - startPos
+    const newSize = Math.max(120, startSizePrev + delta)
+    if (dir === 'h') prevEl.style.height = newSize + 'px'
+    else prevEl.style.width = newSize + 'px'
+  })
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return
+    dragging = false
+    divider.classList.remove('dragging')
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  })
+}
+
+// =====================
+// IMPORT — drag/drop wired to drop-overlay but no UI button needed
+// Keep drag events to avoid unhandled drop-on-window behavior
+// =====================
+document.body.addEventListener('dragover', e => { e.preventDefault() })
+document.body.addEventListener('dragleave', () => {})
+document.body.addEventListener('drop', e => { e.preventDefault() })
+
+// =====================
+// MACROS
+// =====================
+function setMacroRunning (el, label) {
+  el.dataset.orig      = el.textContent
+  el.style.background  = 'rgba(91,156,246,0.2)'
+  el.style.borderColor = 'var(--accent)'
+  el.style.color       = 'var(--accent)'
+  el.textContent       = '⏳ ' + label + '...'
+  el.style.pointerEvents = 'none'
+}
+
+function setMacroDone (el, ok) {
+  const color = ok ? 'var(--green)' : 'var(--red)'
+  el.style.background  = ok ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'
+  el.style.borderColor = color
+  el.style.color       = color
+  el.textContent       = ok ? '✓ ' + el.dataset.orig : '✗ Failed'
+  setTimeout(() => {
+    el.style.background    = ''
+    el.style.borderColor   = ''
+    el.style.color         = ''
+    el.textContent         = el.dataset.orig
+    el.style.pointerEvents = ''
+  }, 2500)
+}
+
+async function runMacro (el, macroName, label) {
+  setMacroRunning(el, label)
+  const result = await window.halq.macroRun(macroName)
+  setMacroDone(el, result.ok)
+  if (!result.ok) showDebug('Macro failed: ' + result.error)
+  // Reload WO panel after scan or refresh so data stays current
+  if (result.ok && (macroName === 'ScanForNewWorkOrders' || macroName === 'RefreshFormulasActiveMonitoring')) {
+    await loadExcelData()
   }
+}
 
-  showDebug('⏳ Importing ' + fileName + '...')
-
-  const result = await window.halq.excelImport(filePath)
-
-  if (result.ok) {
-    showDebug(`✓ ${result.count} rows ready in import file`)
-  } else {
-    showDebug('✗ Import failed: ' + result.error)
-    showErrorDialog('Import Failed', result.error)
-  }
+// ② Quick Transfer requires manual row selection in Excel first
+// These functions are kept for future UI wiring — not currently exposed in HTML
+function runQuickTransfer (el) {
+  alert(
+    '② Quick Transfer\n\n' +
+    'Steps:\n' +
+    '1. Switch to Excel\n' +
+    '2. Go to the Work Queue sheet\n' +
+    '3. Select the rows you want to transfer\n' +
+    '4. Come back to HALQ and click "Run Transfer Now"'
+  )
 }
 
 // =====================
 // EXCEL DATA LOAD
-// Replaces sample data with live Active Monitoring rows
+// Replaces wos array with live Active Monitoring rows
+// If Excel file not found, auto-prompts user to set path
 // =====================
+function updateBottomBar () {
+  const count   = wos.length
+  const overdue = wos.filter(w => w.age > 60).length
+  const wocl = document.getElementById('wo-count-label')
+  if (wocl) wocl.textContent = 'Active Monitoring · ' + count + ' open'
+  document.getElementById('bb-wo-count').textContent  = count || '—'
+  document.getElementById('bb-overdue').textContent   = overdue || '—'
+  const badge = document.getElementById('nav-wo-badge')
+  if (badge) badge.textContent = count || ''
+}
+
 async function loadExcelData () {
   const result = await window.halq.excelLoad()
   if (!result.ok) {
     showDebug('Excel: ' + result.error)
+    // If path not configured or file missing, prompt user
+    if (result.error && (result.error.includes('not configured') || result.error.includes('not found'))) {
+      showSetupPrompt('excel')
+    }
+    updateBottomBar()
     return
   }
   wos.length = 0
   result.wos.forEach(wo => wos.push(wo))
+  // Re-apply saved tags
+  if (Object.keys(woTags).length) {
+    wos.forEach(w => {
+      if (woTags[w.wo]) {
+        w._followup = woTags[w.wo]._followup || null
+        w._catId    = woTags[w.wo]._catId    || null
+      }
+    })
+  }
   renderWOList()
-  const count   = wos.length
-  const overdue = wos.filter(w => w.age > 60).length
-  document.getElementById('wo-count-label').textContent  = 'Active Monitoring · ' + count + ' open'
-  document.getElementById('bb-wo-count').textContent     = count
-  document.getElementById('bb-overdue').textContent      = overdue
-  document.getElementById('nav-wo-badge').textContent    = count
-  showDebug('Loaded ' + count + ' WOs from Active Monitoring')
+  updateBottomBar()
+  showDebug('Loaded ' + wos.length + ' WOs from Active Monitoring')
 }
 
 // =====================
 // LAYOUT
 // =====================
 function toggleLayout(mode) {
-  document.getElementById('layout-side-btn').classList.remove('active');
-  document.getElementById('layout-vert-btn').classList.remove('active');
+  // Update settings panel active state if visible
+  document.querySelectorAll('.layout-option').forEach(o => {
+    if (o.onclick?.toString().includes(mode)) o.classList.add('active')
+  })
   const pl = document.getElementById('panel-layout');
   pl.className = 'panel-layout' + (mode === 'vertical' ? ' vertical' : '');
-  document.getElementById(mode === 'side' ? 'layout-side-btn' : 'layout-vert-btn').classList.add('active');
 }
 function setLayoutOpt(mode, el) {
   el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
   toggleLayout(mode);
+  window.halq.settingsSave({ layoutMode: mode }).catch(() => {});
 }
 
 // =====================
 // NAVIGATION
 // =====================
 function toggleNav(mode) {
-  ['sidebar','topnav','tabs'].forEach(m => {
-    document.getElementById(`nav-${m}-btn`).classList.remove('active');
-  });
+  // Main-view (WO) nav surfaces
   document.getElementById('sidebar').className = 'sidebar hidden';
   document.getElementById('top-nav').classList.remove('visible');
   document.getElementById('section-tabs').classList.remove('visible');
 
-  document.getElementById(`nav-${mode}-btn`).classList.add('active');
   if (mode === 'sidebar') document.getElementById('sidebar').className = 'sidebar';
   else if (mode === 'topnav') document.getElementById('top-nav').classList.add('visible');
   else if (mode === 'tabs') document.getElementById('section-tabs').classList.add('visible');
+
+  // Persist so overlay views (Email, Notes) can read it
+  window._navMode = mode;
+
+  // Apply to overlay-view topbars immediately if one is active
+  _applyNavToOverlays(mode);
 }
+
+function _applyNavToOverlays (mode) {
+  // In overlay views the topbar IS the nav — always visible.
+  // What changes is whether the WO main-view nav is shown when user returns.
+  // The overlay topbar tabs are always shown (they ARE the nav in those views).
+  // Nothing to hide/show inside email-view or notes-view based on nav style —
+  // their topbar is always present and always shows all 3 tabs.
+}
+
 function setNavOpt(mode, el) {
   el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
+  window._navMode = mode;
   if (mode === 'none') {
     document.getElementById('sidebar').className = 'sidebar hidden';
     document.getElementById('top-nav').classList.remove('visible');
     document.getElementById('section-tabs').classList.remove('visible');
-  } else toggleNav(mode);
+  } else {
+    toggleNav(mode);
+  }
+  // Persist to disk so it survives restarts and applies in all views
+  window.halq.settingsSave({ navStyle: mode }).catch(() => {});
 }
 
 // =====================
@@ -1565,10 +2125,207 @@ function setTheme(theme, el) {
   document.body.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
+  window.halq.settingsSave({ theme }).catch(() => {});
 }
 
 // =====================
-// SETTINGS
+// SETTINGS TABS
+// =====================
+function switchSettingsTab (tab) {
+  ['accounts','appearance','prefs'].forEach(t => {
+    document.getElementById('stab-' + t).classList.toggle('active', t === tab)
+    document.getElementById('stab-content-' + t).style.display = t === tab ? '' : 'none'
+  })
+}
+
+// =====================
+// EXCEL PATH
+// =====================
+async function browseExcelPath () {
+  const result = await window.halq.dialogOpen({
+    title:       'Select Work Order Excel File',
+    buttonLabel: 'Select',
+    filters:     [{ name: 'Excel Macro Files', extensions: ['xlsm','xlsx'] }],
+    properties:  ['openFile']
+  })
+  if (result.canceled || !result.filePaths.length) return
+  document.getElementById('excel-path-input').value = result.filePaths[0]
+}
+
+async function saveExcelPath () {
+  const p      = (document.getElementById('excel-path-input').value || '').trim()
+  const status = document.getElementById('excel-path-status')
+  if (!p) { showFieldStatus(status, 'Path cannot be empty', false); return }
+  const result = await window.halq.settingsSave({ excelPath: p })
+  if (result.ok) {
+    showFieldStatus(status, '✓ Path saved — reloading Excel...', true)
+    setTimeout(() => loadExcelData(), 800)
+  } else {
+    showFieldStatus(status, '✗ Failed: ' + result.error, false)
+  }
+}
+
+// =====================
+// APP SETTINGS LOAD
+// Populate settings UI from saved values
+// =====================
+async function loadAppSettings () {
+  try {
+    const result = await window.halq.settingsLoad()
+    if (!result.ok) return
+    const s = result.settings || {}
+    if (s.excelPath) document.getElementById('excel-path-input').value = s.excelPath
+
+    // Restore nav style — apply to WO nav surfaces and mark the correct Settings option active
+    if (s.navStyle) {
+      window._navMode = s.navStyle
+      toggleNav(s.navStyle)
+      // Mark the correct layout-option button active in the Settings Appearance tab
+      document.querySelectorAll('.layout-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${s.navStyle}'`))
+      })
+    }
+
+    // Apply preferences
+    if (s.colorCodeWOs === false) document.getElementById('pref-color-code')?.classList.remove('on')
+    if (s.autoSearch   === false) document.getElementById('pref-auto-search')?.classList.remove('on')
+    if (s.showBottomBar === false) {
+      document.getElementById('pref-bottom-bar')?.classList.remove('on')
+      document.querySelector('.bottombar').style.display = 'none'
+    }
+
+    // Restore theme
+    if (s.theme) {
+      document.body.setAttribute('data-theme', s.theme)
+      document.querySelectorAll('.theme-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${s.theme}'`))
+      })
+    }
+
+    // Restore layout mode
+    if (s.layoutMode) {
+      toggleLayout(s.layoutMode)
+      document.querySelectorAll('.layout-option').forEach(el => {
+        const matches = el.getAttribute('onclick')?.includes(`'${s.layoutMode}'`) &&
+                        el.getAttribute('onclick')?.includes('setLayoutOpt')
+        if (matches) el.classList.add('active')
+      })
+    }
+  } catch (e) { console.error('[SETTINGS] load error:', e) }
+}
+
+// =====================
+// PREFERENCES TOGGLES
+// =====================
+async function togglePref (el, key) {
+  el.classList.toggle('on')
+  const val = el.classList.contains('on')
+  await window.halq.settingsSave({ [key]: val })
+  // Apply immediately
+  if (key === 'showBottomBar') {
+    document.querySelector('.bottombar').style.display = val ? '' : 'none'
+  }
+  if (key === 'colorCodeWOs') {
+    renderWOList()
+  }
+}
+
+function showFieldStatus (el, msg, ok) {
+  el.textContent = msg
+  el.className   = 'creds-status ' + (ok ? 'ok' : 'err')
+  setTimeout(() => { el.className = 'creds-status' }, 3500)
+}
+
+// =====================
+// STARTUP SETUP PROMPT
+// Triggered automatically when Excel path or Appfolio creds are missing
+// Opens settings to the right tab so user can fill in the details
+// =====================
+async function showSetupPrompt (type) {
+  // Brief delay so app finishes loading first
+  await new Promise(r => setTimeout(r, 600))
+  const overlay = document.getElementById('settings-overlay')
+  if (!overlay.classList.contains('open')) {
+    // Only auto-open if settings isn't already open
+    overlay.classList.add('open')
+    if (type === 'excel') {
+      switchSettingsTab('accounts')
+      showDebug('⚠ Excel file path not set — configure it in Settings → Accounts')
+    } else if (type === 'appfolio') {
+      switchSettingsTab('accounts')
+      showDebug('⚠ Appfolio credentials not saved — configure them in Settings → Accounts')
+    }
+  }
+}
+
+// Check all required credentials on startup
+async function checkStartupRequirements () {
+  try {
+    // Check Appfolio creds
+    const creds = await window.halq.credsLoad()
+    if (!creds.ok || !creds.email) {
+      showSetupPrompt('appfolio')
+      return
+    }
+    // Check Excel path
+    const settings = await window.halq.settingsLoad()
+    if (!settings.ok || !settings.settings?.excelPath) {
+      showSetupPrompt('excel')
+    }
+  } catch (e) { console.error('[STARTUP] check error:', e) }
+}
+
+// =====================
+// AUTO-UPDATER
+// =====================
+let _pendingAsarUrl = null
+
+async function checkForUpdate () {
+  try {
+    // Show live version in sidebar
+    const ver = await window.halq.updateVersion()
+    const verEl = document.getElementById('app-version-label')
+    if (verEl) verEl.textContent = 'v' + ver
+
+    const result = await window.halq.updateCheck()
+    if (!result.available) return
+    _pendingAsarUrl = result.asarUrl
+
+    // Show banner
+    document.getElementById('update-version-label').textContent = 'v' + result.version
+    document.getElementById('update-banner-msg').textContent =
+      result.notes ? ` — ${result.notes}` : ' is available'
+    document.getElementById('update-banner').classList.add('visible')
+  } catch (e) { console.warn('[UPDATE] check failed:', e) }
+}
+
+async function updateInstall () {
+  if (!_pendingAsarUrl) return
+  const btn      = document.getElementById('update-install-btn')
+  const progress = document.getElementById('update-progress')
+  btn.style.display      = 'none'
+  progress.style.display = ''
+  try {
+    const result = await window.halq.updateDownload(_pendingAsarUrl)
+    if (!result.ok) {
+      progress.textContent = '✗ Download failed: ' + result.error
+      btn.style.display    = ''
+      return
+    }
+    progress.textContent = '✓ Done — restarting…'
+    setTimeout(() => window.halq.updateRestart(), 1200)
+  } catch (e) {
+    progress.textContent = '✗ Error: ' + e.message
+    btn.style.display    = ''
+  }
+}
+
+function updateDismiss () {
+  document.getElementById('update-banner').classList.remove('visible')
+}
+
+// =====================
+// SETTINGS OPEN — load all credential UIs
 // =====================
 function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
 function closeSettingsOutside(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
@@ -1581,6 +2338,7 @@ let pinBuffer = ''
 async function openSettings () {
   const result = await window.halq.pinLoad()
   if (!result.ok) {
+    loadCredsToUI()
     document.getElementById('settings-overlay').classList.add('open')
     return
   }
@@ -1640,6 +2398,7 @@ async function verifyPin () {
   const savedPin = document.getElementById('pin-overlay')._savedPin
   if (pinBuffer === savedPin) {
     document.getElementById('pin-overlay').classList.remove('open')
+    loadCredsToUI()
     document.getElementById('settings-overlay').classList.add('open')
     pinBuffer = ''
   } else {
@@ -1697,6 +2456,7 @@ function toggleMenuBar(el) {
 async function saveCreds() {
   const email    = document.getElementById('creds-email').value.trim()
   const password = document.getElementById('creds-pass').value
+  const afUrl    = (document.getElementById('appfolio-url-input')?.value || '').trim()
 
   if (!email || !password) {
     showCredsStatus('Email and password are required.', false)
@@ -1707,6 +2467,11 @@ async function saveCreds() {
   if (result.ok) {
     showCredsStatus('✓ Credentials saved securely.', true)
     document.getElementById('creds-pass').value = ''
+    // Save Appfolio URL to settings
+    if (afUrl) {
+      await window.halq.settingsSave({ appfolioUrl: afUrl })
+      applyAppfolioUrl(afUrl)
+    }
   } else {
     showCredsStatus('✗ Save failed: ' + (result.error || 'unknown error'), false)
   }
@@ -1728,6 +2493,30 @@ async function loadCredsToUI() {
   if (result.ok && result.email) {
     document.getElementById('creds-email').value = result.email
     // password intentionally left blank for security
+  }
+  // Load Appfolio URL from settings
+  try {
+    const s = await window.halq.settingsLoad()
+    if (s.ok && s.settings?.appfolioUrl) {
+      const urlInput = document.getElementById('appfolio-url-input')
+      if (urlInput) urlInput.value = s.settings.appfolioUrl
+      applyAppfolioUrl(s.settings.appfolioUrl)
+    }
+  } catch (_) {}
+}
+
+// Apply Appfolio base URL to webview and URL bar
+function applyAppfolioUrl (url) {
+  if (!url) return
+  // Store origin-only so WO search URLs are always built against the right host
+  try { afBaseUrl = new URL(url).origin } catch(_) { afBaseUrl = url }
+  const tab = document.getElementById('tab-main')
+  if (tab && !tab.dataset.url) {
+    tab.dataset.url = url
+    const urlBar = document.getElementById('af-url')
+    if (urlBar && !urlBar.value) urlBar.value = url
+    const view = document.getElementById('appfolio-view')
+    if (view && !view.src) view.src = url
   }
 }
 
@@ -2149,18 +2938,882 @@ function catmgrStatus (msg, ok) {
 
 // =====================
 // INIT
+// All IPC calls must happen after window.halq is available.
+// preload.js injects it asynchronously — never call IPC at top-level.
 // =====================
-loadCredsToUI()
-loadExcelData().catch(() => {
-  renderWOList()
-  const count   = wos.length
-  const overdue = wos.filter(w => w.age > 60).length
-  document.getElementById('wo-count-label').textContent = 'Active Monitoring · ' + count + ' open'
-  document.getElementById('bb-wo-count').textContent    = count
-  document.getElementById('bb-overdue').textContent     = overdue
-  const badge = document.getElementById('nav-wo-badge')
-  if (badge) badge.textContent = count
-})
+function _halqReady (fn, attempts) {
+  if (window.halq) { fn(); return }
+  if (attempts <= 0) { console.error('[HALQ] window.halq never became available'); return }
+  setTimeout(() => _halqReady(fn, attempts - 1), 50)
+}
+
+_halqReady(async () => {
+  await loadAppSettings()
+  await loadCredsToUI()
+  await loadExcelData().catch(() => {
+    renderWOList()
+    updateBottomBar()
+  })
+  // Load tags after Excel data is in wos[] so they apply to real rows
+  await loadWOTags()
+}, 40)
+
+// =====================
+// VIEW SWITCHER
+// =====================
+let notesDividersInit = false
+
+const VIEW_META = {
+  wo:    { title: 'Work Orders',  icon: '📋' },
+  email: { title: 'Email',        icon: '✉'  },
+  notes: { title: 'Notes',        icon: '📝' }
+}
+
+function switchMainView (view) {
+  const isNotes = view === 'notes'
+  const isEmail = view === 'email'
+  const isWO    = view === 'wo'
+
+  // --- show/hide content panels (all live inside .content now) ---
+  const panelLayout = document.getElementById('panel-layout')
+  const emailPanel  = document.getElementById('email-panel')
+  const notesPanel  = document.getElementById('notes-panel')
+  if (panelLayout) panelLayout.style.display = isWO    ? 'flex' : 'none'
+  if (emailPanel)  emailPanel.style.display  = isEmail ? 'flex' : 'none'
+  if (notesPanel)  notesPanel.style.display  = isNotes ? 'flex' : 'none'
+
+  // --- update topbar title ---
+  const meta = VIEW_META[view] || VIEW_META.wo
+  const titleEl = document.getElementById('topbar-title')
+  if (titleEl) titleEl.textContent = meta.title
+
+  // --- update topbar actions ---
+  const actionsEl = document.getElementById('topbar-actions')
+  if (actionsEl) {
+    if (isWO) {
+      actionsEl.innerHTML = `<button class="btn btn-primary" onclick="navReload()">↻ Refresh</button>`
+    } else if (isEmail) {
+      actionsEl.innerHTML = `<button class="btn btn-ghost" onclick="emRefresh()" title="Reload folders and messages">↻ Refresh</button>`
+    } else {
+      actionsEl.innerHTML = ''
+    }
+  }
+
+  // --- sidebar nav active state ---
+  document.getElementById('nav-wo')?.classList.toggle('active', isWO)
+  document.getElementById('nav-email')?.classList.toggle('active', isEmail)
+  document.getElementById('nav-notes')?.classList.toggle('active', isNotes)
+
+  // --- top-nav active state ---
+  document.getElementById('topnav-wo')?.classList.toggle('active', isWO)
+  document.getElementById('topnav-email')?.classList.toggle('active', isEmail)
+  document.getElementById('topnav-notes')?.classList.toggle('active', isNotes)
+
+  // --- section-tab active state ---
+  document.getElementById('sectab-wo')?.classList.toggle('active', isWO)
+  document.getElementById('sectab-email')?.classList.toggle('active', isEmail)
+  document.getElementById('sectab-notes')?.classList.toggle('active', isNotes)
+
+  // --- view-specific init ---
+  if (isNotes) {
+    ntRenderInPanel()
+    if (!notesDividersInit) {
+      notesDividersInit = true
+      setTimeout(() => {
+        const nbPanel = document.getElementById('notes-nb-panel')
+        const pgPanel = document.getElementById('notes-pg-panel')
+        const editor  = document.querySelector('.notes-editor')
+        if (nbPanel && pgPanel) initResizeDivider('notes-divider-1', nbPanel, pgPanel, 'v')
+        if (pgPanel && editor)  initResizeDivider('notes-divider-2', pgPanel, editor, 'v')
+      }, 50)
+    }
+  }
+
+  if (isEmail) {
+    emInit()
+  }
+}
+
+
+// =====================
+// EMAIL — WEBVIEW (Outlook Web)
+// =====================
+// Session persisted via partition="persist:outlook" — user logs in once, stays logged in.
+// All nav functions mirror the Appfolio webview pattern exactly.
+
+let emViewReady = false
+
+function emGetView () { return document.getElementById('email-view') }
+
+function emInit () {
+  if (emViewReady) return
+  emViewReady = true
+  const view = emGetView()
+  if (!view) return
+
+  view.addEventListener('did-navigate', (e) => {
+    document.getElementById('em-url').value = e.url
+    emUpdateActiveTabUrl(e.url)
+  })
+  view.addEventListener('did-navigate-in-page', (e) => {
+    document.getElementById('em-url').value = e.url
+    emUpdateActiveTabUrl(e.url)
+  })
+  view.addEventListener('did-start-loading', () => {
+    document.querySelectorAll('#em-tabs .af-tab.active').forEach(t => t.classList.add('loading'))
+  })
+  view.addEventListener('did-stop-loading', () => {
+    document.querySelectorAll('#em-tabs .af-tab').forEach(t => t.classList.remove('loading'))
+    const url = emGetView()?.getURL?.() || ''
+    if (url) document.getElementById('em-url').value = url
+    emUpdateActiveTabUrl(url)
+  })
+  view.addEventListener('new-window', (e) => { emAddTab(e.url) })
+}
+
+function emRefresh ()    { emGetView()?.reload() }
+function emNavBack ()    { emGetView()?.goBack() }
+function emNavForward () { emGetView()?.goForward() }
+
+function emNavTo (url) {
+  if (!url) return
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+  document.getElementById('em-url').value = url
+  emGetView()?.loadURL(url)
+  emUpdateActiveTabUrl(url)
+}
+
+function emUpdateActiveTabUrl (url) {
+  const active = document.querySelector('#em-tabs .af-tab.active')
+  if (active) active.dataset.url = url || ''
+}
+
+function emSwitchToTab (el) {
+  document.querySelectorAll('#em-tabs .af-tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  const url = el.dataset.url || 'https://outlook.office.com/mail'
+  document.getElementById('em-url').value = url
+  emGetView()?.loadURL(url)
+}
+
+function emAddTab (url) {
+  url = url || 'https://outlook.office.com/mail'
+  const tabs   = document.getElementById('em-tabs')
+  const newBtn = tabs.querySelector('.af-new-tab')
+  const tab    = document.createElement('div')
+  tab.className   = 'af-tab'
+  tab.dataset.url = url
+  tab.innerHTML   = `<span title="${url}">✉ Outlook</span><span class="af-tab-close" onclick="emCloseTab(event,this)">✕</span>`
+  tab.onclick     = () => emSwitchToTab(tab)
+  tabs.insertBefore(tab, newBtn)
+  emSwitchToTab(tab)
+}
+
+function emCloseTab (e, closeBtn) {
+  e.stopPropagation()
+  const tab  = closeBtn.parentElement
+  const tabs = document.getElementById('em-tabs')
+  const all  = [...tabs.querySelectorAll('.af-tab')]
+  if (all.length <= 1) return
+  const idx  = all.indexOf(tab)
+  tab.remove()
+  const remaining = [...tabs.querySelectorAll('.af-tab')]
+  const next = remaining[Math.min(idx, remaining.length - 1)]
+  if (next) emSwitchToTab(next)
+}
+
+function emScrollTabs (dir) {
+  document.getElementById('em-tabs').scrollBy({ left: dir * 120, behavior: 'smooth' })
+}
+
+// =====================
+// NOTES — STATE
+// =====================
+let ntMeta        = { notebooks: [] }
+let ntCurrent     = null   // { nbId, secId, pageId }
+let ntDirty       = false
+let ntDrawMode    = false
+let ntDrawDown    = false
+let ntEraser      = false
+let ntDrawCtx     = null
+let ntSaveTimer   = null
+let ntPromptRes   = null
+
+const NT_COLORS = ['#5b9cf6','#34c759','#ff9f0a','#ff453a','#bf5af2','#00c7be','#ff6b6b','#ffd93d']
+
+function ntUID () {
+  return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+}
+
+function ntE (s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// =====================
+// NOTES — INIT & LOAD
+// =====================
+// =====================
+// NOTES — PANEL MOUNT
+// =====================
+// Moves notes-body-wrap from hidden template into #notes-panel on first call
+let ntPanelMounted = false
+async function ntRenderInPanel () {
+  if (!ntPanelMounted) {
+    ntPanelMounted = true
+    const template = document.getElementById('notes-body-wrap-template')
+    const panel    = document.getElementById('notes-panel')
+    if (template && panel) {
+      // Move all children from the hidden template div into #notes-panel
+      while (template.firstChild) panel.appendChild(template.firstChild)
+    }
+  }
+  await ntInit()
+}
+
+async function ntInit () {
+  const res = await window.halq.notesMetaLoad()
+  if (res.ok) ntMeta = res.data
+  if (!ntMeta.notebooks) ntMeta = { notebooks: [] }
+  ntRenderTree()
+}
+
+// =====================
+// NOTES — TREE RENDER
+// =====================
+function ntRenderTree () {
+  const tree = document.getElementById('notes-tree')
+  if (!ntMeta.notebooks.length) {
+    tree.innerHTML = '<div style="padding:14px;font-size:11px;color:var(--text3);text-align:center">No notebooks.<br>Click + to create one.</div>'
+    return
+  }
+  tree.innerHTML = ntMeta.notebooks.map(nb => ntRenderNB(nb)).join('')
+}
+
+function ntRenderNB (nb) {
+  const secs = (nb.sections || []).map(s => ntRenderSec(nb.id, s)).join('')
+  return `<div class="nt-nb ${nb.open ? 'open' : ''}" id="ntb-${nb.id}">
+    <div class="nt-nb-row" onclick="ntToggleNB('${nb.id}')">
+      <span class="arrow">▶</span>
+      <span class="nb-label">📔 ${ntE(nb.name)}</span>
+      <span class="nb-acts">
+        <button class="ntree-btn" onclick="event.stopPropagation();ntAddSection('${nb.id}')" title="Add Section">+</button>
+        <button class="ntree-btn" onclick="event.stopPropagation();ntRename('nb','${nb.id}')" title="Rename">✎</button>
+        <button class="ntree-btn" onclick="event.stopPropagation();ntDelete('nb','${nb.id}')" title="Delete">🗑</button>
+      </span>
+    </div>
+    <div class="nt-secs">${secs}</div>
+  </div>`
+}
+
+function ntRenderSec (nbId, sec) {
+  const col    = sec.color || NT_COLORS[0]
+  const active = (ntCurrent?.secId === sec.id) ? 'active' : ''
+  return `<div class="nt-sec" id="nts-${sec.id}">
+    <div class="nt-sec-row ${active}" onclick="ntSelectSection('${nbId}','${sec.id}')">
+      <span class="nt-sec-dot" style="background:${col}"></span>
+      <span class="sec-label">${ntE(sec.name)}</span>
+      <span class="sec-acts">
+        <button class="ntree-btn" onclick="event.stopPropagation();ntRename('sec','${sec.id}','${nbId}')" title="Rename">✎</button>
+        <button class="ntree-btn" onclick="event.stopPropagation();ntDelete('sec','${sec.id}','${nbId}')" title="Delete">🗑</button>
+      </span>
+    </div>
+  </div>`
+}
+
+// =====================
+// NOTES — PAGES PANEL
+// =====================
+let ntActiveSec = null  // { nbId, secId }
+
+function ntSelectSection (nbId, secId) {
+  ntActiveSec = { nbId, secId }
+  // Update current context sec
+  if (ntCurrent) ntCurrent.secId = secId
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+function ntRenderPgPanel () {
+  const list    = document.getElementById('notes-pg-list')
+  const title   = document.getElementById('notes-pg-hd-title')
+  const addBtn  = document.getElementById('notes-add-pg-btn')
+  if (!list) return
+
+  if (!ntActiveSec) {
+    list.innerHTML = '<div class="notes-pg-empty">Select a section</div>'
+    if (title) title.textContent = 'Pages'
+    if (addBtn) addBtn.style.display = 'none'
+    return
+  }
+
+  const { nbId, secId } = ntActiveSec
+  const nb  = ntMeta.notebooks.find(n => n.id === nbId)
+  const sec = nb?.sections?.find(s => s.id === secId)
+  if (!sec) { list.innerHTML = '<div class="notes-pg-empty">Section not found</div>'; return }
+
+  if (title) title.textContent = sec.name
+  if (addBtn) { addBtn.style.display = ''; addBtn.onclick = () => ntAddPage(nbId, secId) }
+
+  if (!sec.pages?.length) {
+    list.innerHTML = '<div class="notes-pg-empty">No pages.<br>Click + to add one.</div>'
+    return
+  }
+
+  list.innerHTML = sec.pages.map((pg, idx) => {
+    const active = ntCurrent?.pageId === pg.id ? 'active' : ''
+    return `<div class="notes-pg-item ${active}" draggable="true"
+      onclick="ntOpenPage('${nbId}','${secId}','${pg.id}')"
+      ondragstart="ntPgDragStart(event,${idx})"
+      ondragover="ntPgDragOver(event,${idx})"
+      ondrop="ntPgDrop(event,'${nbId}','${secId}')"
+      ondragleave="this.style.borderTop=''"
+      data-idx="${idx}">
+      <span class="pg-label">📄 ${ntE(pg.title || 'Untitled')}</span>
+      <span class="pg-acts">
+        <button class="ntree-btn" onclick="event.stopPropagation();ntRename('pg','${pg.id}','${secId}','${nbId}')" title="Rename">✎</button>
+        <button class="ntree-btn" onclick="event.stopPropagation();ntDelete('pg','${pg.id}','${secId}','${nbId}')" title="Delete">🗑</button>
+      </span>
+    </div>`
+  }).join('')
+}
+
+// Drag and drop page reordering
+let ntDragIdx = null
+function ntPgDragStart (e, idx) {
+  ntDragIdx = idx
+  e.dataTransfer.effectAllowed = 'move'
+}
+function ntPgDragOver (e, idx) {
+  e.preventDefault()
+  e.currentTarget.style.borderTop = ntDragIdx !== idx ? '2px solid var(--accent)' : ''
+}
+async function ntPgDrop (e, nbId, secId) {
+  e.preventDefault()
+  e.currentTarget.style.borderTop = ''
+  const toIdx = parseInt(e.currentTarget.dataset.idx)
+  if (ntDragIdx === null || ntDragIdx === toIdx) return
+  const nb  = ntMeta.notebooks.find(n => n.id === nbId)
+  const sec = nb?.sections?.find(s => s.id === secId)
+  if (!sec?.pages) return
+  const [moved] = sec.pages.splice(ntDragIdx, 1)
+  sec.pages.splice(toIdx, 0, moved)
+  ntDragIdx = null
+  await ntSaveMeta()
+  ntRenderPgPanel()
+}
+
+async function ntAddPageFromPanel () {
+  if (!ntActiveSec) return
+  await ntAddPage(ntActiveSec.nbId, ntActiveSec.secId)
+}
+
+// =====================
+// NOTES — TOGGLE OPEN
+// =====================
+function ntToggleNB (nbId) {
+  const nb = ntMeta.notebooks.find(n => n.id === nbId)
+  if (nb) { nb.open = !nb.open; ntSaveMeta(); ntRenderTree() }
+}
+
+function ntToggleSec (nbId, secId) {
+  const sec = ntMeta.notebooks.find(n => n.id === nbId)?.sections?.find(s => s.id === secId)
+  if (sec) { sec.open = !sec.open; ntSaveMeta(); ntRenderTree() }
+}
+
+// =====================
+// NOTES — EXPORT MODAL
+// =====================
+let _expScope = 'notebook'
+
+function ntExportModal () {
+  if (!ntMeta.notebooks.length) { showDebug('No notebooks to export yet.'); return }
+  _expScope = 'notebook'
+  _expFillNb()
+  document.querySelectorAll('.nt-scope-btn').forEach(b => b.classList.remove('on'))
+  document.getElementById('exp-scope-nb').classList.add('on')
+  document.getElementById('exp-row-sec').style.display = 'none'
+  document.getElementById('exp-row-pg').style.display  = 'none'
+  // Pre-select active context
+  if (ntActiveSec) {
+    const nbSel = document.getElementById('exp-sel-nb')
+    if (nbSel) { nbSel.value = ntActiveSec.nbId; _expNbChanged() }
+    const secSel = document.getElementById('exp-sel-sec')
+    if (secSel) { secSel.value = ntActiveSec.secId; _expSecChanged() }
+    if (ntCurrent?.pageId) {
+      const pgSel = document.getElementById('exp-sel-pg')
+      if (pgSel) pgSel.value = ntCurrent.pageId
+    }
+  }
+  document.getElementById('nt-export-overlay').classList.add('on')
+}
+function ntExportClose () { document.getElementById('nt-export-overlay').classList.remove('on') }
+
+function _expFillNb () {
+  const sel = document.getElementById('exp-sel-nb')
+  sel.innerHTML = ntMeta.notebooks.map(n => `<option value="${n.id}">${n.name}</option>`).join('')
+  _expNbChanged()
+}
+function _expNbChanged () {
+  const nb = ntMeta.notebooks.find(n => n.id === document.getElementById('exp-sel-nb').value)
+  document.getElementById('exp-sel-sec').innerHTML =
+    (nb?.sections || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+  _expSecChanged()
+}
+function _expSecChanged () {
+  const nbId  = document.getElementById('exp-sel-nb').value
+  const secId = document.getElementById('exp-sel-sec').value
+  const nb    = ntMeta.notebooks.find(n => n.id === nbId)
+  const sec   = nb?.sections?.find(s => s.id === secId)
+  document.getElementById('exp-sel-pg').innerHTML =
+    (sec?.pages || []).map(p => `<option value="${p.id}">${p.title || 'Untitled'}</option>`).join('')
+}
+function ntExportSetScope (scope) {
+  _expScope = scope
+  document.querySelectorAll('.nt-scope-btn').forEach(b => b.classList.remove('on'))
+  document.getElementById('exp-scope-' + (scope === 'notebook' ? 'nb' : scope === 'section' ? 'sec' : 'pg')).classList.add('on')
+  document.getElementById('exp-row-sec').style.display = (scope === 'section' || scope === 'page') ? '' : 'none'
+  document.getElementById('exp-row-pg').style.display  = scope === 'page' ? '' : 'none'
+}
+async function ntExportRun () {
+  const nbId  = document.getElementById('exp-sel-nb').value
+  const secId = document.getElementById('exp-sel-sec').value
+  const pgId  = document.getElementById('exp-sel-pg').value
+  if (!nbId) return
+  ntExportClose()
+  showDebug('⏳ Exporting...')
+  const result = await window.halq.notesExport({ type: _expScope, nbId, secId, pgId })
+  if (result.canceled) return
+  if (!result.ok) { showErrorDialog('Export Failed', result.error); return }
+  showDebug('✓ Exported → ' + result.filePath.split(/[\\/]/).pop())
+}
+
+// =====================
+// NOTES — ADD
+// =====================
+async function ntAddNotebook () {
+  const name = await ntPrompt('Notebook name:')
+  if (!name?.trim()) return
+  ntMeta.notebooks.push({ id: ntUID(), name: name.trim(), open: true, sections: [] })
+  await ntSaveMeta()
+  ntRenderTree()
+}
+
+async function ntAddSection (nbId) {
+  const name = await ntPrompt('Section name:')
+  if (!name?.trim()) return
+  const nb = ntMeta.notebooks.find(n => n.id === nbId)
+  if (!nb) return
+  if (!nb.sections) nb.sections = []
+  nb.sections.push({
+    id: ntUID(), name: name.trim(),
+    color: NT_COLORS[nb.sections.length % NT_COLORS.length],
+    open: true, pages: []
+  })
+  nb.open = true
+  await ntSaveMeta()
+  ntRenderTree()
+}
+
+async function ntAddPage (nbId, secId) {
+  const name = await ntPrompt('Page title:', 'Untitled')
+  if (!name?.trim()) return
+  const nb  = ntMeta.notebooks.find(n => n.id === nbId)
+  const sec = nb?.sections?.find(s => s.id === secId)
+  if (!sec) return
+  if (!sec.pages) sec.pages = []
+  const pageId = ntUID()
+  sec.pages.push({ id: pageId, title: name.trim() })
+  nb.open = true
+  ntActiveSec = { nbId, secId }
+  await ntSaveMeta()
+  ntRenderTree()
+  ntRenderPgPanel()
+  ntOpenPage(nbId, secId, pageId)
+}
+
+// =====================
+// NOTES — RENAME
+// =====================
+async function ntRename (type, id, parentId, gpId) {
+  let target, current
+  if (type === 'nb') {
+    target = ntMeta.notebooks.find(n => n.id === id)
+    current = target?.name
+  } else if (type === 'sec') {
+    target = ntMeta.notebooks.find(n => n.id === parentId)?.sections?.find(s => s.id === id)
+    current = target?.name
+  } else {
+    const nb  = ntMeta.notebooks.find(n => n.id === gpId)
+    const sec = nb?.sections?.find(s => s.id === parentId)
+    target = sec?.pages?.find(p => p.id === id)
+    current = target?.title
+  }
+  if (!target) return
+  const name = await ntPrompt('Rename:', current)
+  if (!name?.trim()) return
+  if (type === 'pg') target.title = name.trim()
+  else target.name = name.trim()
+  if (type === 'pg' && ntCurrent?.pageId === id) {
+    document.getElementById('notes-pg-title').value = name.trim()
+  }
+  await ntSaveMeta()
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+// =====================
+// NOTES — DELETE
+// =====================
+async function ntDelete (type, id, parentId, gpId) {
+  if (type === 'nb') {
+    const nb = ntMeta.notebooks.find(n => n.id === id)
+    if (!nb) return
+    if (!await ntConfirm(`Delete notebook "${nb.name}" and ALL contents?`)) return
+    for (const s of (nb.sections || []))
+      for (const p of (s.pages || []))
+        await window.halq.notesPageDelete(p.id)
+    ntMeta.notebooks = ntMeta.notebooks.filter(n => n.id !== id)
+    if (ntCurrent) ntShowEmpty()
+  } else if (type === 'sec') {
+    const nb  = ntMeta.notebooks.find(n => n.id === parentId)
+    const sec = nb?.sections?.find(s => s.id === id)
+    if (!sec) return
+    if (!await ntConfirm(`Delete section "${sec.name}" and all its pages?`)) return
+    for (const p of (sec.pages || [])) await window.halq.notesPageDelete(p.id)
+    nb.sections = nb.sections.filter(s => s.id !== id)
+    if (ntCurrent && sec.pages?.some(p => p.id === ntCurrent.pageId)) ntShowEmpty()
+  } else {
+    const nb  = ntMeta.notebooks.find(n => n.id === gpId)
+    const sec = nb?.sections?.find(s => s.id === parentId)
+    const pg  = sec?.pages?.find(p => p.id === id)
+    if (!pg) return
+    if (!await ntConfirm(`Delete page "${pg.title}"?`)) return
+    await window.halq.notesPageDelete(id)
+    sec.pages = sec.pages.filter(p => p.id !== id)
+    if (ntCurrent?.pageId === id) ntShowEmpty()
+  }
+  await ntSaveMeta()
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+// =====================
+// NOTES — OPEN PAGE
+// =====================
+async function ntOpenPage (nbId, secId, pageId) {
+  if (ntDirty) await ntSavePage()
+  ntCurrent = { nbId, secId, pageId }
+  ntActiveSec = { nbId, secId }
+
+  const nb  = ntMeta.notebooks.find(n => n.id === nbId)
+  const sec = nb?.sections?.find(s => s.id === secId)
+  const pg  = sec?.pages?.find(p => p.id === pageId)
+  const res = await window.halq.notesPageLoad(pageId)
+
+  document.getElementById('notes-empty').style.display        = 'none'
+  document.getElementById('notes-page-inner').style.display   = 'block'
+  document.getElementById('notes-tb').classList.add('enabled')
+  document.getElementById('notes-pg-title').value             = pg?.title || 'Untitled'
+  document.getElementById('notes-body').innerHTML             = res.ok ? (res.content || '') : ''
+
+  ntDirty = false
+  ntInitCanvas()
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+function ntShowEmpty () {
+  ntCurrent = null
+  document.getElementById('notes-empty').style.display        = ''
+  document.getElementById('notes-page-inner').style.display   = 'none'
+  document.getElementById('notes-tb').classList.remove('enabled')
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+// =====================
+// NOTES — SAVE
+// =====================
+function ntMarkDirty () {
+  ntDirty = true
+  clearTimeout(ntSaveTimer)
+  ntSaveTimer = setTimeout(ntSavePage, 2000)
+}
+
+async function ntSavePage () {
+  if (!ntCurrent || !ntDirty) return
+  const title   = document.getElementById('notes-pg-title').value.trim() || 'Untitled'
+  const content = document.getElementById('notes-body').innerHTML
+
+  const nb  = ntMeta.notebooks.find(n => n.id === ntCurrent.nbId)
+  const sec = nb?.sections?.find(s => s.id === ntCurrent.secId)
+  const pg  = sec?.pages?.find(p => p.id === ntCurrent.pageId)
+  if (pg) pg.title = title
+
+  await window.halq.notesPageSave(ntCurrent.pageId, content)
+  await ntSaveMeta()
+  ntDirty = false
+  ntRenderTree()
+  ntRenderPgPanel()
+}
+
+async function ntSaveMeta () {
+  await window.halq.notesMetaSave(ntMeta)
+}
+
+// =====================
+// NOTES — TOOLBAR COMMANDS
+// =====================
+function nFmt (cmd, val) {
+  document.getElementById('notes-body').focus()
+  document.execCommand(cmd, false, val || null)
+}
+
+function nBlock (tag) {
+  document.getElementById('notes-body').focus()
+  document.execCommand('formatBlock', false, tag)
+}
+
+function nList (type) {
+  document.getElementById('notes-body').focus()
+  document.execCommand(type === 'ul' ? 'insertUnorderedList' : 'insertOrderedList')
+}
+
+function nChecklist () {
+  const body = document.getElementById('notes-body')
+  body.focus()
+  document.execCommand('insertHTML', false,
+    '<div><input type="checkbox"> <span>Task item</span></div>')
+  ntMarkDirty()
+}
+
+async function nTable () {
+  const rows = parseInt(await ntPrompt('Rows:', '3')) || 3
+  const cols = parseInt(await ntPrompt('Columns:', '3')) || 3
+  let html = '<table><thead><tr>'
+  for (let c = 0; c < cols; c++) html += `<th>Col ${c+1}</th>`
+  html += '</tr></thead><tbody>'
+  for (let r = 0; r < rows - 1; r++) {
+    html += '<tr>'
+    for (let c = 0; c < cols; c++) html += '<td>&nbsp;</td>'
+    html += '</tr>'
+  }
+  html += '</tbody></table><p></p>'
+  document.getElementById('notes-body').focus()
+  document.execCommand('insertHTML', false, html)
+  ntMarkDirty()
+}
+
+async function nImage () {
+  if (!ntCurrent) return
+  const res = await window.halq.dialogOpen({
+    title: 'Insert Image',
+    filters: [{ name: 'Images', extensions: ['png','jpg','jpeg','gif','webp','bmp'] }],
+    properties: ['openFile']
+  })
+  if (res.canceled || !res.filePaths.length) return
+  const filePath = res.filePaths[0]
+  const fileName = filePath.split('\\').pop().split('/').pop()
+  const fr = await window.halq.notesFileRead(filePath)
+  if (!fr.ok) return
+  const saved = await window.halq.notesAssetSave(ntCurrent.pageId, fileName, fr.base64)
+  if (!saved.ok) return
+  document.getElementById('notes-body').focus()
+  document.execCommand('insertHTML', false, `<img src="${saved.src}" alt="${ntE(fileName)}">`)
+  ntMarkDirty()
+}
+
+async function nFile () {
+  if (!ntCurrent) return
+  const res = await window.halq.dialogOpen({
+    title: 'Attach File',
+    filters: [{ name: 'All Files', extensions: ['*'] }],
+    properties: ['openFile']
+  })
+  if (res.canceled || !res.filePaths.length) return
+  const filePath = res.filePaths[0]
+  const fileName = filePath.split('\\').pop().split('/').pop()
+  const ext      = fileName.split('.').pop().toLowerCase()
+  const fr = await window.halq.notesFileRead(filePath)
+  if (!fr.ok) return
+  const saved = await window.halq.notesAssetSave(ntCurrent.pageId, fileName, fr.base64)
+  if (!saved.ok) return
+  const icon    = ext === 'pdf' ? '📄' : ['doc','docx'].includes(ext) ? '📝' : ['xls','xlsx'].includes(ext) ? '📊' : '📎'
+  const srcPath = saved.src.replace('file://', '')
+  document.getElementById('notes-body').focus()
+  document.execCommand('insertHTML', false,
+    `<span class="nt-file" onclick="window.halq.notesAssetOpen('${srcPath.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      ${icon} ${ntE(fileName)}</span><br>`)
+  ntMarkDirty()
+}
+
+// =====================
+// NOTES — PASTE & DROP
+// =====================
+async function ntPaste (e) {
+  if (!ntCurrent) return
+  const items = e.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (!item.type.startsWith('image/')) continue
+    e.preventDefault()
+    const blob   = item.getAsFile()
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const b64   = ev.target.result.split(',')[1]
+      const saved = await window.halq.notesAssetSave(ntCurrent.pageId, `paste-${Date.now()}.png`, b64)
+      if (saved.ok) {
+        document.execCommand('insertHTML', false, `<img src="${saved.src}" alt="image">`)
+        ntMarkDirty()
+      }
+    }
+    reader.readAsDataURL(blob)
+    return
+  }
+}
+
+async function ntDrop (e) {
+  if (!ntCurrent) return
+  e.preventDefault()
+  const files = e.dataTransfer?.files
+  if (!files?.length) return
+  for (const file of files) {
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const b64   = ev.target.result.split(',')[1]
+      const saved = await window.halq.notesAssetSave(ntCurrent.pageId, file.name, b64)
+      if (!saved.ok) return
+      if (file.type.startsWith('image/')) {
+        document.execCommand('insertHTML', false, `<img src="${saved.src}" alt="${ntE(file.name)}">`)
+      } else {
+        const ext     = file.name.split('.').pop().toLowerCase()
+        const icon    = ext === 'pdf' ? '📄' : '📎'
+        const srcPath = saved.src.replace('file://', '')
+        document.execCommand('insertHTML', false,
+          `<span class="nt-file" onclick="window.halq.notesAssetOpen('${srcPath.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+            ${icon} ${ntE(file.name)}</span><br>`)
+      }
+      ntMarkDirty()
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+// =====================
+// NOTES — DRAWING
+// =====================
+function ntInitCanvas () {
+  const area   = document.getElementById('notes-page-area')
+  const canvas = document.getElementById('notes-canvas')
+  canvas.width  = area.scrollWidth
+  canvas.height = Math.max(area.scrollHeight, 800)
+  ntDrawCtx = canvas.getContext('2d')
+  ntDrawCtx.lineCap = 'round'
+  ntDrawCtx.lineJoin = 'round'
+
+  canvas.onmousedown = (e) => {
+    if (!ntDrawMode) return
+    ntDrawDown = true
+    ntDrawCtx.beginPath()
+    ntDrawCtx.moveTo(e.offsetX, e.offsetY)
+  }
+  canvas.onmousemove = (e) => {
+    if (!ntDrawMode || !ntDrawDown) return
+    if (ntEraser) {
+      ntDrawCtx.clearRect(e.offsetX - 10, e.offsetY - 10, 20, 20)
+    } else {
+      ntDrawCtx.strokeStyle = document.getElementById('draw-color').value
+      ntDrawCtx.lineWidth   = document.getElementById('draw-size').value
+      ntDrawCtx.lineTo(e.offsetX, e.offsetY)
+      ntDrawCtx.stroke()
+    }
+  }
+  canvas.onmouseup    = () => { ntDrawDown = false; ntMarkDirty() }
+  canvas.onmouseleave = () => { ntDrawDown = false }
+}
+
+function nToggleDraw () {
+  ntDrawMode = !ntDrawMode
+  ntEraser   = false
+  document.getElementById('notes-canvas-wrap').classList.toggle('on', ntDrawMode)
+  document.getElementById('notes-draw-bar').classList.toggle('on', ntDrawMode)
+  document.getElementById('nbt-draw').classList.toggle('on', ntDrawMode)
+  document.getElementById('draw-eraser').classList.remove('on')
+}
+
+function nDrawEraser () {
+  ntEraser = !ntEraser
+  document.getElementById('draw-eraser').classList.toggle('on', ntEraser)
+}
+
+function nDrawClear () {
+  if (!ntDrawCtx) return
+  const canvas = document.getElementById('notes-canvas')
+  ntDrawCtx.clearRect(0, 0, canvas.width, canvas.height)
+  ntMarkDirty()
+}
+
+async function nSaveDrawing () {
+  if (!ntCurrent || !ntDrawCtx) return
+  const canvas = document.getElementById('notes-canvas')
+  const b64    = canvas.toDataURL('image/png').split(',')[1]
+  const saved  = await window.halq.notesAssetSave(ntCurrent.pageId, `drawing-${Date.now()}.png`, b64)
+  if (!saved.ok) return
+  document.getElementById('notes-body').focus()
+  document.execCommand('insertHTML', false, `<img src="${saved.src}" alt="drawing">`)
+  nDrawClear()
+  nToggleDraw()
+  ntMarkDirty()
+}
+
+// =====================
+// NOTES — CUSTOM PROMPT
+// =====================
+function ntPrompt (label, defaultVal = '') {
+  return new Promise(resolve => {
+    ntPromptRes = resolve
+    document.getElementById('nt-prompt-label').textContent = label
+    const input = document.getElementById('nt-prompt-input')
+    input.value = defaultVal
+    document.getElementById('nt-prompt-overlay').classList.add('on')
+    setTimeout(() => { input.focus(); input.select() }, 40)
+  })
+}
+
+function ntPromptOK () {
+  const val = document.getElementById('nt-prompt-input').value
+  document.getElementById('nt-prompt-overlay').classList.remove('on')
+  if (ntPromptRes) { ntPromptRes(val); ntPromptRes = null }
+}
+
+function ntPromptCancel () {
+  document.getElementById('nt-prompt-overlay').classList.remove('on')
+  if (ntPromptRes) { ntPromptRes(null); ntPromptRes = null }
+}
+
+// =====================
+// NOTES — CUSTOM CONFIRM
+// =====================
+let ntConfirmRes = null
+
+function ntConfirm (msg) {
+  return new Promise(resolve => {
+    ntConfirmRes = resolve
+    document.getElementById('nt-confirm-msg').textContent = msg
+    document.getElementById('nt-confirm-overlay').classList.add('on')
+  })
+}
+
+function ntConfirmOK () {
+  document.getElementById('nt-confirm-overlay').classList.remove('on')
+  if (ntConfirmRes) { ntConfirmRes(true); ntConfirmRes = null }
+}
+
+function ntConfirmCancel () {
+  document.getElementById('nt-confirm-overlay').classList.remove('on')
+  if (ntConfirmRes) { ntConfirmRes(false); ntConfirmRes = null }
+}
+
 </script>
 <!-- CATEGORY MANAGER MODAL -->
 <div class="catmgr-overlay" id="catmgr-overlay" onclick="catmgrClickOutside(event)">
@@ -2200,6 +3853,203 @@ loadExcelData().catch(() => {
         placeholder="New category name..." maxlength="40"
         onkeydown="if(event.key==='Enter') catmgrAdd()">
       <button class="catmgr-btn primary" style="flex:none;padding:6px 14px" onclick="catmgrAdd()">+ Add</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- =====================
+     NOTES VIEW
+===================== -->
+<!-- Notes body content — rendered into #notes-panel by ntRenderInPanel() -->
+<div id="notes-body-wrap-template" style="display:none">
+  <!-- 3-panel body -->
+  <div class="notes-body-wrap" id="notes-body-wrap">
+
+    <!-- Panel 1: Notebook / Section tree -->
+    <div class="notes-nb-panel" id="notes-nb-panel">
+      <div class="notes-nb-hd">
+        <span class="notes-nb-hd-title">Notebooks</span>
+        <button class="ntree-btn" onclick="ntAddNotebook()" title="New Notebook" style="font-size:15px;font-weight:bold">+</button>
+      </div>
+      <div class="notes-tree" id="notes-tree"></div>
+    </div>
+
+    <!-- Resizable divider 1 -->
+    <div class="resize-divider" id="notes-divider-1"></div>
+
+    <!-- Panel 2: Pages list -->
+    <div class="notes-pg-panel" id="notes-pg-panel">
+      <div class="notes-pg-hd">
+        <span class="notes-pg-hd-title" id="notes-pg-hd-title">Pages</span>
+        <button class="ntree-btn" id="notes-add-pg-btn" onclick="ntAddPageFromPanel()" title="New Page" style="font-size:15px;font-weight:bold;display:none">+</button>
+      </div>
+      <div class="notes-pg-list" id="notes-pg-list">
+        <div class="notes-pg-empty">Select a section</div>
+      </div>
+    </div>
+
+    <!-- Resizable divider 2 -->
+    <div class="resize-divider" id="notes-divider-2"></div>
+
+    <!-- Panel 3: Editor -->
+    <div class="notes-editor">
+
+      <!-- Toolbar -->
+      <div class="notes-tb" id="notes-tb">
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nFmt('bold')"><b>B</b></button>
+          <button class="nbt" onclick="nFmt('italic')"><i>I</i></button>
+          <button class="nbt" onclick="nFmt('underline')"><u>U</u></button>
+          <button class="nbt" onclick="nFmt('strikeThrough')"><s>S</s></button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nBlock('h1')">H1</button>
+          <button class="nbt" onclick="nBlock('h2')">H2</button>
+          <button class="nbt" onclick="nBlock('h3')">H3</button>
+          <button class="nbt" onclick="nBlock('p')">¶</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nList('ul')">• List</button>
+          <button class="nbt" onclick="nList('ol')">1. List</button>
+          <button class="nbt" onclick="nChecklist()">☑ Check</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nTable()">⊞ Table</button>
+          <button class="nbt" onclick="nImage()">🖼 Image</button>
+          <button class="nbt" onclick="nFile()">📎 File</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" id="nbt-draw" onclick="nToggleDraw()">✏️ Draw</button>
+          <select class="nbt-sel" onchange="nFmt('foreColor',this.value)" title="Text Color">
+            <option value="#000000">Black</option>
+            <option value="#e5e7eb">Gray</option>
+            <option value="#5b9cf6">Blue</option>
+            <option value="#34c759">Green</option>
+            <option value="#ff9f0a">Orange</option>
+            <option value="#ff453a">Red</option>
+            <option value="#bf5af2">Purple</option>
+          </select>
+          <select class="nbt-sel" onchange="nFmt('hiliteColor',this.value)" title="Highlight">
+            <option value="transparent">Highlight</option>
+            <option value="#fef08a">Yellow</option>
+            <option value="#bbf7d0">Green</option>
+            <option value="#bfdbfe">Blue</option>
+            <option value="#fecaca">Red</option>
+          </select>
+          <select class="nbt-sel" onchange="nFmt('fontSize',this.value)" title="Size">
+            <option value="2">Small</option>
+            <option value="3" selected>Normal</option>
+            <option value="4">Large</option>
+            <option value="5">Larger</option>
+            <option value="6">Huge</option>
+          </select>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nFmt('justifyLeft')">⬅</button>
+          <button class="nbt" onclick="nFmt('justifyCenter')">↔</button>
+          <button class="nbt" onclick="nFmt('justifyRight')">➡</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="nFmt('undo')">↩</button>
+          <button class="nbt" onclick="nFmt('redo')">↪</button>
+        </div>
+        <!-- Draw sub-bar -->
+        <div class="notes-draw-bar" id="notes-draw-bar">
+          <input type="color" id="draw-color" value="#5b9cf6" title="Pen Color">
+          <input type="range" id="draw-size" min="1" max="20" value="3" title="Size">
+          <button class="nbt" id="draw-eraser" onclick="nDrawEraser()">⌫ Eraser</button>
+          <button class="nbt" onclick="nDrawClear()">🗑 Clear</button>
+          <button class="nbt" onclick="nSaveDrawing()">💾 Save</button>
+        </div>
+      </div>
+
+      <!-- Page -->
+      <div class="notes-page-area" id="notes-page-area">
+        <div class="notes-empty" id="notes-empty">
+          <div style="font-size:40px">📝</div>
+          <div style="font-size:14px;color:#999">Select a page or create one</div>
+        </div>
+        <div id="notes-page-inner" class="notes-page-inner" style="display:none">
+          <input class="notes-pg-title" id="notes-pg-title"
+                 placeholder="Page title..."
+                 oninput="ntMarkDirty()"
+                 onblur="ntSavePage()">
+          <div class="notes-canvas-wrap" id="notes-canvas-wrap">
+            <canvas id="notes-canvas"></canvas>
+          </div>
+          <div class="notes-body" id="notes-body"
+               contenteditable="true"
+               oninput="ntMarkDirty()"
+               onpaste="ntPaste(event)"
+               ondrop="ntDrop(event)"
+               ondragover="event.preventDefault()"
+               spellcheck="true">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- end notes-body-wrap-template -->
+
+<!-- Custom prompt modal (window.prompt blocked in Electron) -->
+<div class="nt-prompt-overlay" id="nt-prompt-overlay">
+  <div class="nt-prompt-box">
+    <div class="nt-prompt-label" id="nt-prompt-label"></div>
+    <input class="nt-prompt-input" id="nt-prompt-input" type="text"
+           onkeydown="if(event.key==='Enter')ntPromptOK();if(event.key==='Escape')ntPromptCancel()">
+    <div class="nt-prompt-btns">
+      <button class="nt-prompt-cancel" onclick="ntPromptCancel()">Cancel</button>
+      <button class="nt-prompt-ok"     onclick="ntPromptOK()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom confirm modal (window.confirm blocked in Electron) -->
+<div class="nt-prompt-overlay" id="nt-confirm-overlay">
+  <div class="nt-prompt-box">
+    <div class="nt-prompt-label" id="nt-confirm-msg" style="white-space:pre-wrap;text-align:center"></div>
+    <div class="nt-prompt-btns" style="margin-top:4px">
+      <button class="nt-prompt-cancel" onclick="ntConfirmCancel()">Cancel</button>
+      <button class="nt-prompt-ok" style="background:var(--red)" onclick="ntConfirmOK()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES EXPORT MODAL -->
+<div class="nt-export-overlay" id="nt-export-overlay">
+  <div class="nt-export-box">
+    <div class="nt-export-ttl">⬇ Export Notes</div>
+    <div class="nt-export-row">
+      <div class="nt-export-lbl">What to export</div>
+      <div class="nt-export-scope">
+        <button class="nt-scope-btn on" id="exp-scope-nb"  onclick="ntExportSetScope('notebook')">Notebook</button>
+        <button class="nt-scope-btn"    id="exp-scope-sec" onclick="ntExportSetScope('section')">Section</button>
+        <button class="nt-scope-btn"    id="exp-scope-pg"  onclick="ntExportSetScope('page')">Page</button>
+      </div>
+    </div>
+    <div class="nt-export-row">
+      <div class="nt-export-lbl">Notebook</div>
+      <select class="nt-export-sel" id="exp-sel-nb" onchange="_expNbChanged()"></select>
+    </div>
+    <div class="nt-export-row" id="exp-row-sec" style="display:none">
+      <div class="nt-export-lbl">Section</div>
+      <select class="nt-export-sel" id="exp-sel-sec" onchange="_expSecChanged()"></select>
+    </div>
+    <div class="nt-export-row" id="exp-row-pg" style="display:none">
+      <div class="nt-export-lbl">Page</div>
+      <select class="nt-export-sel" id="exp-sel-pg"></select>
+    </div>
+    <div class="nt-export-footer">
+      <button class="nt-exp-cancel" onclick="ntExportClose()">Cancel</button>
+      <button class="nt-exp-ok"     onclick="ntExportRun()">Export</button>
     </div>
   </div>
 </div>

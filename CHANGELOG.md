@@ -1,7 +1,6 @@
 # HALQ — Maintenance Command
 ## Changelog
 
-> **Project path:** `D:\OneDrive\DEEH\Project\HALQ - Maintenance`
 > **Stack:** Electron + Node.js
 > **Files:** `main.js` · `preload.js` · `index.html`
 > **Times:** UTC
@@ -633,3 +632,1249 @@ Starting state before any changes in this session.
 | `categoriesSave(cats)` | `categories-save` | Save category list to disk |
 | `categoriesLoad()` | `categories-load` | Load category list from disk |
 | `onNewTab(callback)` | `open-new-tab` | Listen for new tab requests from webview |
+
+---
+
+## Session 4 — 2026-03-04
+
+---
+
+### [2026-03-04 ~13:00] Fix — Excel Import Rewritten to Use VBA Macro
+
+**Root cause:** All COM-based approaches to write to the `.xlsm` from PowerShell were blocked by Office 365 Apps for Business session isolation — `GetActiveObject` returned instances with `Count=0` workbooks, and `New-Object -ComObject` couldn't open OneDrive-hosted files.
+
+**Decision:** HALQ no longer attempts to write to Excel directly. Instead:
+1. HALQ reads and cleans the Appfolio export, auto-detects header row
+2. Writes cleaned data to `userdata/import_tmp.csv`
+3. Writes CSV path to `userdata/import_cfg.txt`
+4. Triggers `ImportFromCSV` VBA macro via PowerShell `excel.Run()`
+5. VBA macro (running inside user's Excel) reads cfg, opens CSV, unmerges, pastes, saves
+
+**`main.js`** — `excel-import` handler rewritten — no more file-open attempts, just CSV write + macro trigger
+
+**VBA** — `ImportFromCSV` macro added to `.xlsm`:
+- Reads path from `import_cfg.txt` (same folder as workbook)
+- Unmerges AppFolio Data sheet
+- Clears contents
+- Opens CSV, pastes values, closes CSV
+- Saves workbook
+
+---
+
+### [2026-03-04 ~13:15] Fix — WO Count Badge Dynamic + Pending Cleanups
+
+**`index.html`**
+- Removed ✉️ Send Notification button from detail panel — no use case defined
+- Removed 📝 Add Note button from detail panel — no use case defined
+- Removed 🌐 Open in Appfolio button from detail panel — redundant with URL bar Go button
+- Sidebar nav sections wrapped in `.sidebar-nav` with `overflow-y: auto` + `-webkit-scrollbar: none` — no visible scrollbar
+- Hardcoded `101` replaced with `0` in topbar label, bottom status bar, nav badge
+- `nav-wo-badge` now set dynamically from `wos.length` on Excel load and sample data fallback
+- `loadExcelData()` updated to set all 3 count elements from single `count` variable
+
+---
+
+### [2026-03-04 ~19:00] Cleanup — Macro Bar Removed
+
+**Decision:** Excel COM automation is permanently blocked by Office 365 Apps for Business session isolation. All approaches failed:
+- `GetActiveObject('Excel.Application')` — COM context blocked by Office 365
+- `New-Object -ComObject Excel.Application` — cannot resolve OneDrive paths
+- VBScript `GetObject` — `ActiveX component can't create object`
+- Admin elevation — same error, not a privilege issue
+- `xlsx` library with `bookVBA: true` — **destroyed workbook** (formulas, formatting, macros wiped); recovered from OneDrive version history
+- Excel `/e` command-line flag — cannot find macros regardless of path or module prefix
+
+**Current import state:** HALQ writes cleaned data to `userdata/import_tmp.xlsx` and `import_cfg.txt`. User runs `ImportFromCSV` macro manually in Excel. VBA macro reads `import_cfg.txt` for path, opens temp file, pastes data into `AppFolio Data` sheet.
+
+**`index.html`**
+- Removed `<!-- MACRO BAR -->` HTML block (① Scan, ② Quick Transfer, ③ Refresh, ④ Summary, ▶ Run All)
+- Removed `.macro-bar`, `.macro-btn`, `.macro-sep`, `.macro-label`, `.macro-run-all` CSS
+- Removed `setMacroRunning()`, `setMacroDone()`, `runMacro()`, `runQuickTransfer()`, `confirmQuickTransfer()`, `runAllMacros()` JS functions
+- Removed scan button pulse from import success handler
+- Removed "Show Macro Bar" toggle from Settings
+- Updated import success message — no longer references macro steps
+
+---
+
+### [2026-03-04 ~19:15] Cleanup — Nav Items Pruned
+
+**`index.html`**
+- Removed **Appfolio** from sidebar nav, top nav, and section tabs — no function planned
+- Removed **Macros** from sidebar nav, top nav, and section tabs — removed with macro bar
+- Removed **Summary** from sidebar nav — no function planned
+- Kept **Email** and **Notes** as placeholders for future features
+- Added `id="nav-wo"` and `onclick="switchMainView('wo')"` to Work Orders nav item
+- Added `id="nav-notes"` and `onclick="switchMainView('notes')"` to Notes nav item
+
+---
+
+### [2026-03-04 ~19:30] Verified — All Core Features Tested and Working
+
+Full test pass confirmed:
+
+| Feature | Status |
+|---------|--------|
+| WO list loads from Active Monitoring sheet | ✅ |
+| Filter chips (Overdue, Due Today, Assigned, Waiting, Urgent, BH, Talley) | ✅ |
+| WO detail panel opens on click | ✅ |
+| Follow-up date picker (all options + custom) | ✅ |
+| Follow-up persists across app restarts | ✅ |
+| Categories — create, assign, color, persist | ✅ |
+| Save WO Detail — saves tags + followup + category | ✅ |
+| Multi-tab browsing — add, close, switch | ✅ |
+| Bottom bar clock | ✅ |
+| Import file picker — writes import_tmp.xlsx | ✅ |
+
+---
+
+### [2026-03-04 ~20:00] Feature — Notes System (OneNote-style)
+
+**Goal:** Full notebook/section/page note-taking system embedded in HALQ. Left panel shows notebook tree, right panel shows page editor.
+
+**Storage layout:**
+```
+userdata/notes/
+  notebooks.json        ← notebook/section/page tree metadata
+  pages/[id].html       ← each page's HTML content
+  assets/[id]/          ← images and files attached to each page
+```
+
+**`main.js`** — Added NOTES section with 8 IPC handlers:
+- `notes-meta-load` — reads `notebooks.json`, returns tree
+- `notes-meta-save` — writes updated tree to `notebooks.json`
+- `notes-page-load` — reads `pages/[id].html`, returns HTML content
+- `notes-page-save` — writes page HTML content to `pages/[id].html`
+- `notes-page-delete` — deletes page file and its assets folder
+- `notes-asset-save` — saves base64-encoded image/file to `assets/[id]/[filename]`, returns `file://` src path
+- `notes-file-read` — reads any file from disk as base64 (for inserting images/files)
+- `notes-asset-open` — opens attached file in default system app via `shell.openPath()`
+
+**`preload.js`** — Exposed all 8 notes handlers on `window.halq`
+
+**`index.html`** — Added Notes view (full-screen overlay, `z-index: 100`):
+
+*Left panel — Notebook tree:*
+- ← back button returns to Work Orders
+- Three-level hierarchy: Notebook → Section → Page
+- Each level: expand/collapse arrow, rename (✎), delete (🗑), add child (+)
+- Section color dots (8 colors, auto-assigned in rotation)
+- Active page highlighted with accent color + left border
+- Auto-save triggers re-render to update page title in tree
+
+*Right panel — Page editor:*
+- Page title input with accent underline on focus
+- Toolbar (disabled/dimmed until a page is open): Bold, Italic, Underline, Strikethrough, H1/H2/H3/¶, Bullet List, Numbered List, Checklist, Table, Insert Image, Insert File, Draw mode, Text Color, Highlight, Font Size, Align Left/Center/Right, Undo/Redo
+- `contenteditable` body — `execCommand`-based rich text editing
+- Checklist inserts `<input type=checkbox>` inline
+- Table — custom row/col count via prompt, renders full `<table>` with header row
+- Image insert — file picker → base64 read → asset save → `<img>` injected
+- File attach — file picker → asset save → clickable `<span class="nt-file">` injected, click opens in system app
+- Paste handler — clipboard images pasted directly into page (saves as asset)
+- Drop handler — drag images/files onto page to insert
+
+*Drawing canvas:*
+- Canvas overlay (`position: absolute`) sits above content, `pointer-events: none` when inactive
+- Draw mode toggle — activates canvas, shows draw sub-toolbar (color picker, size slider, eraser, clear, save)
+- Freehand pen drawing with `lineCap: round`
+- Eraser mode — `clearRect` 20×20 under cursor
+- Save Drawing — flattens canvas to PNG, saves as asset, inserts as `<img>`, clears canvas, exits draw mode
+
+*Auto-save:*
+- `ntMarkDirty()` — sets dirty flag, debounces 2-second auto-save timer
+- `ntSavePage()` — saves page HTML + updates title in metadata + writes both to disk
+- Also triggered on `onblur` of title input
+
+*Custom prompt modal:*
+- `window.prompt()` is silently blocked by Electron — replaced with `ntPrompt(label, default)` Promise-based modal
+- Used for: notebook name, section name, page title, rename, table rows/cols
+- Enter key confirms, Escape cancels
+
+*CSS additions:* `.notes-view`, `.notes-sidebar`, `.notes-editor`, `.notes-tb`, `.notes-page-area`, `.notes-body`, `.notes-canvas-wrap`, `.nt-prompt-overlay` and all tree/toolbar subcomponents
+
+---
+
+### [2026-03-04 ~22:00] Cleanup — UI Declutter Pass
+
+**`index.html`**
+
+*Sidebar nav:*
+- Removed Appfolio, Macros, Summary nav items — only Work Orders, Email, Notes, Settings remain
+
+*Macro bar:*
+- Removed `<!-- MACRO BAR -->` HTML block entirely (Scan, Quick Transfer, Refresh, Summary, Run All)
+
+*Topbar:*
+- Removed Import button from topbar actions
+- Removed "Active Monitoring · X open" label from topbar
+- JS refs to `wo-count-label` guarded with null-check to avoid runtime error
+
+*Bottom bar:*
+- Removed "Excel Connected" pill
+- Removed "Appfolio Ready" pill
+- Remaining: Active WOs count, Overdue count, clock
+
+*Sidebar footer:*
+- Removed hardcoded "Excel connected" status pill
+
+---
+
+### [2026-03-04 ~22:15] Feature — Filter Chip Arrows
+
+**`index.html`**
+- Replaced horizontal scroll on filter chips with ◀ ▶ arrow buttons (same pattern as tab bar)
+- Added `.wo-filters-wrap` container with arrows on each side
+- Added `scrollChips(dir)` — scrolls chips 80px per click
+- Added `updateChipArrows()` — toggles `disabled` class on arrows by scroll position
+- Called on DOMContentLoaded
+
+---
+
+### [2026-03-04 ~22:20] Feature — Search Clear Button
+
+**`index.html`**
+- Wrapped search input in `.wo-search-wrap` (position: relative)
+- Added `✕` clear button — shows when input has text, clears and refocuses on click
+- `clearSearch()` and `updateSearchClear(input)` added
+
+---
+
+### [2026-03-04 ~22:25] Feature — Resizable Panel Dividers
+
+**`index.html`**
+- Added `.resize-divider` CSS — 5px, `cursor: col-resize`, accent highlight on hover/drag
+- Added `initResizeDivider(dividerId, prevEl, nextEl, dir)` — drag-resize via mousedown/move/up
+- `<div class="resize-divider" id="wo-resize-divider">` between WO panel and Appfolio panel
+- WO panel `border-right` removed (divider is the separator)
+- Wired in DOMContentLoaded
+
+---
+
+### [2026-03-04 ~22:30] Feature — Notes Redesign (3-Panel Layout)
+
+**`index.html`** — complete Notes view restructure
+
+*Layout:*
+- Notes view: `flex-direction: column` (topbar + body)
+- `.notes-topbar` — Work Orders / Email / Notes tabs (replaces ← Back button)
+- `.notes-body-wrap` — holds 3 panels horizontally
+
+*Panel 1 — Notebook/Section tree (`.notes-nb-panel`, 200px):*
+- Notebooks expand to show sections only (pages removed from tree)
+- Clicking a section highlights it and populates Panel 2
+- Section rows have `.active` state when selected
+
+*Panel 2 — Pages list (`.notes-pg-panel`, 180px):*
+- Header shows selected section name + `+` button
+- Drag and drop page reordering (`ntPgDragStart`, `ntPgDragOver`, `ntPgDrop`)
+- Empty states: "Select a section" / "No pages"
+
+*Panel 3 — Editor (`.notes-editor`):*
+- `background: #ffffff` — white editor area
+- Toolbar and contenteditable body unchanged
+
+*Resizable dividers:*
+- `#notes-divider-1` between Panel 1 and 2
+- `#notes-divider-2` between Panel 2 and 3
+- Wired on first `switchMainView('notes')` open via `notesDividersInit` flag
+
+*JS additions:*
+- `ntActiveSec` — tracks selected section
+- `ntSelectSection(nbId, secId)` — sets activeSec, re-renders both panels
+- `ntRenderPgPanel()` — renders pages list for active section
+- `ntAddPageFromPanel()` — adds page using `ntActiveSec` context
+- All `ntRenderTree()` calls paired with `ntRenderPgPanel()`
+
+---
+
+### [2026-03-04 ~22:45] Fix — Syntax Error (Unclosed Brace in ntRename)
+
+**Root cause:** `str_replace` swallowed closing `}` of `ntRename` and `// NOTES — DELETE` comment header when appending `ntRenderPgPanel()`.
+
+**`index.html`**
+- Restored closing `}` of `ntRename`
+- Restored `// NOTES — DELETE` comment header before `ntDelete`
+- Verified brace depth = 0
+
+---
+
+### [2026-03-05 ~14:00] Feature — Notes Export / Import (initial)
+
+**`main.js`**
+- Added `ipcMain.handle('notes-export', ...)` — exports full notebook as self-contained `.halqnote` JSON (page HTML + base64 assets embedded)
+- Added `ipcMain.handle('notes-import', ...)` — imports `.halqnote` (full restore with new IDs), `.html`, `.txt`
+- Added `ipcMain.handle('notes-page-save', ...)` (already existed — confirmed wired)
+
+**`preload.js`**
+- Added `notesExport(nbId)` and `notesImport()` to `window.halq`
+
+**`index.html`**
+- Added `ntExport(nbId)` — ⬇ button on each notebook row, calls `window.halq.notesExport`
+- Added `ntImport()` — ⬆ button in notebook panel header, calls `window.halq.notesImport`
+- Import flow: `.halqnote` reloads full meta; `.html`/`.txt` placed into active section or auto-creates notebook
+
+---
+
+### [2026-03-05 ~14:30] Feature — OneNote `.one` Import
+
+**`main.js`**
+- Added `parseOneBuffer(buf, baseName)` shared helper — extracts text from OneNote binary
+  - Pass 1: ASCII runs (actual field values)
+  - Pass 2: UTF-16LE runs (labels and structured text)
+  - Sorts all text by file offset (document order)
+  - Filters noise: font names, XML metadata, binary garbage strings
+  - Deduplicates across revision history blocks
+  - Renders to HTML: `<hr>` for separators, `<strong>` labels, `<a href>` email links
+- Import handler now accepts `.one` — validates OneNote GUID header, calls `parseOneBuffer`, returns HTML page
+
+**Findings from binary analysis of `March_05__2026.one`:**
+- Format: Microsoft OneNote section binary (GUID `E4525C7B-8CD8-A74D-...`)
+- Text stored in two encodings: ASCII (values/data) and UTF-16LE (labels/structure)
+- File contains 13 revision copies of the same content — deduplicated on import
+- Extracted 126 unique content strings: addresses, dates, SR#s, Acc#s, phone numbers, emails
+
+---
+
+### [2026-03-05 ~15:00] Improvement — Export Modal + UI Cleanup
+
+**`index.html`**
+
+*Export modal (replaces per-notebook ⬇ button):*
+- `ntExportModal()` — opens modal with 3 scope options
+- **Notebook** — full notebook with all sections and pages
+- **Section** — one section (notebook → section cascade dropdowns)
+- **Page** — single page (notebook → section → page cascade)
+- Pre-selects active notebook/section/page context on open
+- Saves as `.halqnote` via native save dialog
+
+*Import/Export moved to topbar far-right:*
+- Removed ⬆ from notebook panel header
+- Removed ⬇ from per-notebook tree row actions
+- Added `.notes-topbar-actions` div with `⬆ Import` and `⬇ Export` buttons at far right of notes topbar
+- `.nt-topbar-btn` (grey) for Import, `.nt-topbar-btn.accent` (blue) for Export
+
+*Toolbar (B I U H1 H2 H3) color fix:*
+- Editor background is hardcoded `#ffffff` — toolbar was using `var(--text2)` which is light in dark theme, invisible against white
+- Fixed: toolbar CSS now hardcoded light grey background (`#efefef`) with dark text (`#333`) regardless of app theme
+- `.nbt`, `.nbt:hover`, `.nbt.on`, `.nbt-sel`, `.notes-tb-sep` all updated to hardcoded values
+
+**`main.js`**
+- `notes-export` updated to accept `{ type, nbId, secId, pgId }` instead of plain `nbId`
+- Handles `type: 'notebook'`, `'section'`, `'page'` with appropriate default filename
+- `notes-import` `.halqnote` handler updated to handle all 3 export types:
+  - `exportType: 'page'` → returns as single page for caller to place
+  - `exportType: 'section'` → adds section to matching notebook (or creates new)
+  - `exportType: 'notebook'` → full restore with new IDs
+
+**`preload.js`**
+- `notesExport(nbId)` → `notesExport(opts)` signature updated
+
+---
+
+### [2026-03-05 ~15:30] Feature — `.onepkg` Import
+
+**Background:** `.onepkg` is a Microsoft Cabinet (`.cab`) file, not ZIP. Contains `.one` section files + `.onetoc2` TOC. Uses LZX compression — not available in Node's `zlib`.
+
+**`main.js`**
+- `.onepkg` handler detects `MSCF` (Cabinet) vs `PK` (ZIP) signature
+- Cabinet path: calls `expand.exe` (built into every Windows installation at `%SystemRoot%\System32\expand.exe`)
+  - Command: `expand.exe "file.onepkg" -F:* "tempDir"`
+  - Falls back to `expand` in PATH if full path fails
+- ZIP path: extracts `.one` files using `zlib.inflateRawSync` (deflate)
+- Each extracted `.one` → parsed via `parseOneBuffer` → becomes one section in a new notebook
+- Temp dir cleaned up in `finally` block
+- Each `.one` file → separate section (not page) so notebook structure is preserved
+
+**`index.html`**
+- `ntImport()` handles `type: 'onepkg'` result — reloads meta, re-renders tree
+- Success message shows notebook name + page count
+
+**Limitation:** `.onepkg` import recovers all text content. Images, handwriting, and embedded files inside OneNote cannot be extracted (binary-only data, no text representation).
+
+---
+
+### [2026-03-05 ~15:45] Fix — `.onepkg` ZIP Signature Error
+
+**Root cause:** previous handler checked `buf[0] === 0x50 && buf[1] === 0x4B` (ZIP) only — actual `.onepkg` files are Cabinet format starting with `MSCF` (`4D 53 43 46`).
+
+**`main.js`**
+- Added `MSCF` signature check alongside `PK`
+- Cabinet format routed to `expand.exe`; ZIP format routed to `zlib`
+- Error message updated to reflect both supported container formats
+
+---
+
+## Outstanding / In Progress
+
+- Excel import still requires manual macro run in Excel — COM automation permanently blocked
+- Notes — Email section is placeholder only, not yet built
+- Tab labels show hostname, not page title
+- Notes top nav: Work Orders tab navigates away correctly; Email tab is placeholder only
+- `.onepkg` import: images and handwriting inside OneNote cannot be extracted (text only)
+- `splitOnePages` heuristic may misclassify some content lines as page titles in notebooks with unusual formatting — needs real-world testing on more `.one` files
+
+---
+
+## File Reference
+
+| File | Purpose |
+|------|---------| 
+| `main.js` | Electron main process — IPC handlers, window, session |
+| `preload.js` | contextBridge — exposes `window.halq` API to renderer |
+| `index.html` | All UI — HTML, CSS, JS in one file |
+| `userdata/creds.enc` | Encrypted Appfolio credentials |
+| `userdata/pin.enc` | Encrypted settings PIN |
+| `userdata/session/` | Appfolio session cookies |
+| `userdata/categories.json` | Saved category list with colors |
+| `userdata/wo-tags.json` | Per-WO followup dates and category assignments |
+| `userdata/notes/notebooks.json` | Notes tree metadata |
+| `userdata/notes/pages/` | Page HTML content files |
+| `userdata/notes/assets/` | Images and files attached to notes pages |
+
+## `window.halq` API (`preload.js`)
+
+| Method | IPC Channel | Description |
+|--------|-------------|-------------|
+| `credsSave(email, password)` | `creds-save` | Encrypt + save credentials |
+| `credsLoad()` | `creds-load` | Decrypt + return credentials |
+| `credsClear()` | `creds-clear` | Delete credentials |
+| `pinSave(pin)` | `pin-save` | Encrypt + save PIN |
+| `pinLoad()` | `pin-load` | Decrypt + return PIN |
+| `pinClear()` | `pin-clear` | Delete PIN |
+| `dialogOpen(options)` | `dialog-open` | Native file open dialog |
+| `excelLoad()` | `excel-load` | Read Active Monitoring sheet |
+| `excelImport(filePath)` | `excel-import` | Prep import temp file for manual macro |
+| `toggleMenuBar(visible)` | `toggle-menubar` | Show/hide Electron menu bar |
+| `woTagsSave(tags)` | `wo-tags-save` | Save per-WO tags to disk |
+| `woTagsLoad()` | `wo-tags-load` | Load per-WO tags from disk |
+| `categoriesSave(cats)` | `categories-save` | Save category list to disk |
+| `categoriesLoad()` | `categories-load` | Load category list from disk |
+| `onNewTab(callback)` | `open-new-tab` | Listen for new tab requests from webview |
+| `notesMetaLoad()` | `notes-meta-load` | Load notebook tree metadata |
+| `notesMetaSave(data)` | `notes-meta-save` | Save notebook tree metadata |
+| `notesPageLoad(pageId)` | `notes-page-load` | Load page HTML content |
+| `notesPageSave(pageId, html)` | `notes-page-save` | Save page HTML content |
+| `notesPageDelete(pageId)` | `notes-page-delete` | Delete page file + assets |
+| `notesAssetSave(pageId, name, b64)` | `notes-asset-save` | Save image/file asset, return src |
+| `notesFileRead(filePath)` | `notes-file-read` | Read file as base64 for inserting |
+| `notesAssetOpen(filePath)` | `notes-asset-open` | Open file in default system app |
+| `notesExport(opts)` | `notes-export` | Export notebook/section/page as `.halqnote` |
+| `notesImport()` | `notes-import` | Import `.halqnote` `.one` `.onepkg` `.html` `.txt` |
+---
+
+### [2026-03-05 ~16:30] Debug — notebooks.json Bloat Diagnosis
+
+**Root cause discovered:** `userdata/notes/notebooks.json` had grown to **10.7MB** containing **108,151 pages**. "Weekly Meeting" section alone had 96,801 pages — `parseOneBuffer` was creating a new page for nearly every extracted text line because `splitOnePages` treated almost every line as a page title (no content threshold, no safety cap).
+
+**Contributing factors:**
+- `seen` dedup set in `parseOneBuffer` was scoped per import call only — repeated imports of the same `.one` file multiplied entries
+- `splitOnePages` title heuristic was too permissive — short lines with no punctuation all matched, including data values
+- No maximum page count guard — an import of a large `.one` could produce thousands of pages with no cap
+- `notebooks.json` had no cleanup mechanism — orphaned entries from failed/repeated imports accumulated indefinitely
+
+**Symptom chain:** Large `notebooks.json` → slow tree render on startup → app freeze → "expand.exe failed: unknown error" (timeout, not actually an expand.exe error)
+
+---
+
+### [2026-03-05 ~17:00] Fix — .onepkg Import Overhaul + Progress Bar + Cleanup
+
+**Files changed:** `main.js`, `index.html`, `preload.js`
+
+#### `main.js`
+
+**`parseOneBuffer` refactored:**
+- Now returns `{ name, lines[], lineToHtml(), lineCount }` — structured output instead of pre-built HTML blob
+- `lineToHtml()` is a closure that captures `esc`, `SEP`, `LABEL` — passed to `splitOnePages` to render lazily per page
+
+**New `splitOnePages(parsed, sectionName)` function:**
+- Groups extracted lines into pages using strict OneNote title heuristics:
+  - Must be ≤ 60 chars (was 80)
+  - No sentence punctuation
+  - No `label: value` pattern
+  - No date patterns (`3/5/...`)
+  - **Positive signals required:** time pattern (`1:29 PM`), Title Case name, ALL CAPS short label
+- Safety cap: if splitting produces > 500 pages, collapses everything to 1 page — prevents explosion on malformed or large `.one` files
+- Titles with no following content are merged into next page (no empty pages)
+
+**`.onepkg` handler updated:**
+- Calls `splitOnePages` per section — creates proper multi-page sections instead of one page per `.one` file
+- Sends `notes-import-progress` IPC events to renderer during parse and write stages:
+  - `{ stage: 'parse', file, index, total }` — per section while parsing
+  - `{ stage: 'write', file, page, pageIndex, pageTotal }` — per page while writing
+- Returns `{ sectionCount, pageCount }` in addition to `pkgName`
+
+**`.one` single-file handler updated:**
+- Returns `type: 'one-section'` with structured `pages[]` array instead of raw HTML
+- Renderer creates a proper named section with all detected pages
+
+**New `notes-cleanup` IPC handler:**
+- Scans `userdata/notes/pages/` for `.html` files
+- Cross-references against all valid page IDs in `notebooks.json`
+- Deletes any `.html` files not referenced by any page entry
+- Also removes orphaned `assets/[id]/` folders
+- Returns `{ ok, orphanCount, assetCount, validPageCount }`
+
+#### `index.html`
+
+**Progress bar overlay (`ntShowImportProgress` / `ntHideImportProgress`):**
+- Fixed-position dark overlay with gradient progress bar
+- Appears immediately when import starts ("Opening file… 5%")
+- Updates live via `notes-import-progress` events from main process
+- Auto-hides on completion or error
+
+**`window.halq.onNotesImportProgress` listener:**
+- Registered on init — routes `notes-import-progress` IPC events to `ntShowImportProgress()`
+- Shows section name + `index/total` count as import progresses
+
+**New `_ntImportOneSection(result)` handler:**
+- Handles `type: 'one-section'` results from `.one` imports
+- Creates a new named section in target notebook
+- Writes each page individually via `notesPageSave`
+- Shows progress overlay during write phase
+
+**`ntImport()` updated:**
+- Shows progress overlay immediately before `notesImport()` call
+- Hides on cancel, error, or completion
+- Routes `onepkg` result to meta reload (pages already written by main)
+- Routes `one-section` to `_ntImportOneSection`
+- Routes `.html`/`.txt` to original `_ntImportSinglePage`
+- `onepkg` success message now includes section count
+
+**New `ntCleanupOrphans()` function:**
+- Prompts for confirmation
+- Calls `window.halq.notesCleanup()`
+- Shows result in debug bar: orphan count, asset folder count, valid page count kept
+
+**🧹 Cleanup button added to Notes topbar:**
+- Positioned after Export button
+- Calls `ntCleanupOrphans()` — deletes all orphaned page files to restore `notebooks.json` size
+
+#### `preload.js`
+
+- Added `notesCleanup: () => ipcRenderer.invoke('notes-cleanup')`
+- Added `onNotesImportProgress: (cb) => ipcRenderer.on('notes-import-progress', (_e, data) => cb(data))`
+
+---
+
+## Outstanding / In Progress
+
+- Excel import still requires manual macro run in Excel — COM automation permanently blocked
+- Notes — Email section is placeholder only, not yet built
+- Tab labels show hostname, not page title
+- `.onepkg` import: images and handwriting inside OneNote cannot be extracted (text only)
+- After first install of this fix: run **🧹 Cleanup** immediately to delete the 108k orphaned page files
+
+---
+
+## File Reference
+
+| File | Purpose |
+|------|---------|
+| `main.js` | Electron main process — IPC handlers, window, session |
+| `preload.js` | contextBridge — exposes `window.halq` API to renderer |
+| `index.html` | All UI — HTML, CSS, JS in one file |
+| `userdata/creds.enc` | Encrypted Appfolio credentials |
+| `userdata/pin.enc` | Encrypted settings PIN |
+| `userdata/session/` | Appfolio session cookies |
+| `userdata/categories.json` | Saved category list with colors |
+| `userdata/wo-tags.json` | Per-WO followup dates and category assignments |
+| `userdata/notes/notebooks.json` | Notes tree metadata |
+| `userdata/notes/pages/` | Page HTML content files |
+| `userdata/notes/assets/` | Images and files attached to notes pages |
+
+## `window.halq` API (`preload.js`)
+
+| Method | IPC Channel | Description |
+|--------|-------------|-------------|
+| `credsSave(email, password)` | `creds-save` | Encrypt + save credentials |
+| `credsLoad()` | `creds-load` | Decrypt + return credentials |
+| `credsClear()` | `creds-clear` | Delete credentials |
+| `pinSave(pin)` | `pin-save` | Encrypt + save PIN |
+| `pinLoad()` | `pin-load` | Decrypt + return PIN |
+| `pinClear()` | `pin-clear` | Delete PIN |
+| `dialogOpen(options)` | `dialog-open` | Native file open dialog |
+| `excelLoad()` | `excel-load` | Read Active Monitoring sheet |
+| `excelImport(filePath)` | `excel-import` | Prep import temp file for manual macro |
+| `toggleMenuBar(visible)` | `toggle-menubar` | Show/hide Electron menu bar |
+| `woTagsSave(tags)` | `wo-tags-save` | Save per-WO tags to disk |
+| `woTagsLoad()` | `wo-tags-load` | Load per-WO tags from disk |
+| `categoriesSave(cats)` | `categories-save` | Save category list to disk |
+| `categoriesLoad()` | `categories-load` | Load category list from disk |
+| `onNewTab(callback)` | `open-new-tab` | Listen for new tab requests from webview |
+| `notesMetaLoad()` | `notes-meta-load` | Load notebook tree metadata |
+| `notesMetaSave(data)` | `notes-meta-save` | Save notebook tree metadata |
+| `notesPageLoad(pageId)` | `notes-page-load` | Load page HTML content |
+| `notesPageSave(pageId, html)` | `notes-page-save` | Save page HTML content |
+| `notesPageDelete(pageId)` | `notes-page-delete` | Delete page file + assets |
+| `notesAssetSave(pageId, name, b64)` | `notes-asset-save` | Save image/file asset, return src |
+| `notesFileRead(filePath)` | `notes-file-read` | Read file as base64 for inserting |
+| `notesAssetOpen(filePath)` | `notes-asset-open` | Open file in default system app |
+| `notesExport(opts)` | `notes-export` | Export notebook/section/page as `.halqnote` |
+| `notesImport()` | `notes-import` | Import `.halqnote` `.one` `.onepkg` `.html` `.txt` |
+| `notesCleanup()` | `notes-cleanup` | Delete orphaned page files + asset folders |
+| `onNotesImportProgress(cb)` | `notes-import-progress` | Live progress events during import |
+
+---
+
+### [2026-03-05 ~17:30] Fix — `1:29 PM` / `2:39 PM` Phantom Pages + Encoding-Based Title Detection
+
+**Root cause:** `1:29 PM` and `2:39 PM` were OneNote **page modification timestamps** stored as ASCII metadata in the `.one` binary. `parseOneBuffer` was extracting them as printable strings, and the previous `isPageTitle` heuristic specifically matched `HH:MM AM/PM` patterns as *positive* title signals — the exact opposite of correct. At scale (large notebooks), every metadata timestamp became a page, producing thousands of phantom pages.
+
+**Diagnosis method:** Inspected the new `Talley_Properties.onepkg` (6177 bytes, `.one` file grew from 19 KB → 77 KB with real content). Cabinet uses LZX compression — cannot decompress outside Windows. Reasoned from OneNote binary format spec: ASCII byte sequences in `.one` files are structural metadata; UTF-16LE sequences are user-typed content.
+
+**Key insight — encoding is the discriminator:**
+
+| Encoding | Source | Examples |
+|----------|--------|---------|
+| ASCII | OneNote metadata | Font names, GUIDs, XML attributes, page timestamps, checksums |
+| UTF-16LE | User-typed content | Page titles, note text, table cell values |
+
+Previous code treated both encodings identically. The fix tags every extracted string with its encoding and uses that as the primary gate for title detection.
+
+**`main.js` changes (only file modified):**
+
+*`parseOneBuffer` — encoding tags:*
+- `collected[]` entries now carry `enc: 'ascii'` or `enc: 'utf16le'`
+- `lines[]` now contains `{ text, enc }` objects instead of plain strings
+- `lineToHtml()` closure still accepts a plain string (callers pass `item.text`)
+
+*`splitOnePages` — encoding-gated title detection:*
+- `isPageTitle(item)` now checks `item.enc !== 'utf16le'` as the **first rule** — if ASCII, immediately return false, no further checks
+- Removed the `HH:MM AM/PM` positive-match rule (was backwards — timestamps are noise)
+- All other heuristics (length, punctuation, word count, letter ratio, Jr/Sr suffix) still apply as secondary filters on UTF-16LE lines
+- Loop updated: iterates `{ text, enc }` items, passes `item.text` to `lineToHtml`
+
+**Result for `Work Order Tracker.one` with real content:**
+- `Test`, `Test 2`, `Test 3` → 3 separate pages (UTF-16LE, pass all filters)
+- `1:29 PM`, `2:39 PM` → blocked at `isNoise()` in `parseOneBuffer` (timestamp pattern) AND by `enc !== 'utf16le'` backstop in `isPageTitle` — never appear anywhere
+- At scale: the 96,801-page "Weekly Meeting" explosion cannot recur — ASCII metadata is permanently excluded from title candidacy
+
+
+---
+
+### [2026-03-05 ~18:30] Fix — Content on Wrong Pages + Progress Bar Stuck
+
+**Session uploads showed:**
+- `Test` page: only `Ar-Rasheed JR. Quilates` (missing `Thursday, March 5, 2026` and `All here should be in test`)
+- `Test 2`, `Test 3`: empty
+- App visually stuck on "Parsing Work Order Tracker" progress overlay
+
+---
+
+#### Bug 1 — Progress bar frozen on "Parsing Work Order Tracker"
+
+**Root cause (index.html):** `write`-stage events from main process used fields `pageIndex`/`pageTotal`, but the renderer listener read `data.index`/`data.total` — both undefined for write events. `pct` calculated as `NaN`, bar froze at last known position. No feedback during expand.exe decompression (slowest part — could be several seconds on large files).
+
+**`index.html`:**
+- Listener now branches on `data.stage`:
+  - `extract` → 15%, message: "Extracting: filename…"
+  - `parse`   → 15–65%, reads `data.index` / `data.total`
+  - `write`   → 65–95%, reads `data.pageIndex` / `data.pageTotal`
+- Error path now calls `ntHideImportProgress()` before showing error dialog
+
+**`main.js`:**
+- New `extract` stage event fires immediately before expand.exe/ZIP extraction call
+- Fields: `{ stage: 'extract', file: path.basename(filePath) }`
+
+---
+
+#### Bug 2 — Content landing on wrong pages / missing
+
+**Root cause:** Previous RevisionManifest boundary scan used `(uint32 & 0x3FF) === 0x08C` scanned at every 4-byte aligned position across the entire file. In a 77 KB `.one` file (~19,250 uint32 values), the probability of any random value matching is 1/1024 — producing ~19 false-positive boundaries alongside the ~3–9 real ones. False splits chopped content regions into tiny fragments; most had no valid title string and were silently discarded, taking their content with them.
+
+**Fix — proper MS-ONE FileNodeList walking (`main.js` only):**
+
+`parseOneBuffer` now reads the actual binary structure instead of scanning:
+
+1. Reads `fcrFileNodeListRoot.stp` from file header offset 72 (uint32 LE, low 32 bits) — exact offset of the root `FileNodeListFragment`
+2. Walks `FileNode` entries by following the `Size` field (bits 10–22 of each node's 4-byte `NodeInfo` word) — zero false positives, no guessing
+3. Tracks `RevisionManifestStartFND` (FileNodeID `0x08C`) → `RevisionManifestEndFND` (FileNodeID `0x090`) pairs as exact page boundaries
+4. Calls `extractStrings(region.start, region.end, seen)` per region — first clean UTF-16LE string = page title, rest = page content
+5. Falls back to flat extraction if structure walk finds no valid regions (≤ 0 or > 200 pages)
+
+**MS-ONE header reference:**
+
+| Offset | Size | Field |
+|--------|------|-------|
+| 0 | 16 | `guidFileType` (OneNote magic GUID) |
+| 72 | 8 | `fcrFileNodeListRoot.stp` — offset of root fragment |
+| 80 | 4 | `fcrFileNodeListRoot.cb` — size of root fragment |
+
+**FileNode header layout (4 bytes):**
+
+| Bits | Field |
+|------|-------|
+| 0–9 | `FileNodeID` |
+| 10–22 | `Size` (total node size in bytes, including header) |
+| 23–24 | `StpFormat` |
+| 25–26 | `CbFormat` |
+| 27–29 | `BaseType` |
+### [2026-03-05 ~20:00] Fix — parseOneBuffer: Fragment-Boundary + Unique-String Algorithm
+
+**Root cause of all previous page-splitting failures:**
+
+The old code read `fcrFileNodeListRoot.stp` from header offset 72. That offset is actually `ffvLastCodeThatWroteToThisFile` (a 4-byte version field = `0x2A = 42`). The real `fcrFileNodeListRoot` is at offset `0xB8` (184), and in this file it is null (`0xFFFFFFFF`) — the file uses the hashed chunk list structure path instead. So the FileNodeList walk produced 0 regions, fell through to flat extraction, and `splitOnePages` heuristics failed to split pages correctly.
+
+Separately: `RevisionManifestEnd` (node ID `0x090`) appears **zero times** in this file — end boundaries span multiple fragments and can't be found with a single-fragment scan. All previous approaches that relied on finding REV_END were fundamentally broken.
+
+**Binary analysis of `March_05__2026.one` (436 KB, used as test proxy):**
+- `FileNodeListFragment` magic `0xA4567AB1F5F7F4C4` found at 27 positions
+- `RevisionManifestStart6FND` (node ID `0x08C`) found in **15** separate fragments — one per page revision
+- `RevisionManifestEnd` (node ID `0x090`) = **0 occurrences** throughout entire file
+- Content strings appear at large offsets within each fragment region (+5,000–25,000 bytes from fragment start) — position-based ordering is unreliable for title detection
+- Boilerplate strings (`Friday, September 16, 2022`, phone, email, labels) appear in **every** page region
+- Unique date strings (`March 05, 2026`, etc.) appear in **exactly one** region each — these are the page titles
+
+**New algorithm (`main.js` — `parseOneBuffer` rewrite):**
+
+1. **Fragment scan**: search entire buffer for `FileNodeListFragment` magic bytes (`C4 F4 F7 F5 B1 7A 56 A4`)
+2. **REV_START detection**: walk each fragment's FileNodes (16-byte header skip); flag fragments containing node ID `0x08C`
+3. **Page regions**: flagged fragment byte offsets → `revFragOffsets[]`; region = `[fragOffset .. nextFragOffset)`
+4. **Pass 1 — per-page string extraction**: extract UTF-16LE strings for each region independently (per-page dedup, no cross-page dedup) → `pageStrings[]`
+5. **Pass 2 — cross-page count**: for every string, count how many pages it appears in → `strCount` map
+6. **Title selection**: strings with `strCount === 1` = unique to one page = title candidates; pick **shortest** (page titles are typically shorter than content strings)
+7. **Revision dedup**: pages with no unique strings = pure revision duplicates → skipped automatically
+8. **Body**: all strings in the region except the title → rendered as HTML
+
+**`splitOnePages` simplified:**
+- Removed all heuristic title detection (`isPageTitle`, encoding checks, word count, punctuation rules, Jr/Sr suffix etc.)
+- Flat fallback: returns all content as a single page — safe catch-all for unknown `.one` formats
+
+**Node.js test result on `March_05__2026.one`:**
+```
+Pages found: 10
+  "January 30, 2026"  — 13 content strings
+  "February 05, 2026" — 12 content strings
+  ...
+  "March 05, 2026"    — 12 content strings
+```
+
+**Expected result for `Work Order Tracker.one` (inside `Talley_Properties.onepkg`):**
+- `expand.exe` extracts the CAB → `Work Order Tracker.one` (77,262 bytes)
+- `parseOneBuffer` finds 3 REV_START fragments (one per page)
+- "Test", "Test 2", "Test 3" each appear in exactly one region → selected as titles
+- "All here should be in test", etc. appear as unique body content per page
+- Result: Notebook "Talley Properties", Section "Work Order Tracker", Pages: Test / Test 2 / Test 3
+
+**Files changed:** `main.js` only
+
+---
+
+## Outstanding / In Progress
+
+- Excel import still requires manual macro run in Excel — COM automation permanently blocked
+- Notes — Email section is placeholder only, not yet built
+- Tab labels show hostname, not page title
+- `.onepkg` import: images and handwriting inside OneNote cannot be extracted (text only)
+- `parseOneBuffer` new algorithm proven on `March_05__2026.one` (10 pages correct); `Work Order Tracker.one` cannot be tested locally (requires `expand.exe` to decompress LZX from CAB)
+---
+
+## Session — 2026-03-06
+
+---
+
+### [2026-03-06] Major Cleanup & Settings Overhaul
+
+#### Removed — Dead Features
+- **Portfolio field** (`BH`/`Talley`) — no Excel column, removed from WO cards, detail drawer, and filter chips
+- **`notified` column** — was read from Excel col 15 but never displayed anywhere; removed from `AM_COL` and `excel-load` map
+- **Hardcoded sample `wos[]` data** — replaced with empty array; Excel is now the sole source of truth
+- **Macro Bar** (`.macro-bar` / `.macro-btn` CSS) — UI was removed previously; CSS/dead code now cleaned up
+- **`runAllMacros()`**, **`confirmQuickTransfer()`** — UI-facing wrappers removed (no HTML entry point); core `runMacro()`, `setMacroRunning()`, `setMacroDone()` kept intact since Excel macros still function
+- **`triggerImport()`**, **`handleImportFile()`** — drag/drop overlay and file picker removed; drag events stub kept to prevent unhandled window drop behavior
+- **Top Nav** — removed Appfolio and Macros items; kept Work Orders and Notes (wired)
+- **Section Tabs** — removed Appfolio, Email, Macros; kept Work Orders and Notes (both wired to `switchMainView`)
+- **"Tools" sidebar section** — removed Settings nav item from left pane (Settings accessible via titlebar only)
+- **Preferences toggles: "Show Macro Bar"** — removed
+- **Hardcoded `EXCEL_PATH`** constant in `main.js` — removed; path now loaded dynamically from settings
+- **Hardcoded `talley.appfolio.com`** domain — removed from webview src, URL bar, tab data-url, `selectWO`, `openInAppfolio`, `tryAutoFill`; all now use configured Appfolio URL from settings
+- **Hardcoded project path** in CHANGELOG header — removed
+- **Hardcoded "12" overdue** in bottom bar HTML — fixed to show `—` until Excel loads
+
+#### Fixed
+- **Bottom bar numbers** — Active WOs and Overdue now clearly readable: larger font size, bold white numbers, overdue in orange
+- **Bottom bar live update** — extracted `updateBottomBar()` helper; called consistently after Excel load and on catch
+- **`loadWOTags` re-apply on Excel reload** — tags now re-applied to fresh WO data after `loadExcelData()` succeeds
+- **Settings: Preferences toggles wired** — Color Code WOs, Auto-search, Show Bottom Bar, Show Menu Bar now persist via `settings.json`
+
+#### Added — Settings Overhaul
+- **Settings split into 3 tabs:** Accounts · Appearance · Preferences
+- **Accounts tab:** Appfolio URL + login creds, Email login creds, Excel file location (with Browse button), PIN lock
+- **Appearance tab:** Theme, Layout, Navigation style
+- **Preferences tab:** Color Code WOs, Auto-search, Show Bottom Bar, Show Menu Bar
+- **Excel file path setting** — stored in `userdata/settings.json`; Browse button triggers native file dialog; auto-reloads WO data after save
+- **Email credentials** — separate encrypted store (`email-creds.enc`) via `safeStorage`; new IPC handlers `email-creds-save/load/clear`; preload bridge updated
+- **App settings IPC** — `settings-load` / `settings-save` handlers added to `main.js`; `settingsLoad`/`settingsSave` added to `preload.js`
+- **Startup credential checker** — `checkStartupRequirements()` runs after `window.halq` ready; if Appfolio creds or Excel path are missing, Settings auto-opens to Accounts tab with a debug hint
+- **Appfolio URL configurable** — `applyAppfolioUrl()` sets webview src and tab URL from saved settings on startup
+- **`loadAppSettings()`** — loads Excel path, Appfolio URL, and preference states from `settings.json` on startup
+- **`loadEmailCredsToUI()`** — pre-fills email address field when Settings opens
+
+#### Notes Import / Export (main.js)
+- Import and Export IPC handlers remain in `main.js` (Notes feature uses them)
+- Notes import/export removed from prior session's UI per user decision; handlers retained for Notes toolbar use
+---
+
+### [2026-03-06] Feature — Email View (IMAP Backend + Full Navigation Interconnect)
+
+#### Navigation Overhaul — WO → EMAIL → NOTES
+- **Order changed** to: Work Orders · Email · Notes (across all nav surfaces)
+- **Top nav** (`#top-nav`): added Email tab with id `topnav-*` for each view
+- **Section tabs** (`#section-tabs`): added Email tab with id `sectab-*`
+- **Sidebar nav**: added `#nav-email` item between WO and Notes
+- **`switchMainView()`** rewritten — handles `'wo'` / `'email'` / `'notes'`; syncs all 3 nav surfaces simultaneously; calls `emInit()` on email view; removed 2-view `!isNotes` pattern
+- **Notes topbar** (`notes-nav-tab`): fixed duplicate `active` bug; added Email tab; removed Import/Export buttons per user decision (Cleanup button kept)
+
+#### Email View — UI
+- New `#email-view` full-screen panel (mirrors `notes-view` positioning pattern)
+- **Topbar**: WO · Email (active) · Notes tabs + Refresh button — identical layout to notes-topbar
+- **3-panel layout**: Folder tree (left) · Message list (middle) · Message body (right)
+- **Folder panel**: auto-populated from IMAP; smart icons (📥📤📝🗑🚫⭐📁); auto-selects INBOX on load; active folder highlighted
+- **Message list**: newest 50 messages; displays sender display name, subject, smart date (time if today, short date otherwise)
+- **Message body**: renders HTML emails in sandboxed `<iframe>`; falls back to `<pre>` plain text; shows From/Date header; loading states on all panels
+- Error states shown inline (no dialogs) for connection failures
+
+#### Email View — CSS
+- `.email-view`, `.email-topbar`, `.email-nav-tab` — mirrors notes-topbar classes
+- `.email-folder-panel`, `.email-folder-item` — left pane folder tree
+- `.email-msg-panel`, `.email-msg-item` — middle message list
+- `.email-body-panel`, `.email-body-content` — right reading pane
+- `.email-loading`, `.email-error`, `.email-body-placeholder` — state indicators
+
+#### Email IMAP Backend (`main.js`)
+- Added `getEmailCreds()` helper — decrypts and returns full email config
+- Added `imapConnect(host, port, user, pass, tls)` — returns a connected IMAP client promise; 10s timeout; `rejectUnauthorized: false` for self-signed certs
+- IPC `email-folders` — connects IMAP, calls `getBoxes('')`, walks nested mailbox tree recursively, returns flat `{ name, path, delimiter, attribs }[]`; disconnects after
+- IPC `email-messages` — opens folder, fetches `HEADER.FIELDS (FROM TO SUBJECT DATE)` for newest 50 messages via seq range; returns `{ seqno, uid, from, to, subject, date }[]` newest-first
+- IPC `email-message-body` — fetches full message by UID; uses `mailparser.simpleParser` if available, falls back to raw text; returns `{ html, text, from, to, subject, date }`
+- IPC `email-test` — connects and immediately disconnects; used by Settings Test button to verify credentials before saving
+- IPC `email-config-save` — saves full config `{ email, password, host, port, tls }` as single encrypted blob (replaces old `email-creds-save` which only stored email+password)
+- IPC `email-config-load` — decrypts and returns full config
+- All handlers wrapped in try/catch; errors returned as `{ ok: false, error }` — no unhandled rejections
+- **Dependency note**: requires `npm install imap mailparser` in project root
+
+#### Email Settings (`index.html`)
+- Replaced placeholder email section with full IMAP config form: Email · Password · IMAP Host · Port · TLS toggle
+- **Save** button → `saveEmailConfig()` — validates all required fields, calls `emailConfigSave`
+- **Test** button → `testEmailConfig()` — calls `emailTest` with live form values, shows result inline
+- **Clear** button → `clearEmailCreds()` — wipes all fields and encrypted store
+- `loadEmailCredsToUI()` now populates host/port/TLS fields from saved config
+- Helper tips for common providers (Gmail, Outlook, Yahoo) shown below form
+
+#### Preload (`preload.js`)
+- Added: `emailConfigSave`, `emailConfigLoad`, `emailTest`, `emailFolders`, `emailMessages`, `emailMessageBody`
+- Retained: `emailCredsSave`, `emailCredsLoad`, `emailCredsClear` (legacy channels still handled by `main.js`)
+
+#### Files Changed
+- `main.js` — IMAP handlers added
+- `preload.js` — 6 new email IPC bridges
+- `index.html` — email-view HTML/CSS/JS, nav overhaul, settings update
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Fix — Email Settings: SMTP Fields + Password Retention
+
+#### Added — Outgoing Mail (SMTP) Settings
+- Added SMTP sub-section below IMAP in the Email Account settings block
+- Fields: SMTP Host, Port (default 587), STARTTLS toggle
+- Single shared password for both IMAP and SMTP (one App Password covers both)
+- `saveEmailConfig()` now includes `smtpHost`, `smtpPort`, `smtpTls` in the encrypted blob
+- `loadEmailCredsToUI()` now restores all SMTP fields on Settings open
+- `clearEmailCreds()` now also clears SMTP host/port fields
+- Provider reference table updated: Gmail · Outlook · Yahoo — IMAP and SMTP ports side by side
+
+#### Fixed — Password Not Retained After Save
+- **Root cause:** `saveEmailConfig()` was clearing the password field after a successful save (pattern copied from Appfolio creds where the password should stay hidden)
+- **Fix:** Removed `document.getElementById('email-creds-pass').value = ''` from save handler
+- `loadEmailCredsToUI()` now also restores the password field from the decrypted config so reopening Settings always shows the full saved state
+
+#### Files Changed
+- `index.html` — Settings HTML (SMTP block), `saveEmailConfig`, `loadEmailCredsToUI`, `clearEmailCreds`
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Fix & Feature — SMTP, Nav Style, Titlebar, Settings in Overlay Views
+
+#### SMTP Backend (`main.js`)
+- Added IPC `email-test-smtp` — creates a `nodemailer` transporter, calls `verify()`, returns `{ ok, error }`; port 465 = implicit TLS, port 587 = STARTTLS
+- Added IPC `email-send` — reads saved config, creates transporter, sends via `sendMail`; returns `{ ok, messageId, error }`
+- **Dependency note**: requires `npm install nodemailer` (alongside existing `npm install imap mailparser`)
+
+#### SMTP Preload (`preload.js`)
+- Added `emailTestSmtp(config)` → `email-test-smtp`
+- Added `emailSend(opts)` → `email-send`
+
+#### Settings — Email Section (`index.html`)
+- **Password retention fix**: `saveEmailConfig()` no longer clears password field; `loadEmailCredsToUI()` populates password from saved config so it re-appears when Settings reopens
+- **Test SMTP button** added alongside Test IMAP — calls `testEmailConfig('smtp')` with SMTP-specific fields
+- `testEmailConfig(protocol)` — accepts `'imap'` or `'smtp'` arg; reads correct host/port/tls fields for each; shows protocol-specific status message
+- Button row uses `flex-wrap:wrap` so 4 buttons fit on smaller settings panels
+
+#### Titlebar in Overlay Views (`index.html`)
+- Added `<div class="titlebar">HALQ — Maintenance Command ⚙ Settings</div>` inside both `#email-view` and `#notes-view` — consistent app identity across all 3 views
+- Email view: titlebar sits above topbar nav tabs
+- Notes view: titlebar sits above topbar nav tabs
+
+#### Buttons — Email & Notes Topbar
+- **Email topbar**: removed Refresh button — Settings is now accessible via titlebar ⚙ button
+- **Notes topbar**: removed Cleanup button — Settings is now accessible via titlebar ⚙ button
+- Cleanup is still callable via JS (`ntCleanupOrphans()`) if needed from console
+
+#### Nav Style applies to all views
+- `toggleNav()` stores `window._navMode` — available for future overlay-view nav surface switching
+- Overlay views (Email, Notes) always show their topbar tabs regardless of WO nav style (topbar IS the nav in those views); WO nav style is restored correctly when switching back from an overlay
+
+#### Files Changed
+- `main.js` — SMTP test + send handlers
+- `preload.js` — 2 new SMTP bridges
+- `index.html` — titlebar in overlays, Settings buttons, SMTP test button, password retention fix
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Fix — Settings z-index, Nav Style Persistence, Auth Error Messages
+
+#### Settings Overlay — z-index Fix
+- `.settings-overlay` raised from `z-index: 100` to `z-index: 10000`
+- Root cause: `#email-view` and `#notes-view` are `z-index: 100` fixed overlays; settings panel rendered behind them, making ⚙ Settings appear to do nothing when Email or Notes view was active
+- Settings now correctly opens on top of all views from any tab
+
+#### Nav Style — Persist & Restore
+- `setNavOpt()` now calls `window.halq.settingsSave({ navStyle: mode })` on every change
+- `loadAppSettings()` now reads `s.navStyle` on startup, calls `toggleNav(mode)`, and marks the correct `.layout-option` button active in the Settings Appearance tab
+- Nav style choice now survives app restarts and is consistent across all views
+
+#### Microsoft 365 / Outlook SMTP Auth Error — Actionable Message
+- Added `friendlyAuthError(err, protocol)` helper in `main.js`
+- Detects `SmtpClientAuthentication is disabled` / `smtp_auth_disabled` (Microsoft 365 tenant policy) and returns a clear fix guide:
+  - IT admin path: `admin.microsoft.com → Users → Active users → Mail → Manage email apps → Authenticated SMTP`
+  - App Password alternative noted
+  - OAuth2 roadmap note
+- Also detects: IMAP basic auth disabled (M365), Gmail App Password required, generic 535 auth failure
+- Applied to `email-test`, `email-test-smtp`, `email-folders`, `email-messages` handlers
+- `.email-error` CSS updated: `white-space: pre-wrap` so multi-line instructions render correctly
+
+#### Files Changed
+- `main.js` — `friendlyAuthError` helper; applied to all email IPC handlers
+- `index.html` — settings z-index fix; nav style persist+restore; `.email-error` pre-wrap CSS
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Architecture Fix — Email & Notes moved inside .app (no more floating overlays)
+
+**Root cause of all UI inconsistency:** Email and Notes were `position:fixed; z-index:100` overlays that floated *on top of* the entire app. This meant they had their own titlebar, their own nav tabs, their own chrome — disconnected from the sidebar, top-nav, section-tabs, and bottombar that WO uses. Any style change to WO nav didn't affect the overlays at all.
+
+**Fix — all three views now live inside `.app → .main → .content`:**
+- WO: `#panel-layout` (unchanged, always was here)
+- Email: `#email-panel` — new `div.view-panel` inside `.content`
+- Notes: `#notes-panel` — new `div.view-panel` inside `.content`, Notes body-wrap moved in via `ntRenderInPanel()` on first switch
+
+**`switchMainView()` rewritten:**
+- Shows/hides `#panel-layout`, `#email-panel`, `#notes-panel` via `display` toggle (flex/none)
+- Updates `#topbar-title` text ("Work Orders" / "Email" / "Notes")
+- Updates `#topbar-actions` with view-appropriate buttons (WO gets Refresh, Email gets Refresh, Notes gets nothing)
+- All sidebar, top-nav, section-tab active states still synced exactly as before
+
+**`ntRenderInPanel()` added:**
+- Notes 3-panel body (`notes-body-wrap`) lives in a hidden `#notes-body-wrap-template` div until first switch to Notes
+- On first call: moves all children into `#notes-panel`, then calls `ntInit()` as before
+- Subsequent calls: just calls `ntInit()` (content already in place)
+
+**Removed:**
+- `#email-view` floating overlay div and all its chrome (titlebar, topbar tabs, email-topbar CSS)
+- `#notes-view` floating overlay div and its titlebar/topbar nav tabs
+- `.notes-view`, `.email-view` CSS rules (now dead)
+- `notes-topbar`, `email-topbar` CSS and HTML (redundant — the shared WO topbar now serves all views)
+
+**Result:** Sidebar, titlebar, top-nav, section-tabs, bottombar — all shared by WO, Email, and Notes identically. Nav style setting applies once and works everywhere.
+
+#### Files Changed
+- `index.html` — architecture rewrite (no JS logic changes in main.js or preload.js)
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Feature — Email switched to Outlook Web embedded (webview)
+
+**Decision:** Microsoft 365 tenant policy blocks IMAP/SMTP basic auth and Azure AD app registration requires admin access. Solution: embed `outlook.office.com` in a webview using the same pattern as Appfolio.
+
+#### What changed
+- `#email-panel` now contains a full `<webview>` pointing to `https://outlook.office.com/mail`
+- Session: `partition="persist:outlook"` — user logs in once via the Outlook web interface; session persists across app restarts (cookies/session stored in `userdata/session/`)
+- Tab bar, toolbar (back/forward/reload/URL/Go), and all navigation mirrors the Appfolio panel exactly
+- `emInit()` wires webview events: `did-navigate`, `did-navigate-in-page`, `did-start-loading`, `did-stop-loading`, `new-window`
+- `emAddTab()`, `emCloseTab()`, `emSwitchToTab()`, `emScrollTabs()` — identical pattern to Appfolio tab functions
+- `emRefresh()` calls `view.reload()` — hooked to topbar Refresh button
+
+**`main.js`:**
+- Added `OUTLOOK_PARTITION = 'persist:outlook'` constant
+- Added `setupOutlookSession()` — registers permission handlers and `webRequest.onBeforeRequest` for the outlook partition (same as `setupAppfolioSession`)
+- `setupOutlookSession()` called in `app.whenReady()`
+
+**Removed (dead code cleanup):**
+- All IMAP email CSS (`.email-topbar`, `.email-folder-panel`, `.email-msg-panel`, `.email-body-panel`, `.email-error`, etc.)
+- All IMAP JS functions (`emLoadFolders`, `emSelectFolder`, `emOpenMessage`, `emFolderIcon`, `emEsc`, `emParseFrom`, `emFormatDate`, etc.)
+- IMAP state variables (`emInitDone`, `emCurrentFolder`, `emCurrentUid`, `emMessages`)
+
+**How to use:** Click Email tab → Outlook Web loads → sign in with your Microsoft 365 account → stays signed in permanently.
+
+#### Files Changed
+- `main.js` — `OUTLOOK_PARTITION`, `setupOutlookSession()`
+- `index.html` — email panel HTML replaced with webview; email JS replaced; dead CSS removed
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Cleanup — Removed all dead IMAP/SMTP code
+
+#### `main.js`
+- Removed entire `EMAIL — IMAP BACKEND` section (~230 lines): `getEmailCreds`, `imapConnect`, `friendlyAuthError`, `email-folders`, `email-messages`, `email-message-body`, `email-test`, `email-config-save`, `email-config-load`, `email-test-smtp`, `email-send`
+- Removed `email-creds-save` and `email-creds-load` handlers (no longer needed)
+- Kept `email-creds-clear` + `EMAIL_CRED_PATH` — sole purpose: lets users wipe any `email-creds.enc` file left over from previous sessions
+
+#### `preload.js`
+- Removed: `emailCredsSave`, `emailCredsLoad`, `emailConfigSave`, `emailConfigLoad`, `emailTest`, `emailFolders`, `emailMessages`, `emailMessageBody`, `emailTestSmtp`, `emailSend`
+- Kept: `emailCredsClear` — wires to the `email-creds-clear` handler above
+
+#### `index.html`
+- Removed Settings HTML: entire IMAP host/port/TLS, SMTP host/port/TLS, Test IMAP, Test SMTP, Save, Clear buttons
+- Replaced with a single info note: "Email is accessed via the Outlook Web tab. Sign in directly in the Email view."
+- Removed JS functions: `saveEmailConfig`, `testEmailConfig`, `clearEmailCreds`, `loadEmailCredsToUI` (~84 lines)
+- Removed all `loadEmailCredsToUI()` call sites from `openSettings`
+
+#### Files Changed
+- `main.js` — dead IMAP/SMTP handlers removed
+- `preload.js` — dead IPC bridges removed
+- `index.html` — dead settings HTML + JS removed
+- `CHANGELOG.md` — this entry
+
+---
+
+### [2026-03-06] Cleanup Pass 2 — Final email dead code removal
+
+#### `main.js`
+- Removed `EMAIL CREDENTIALS — cleanup only` block (`EMAIL_CRED_PATH`, `email-creds-clear` handler) — handler was never called from UI
+
+#### `preload.js`
+- Removed `emailCredsClear` bridge — `email-creds-clear` IPC handler no longer exists
+
+#### `index.html`
+- Removed stale `/* EMAIL VIEW */` CSS comment block (vestige of old overlay architecture)
+- Removed orphan `<!-- EMAIL VIEW -->` HTML comment incorrectly placed inside the Notes section
+
+**Net:** 4,841 → 4,816 lines. No email-related dead code or stale comments remain in any file.
+
+---
+
+### [2026-03-06] Fix — WO Selection Bug (Wrong Row Highlighted)
+
+**Bug:** Clicking a WO card highlighted the wrong row. For example, clicking WO `49670-1` would highlight `49706-1`. Clicking the first WO loaded the correct URL but highlighted the bottom card.
+
+**Root cause:** `woCard` passed `wos.indexOf(w)` as the index, and `selectWO(i)` highlighted by matching against `querySelectorAll('.wo-item')` DOM index. When filters were active, DOM indices (visible rows only) didn't match array indices (full `wos[]`), so the wrong card lit up.
+
+**Fix — event delegation + `data-wo` matching:**
+- Removed all inline `onclick="selectWO(...)"` from `woCard` — no more string escaping of WO numbers in HTML attributes
+- Each `.wo-item` carries only `data-wo="${w.wo}"` (e.g. `data-wo="49670-1"`)
+- After `list.innerHTML = html`, a loop wires `addEventListener('click', () => selectWO(el.dataset.wo))` on every rendered card — exact DOM reference, no string parsing
+- `selectWO(woNum)` finds the WO with `wos.find(w => w.wo === woNum)` and highlights with `el.classList.toggle('active', el.dataset.wo === woNum)` — correct regardless of filtering or section grouping
+
+#### Files Changed
+- `index.html` — `woCard`, `renderWOList`, `selectWO`
+
+---
+
+### [2026-03-06] Fix — `Identifier 'woNum' has already been declared` Syntax Error
+
+**Root cause:** `selectWO(woNum)` declared `woNum` as its parameter, and the function body also contained `const woNum = selectedWO.wo.split('-')[0]` — a duplicate declaration in the same scope, which JavaScript rejects.
+
+**Fix:** Renamed the inner variable to `woSearch` (more descriptive — it's the stripped WO number used for the Appfolio search URL).
+
+#### Files Changed
+- `index.html` — `selectWO` inner variable renamed `woNum` → `woSearch`
+
+---
+
+### [2026-03-06] Audit — Full Dead Link & Consistency Check (All 3 Files)
+
+Full cross-file audit pass across `index.html`, `main.js`, and `preload.js`. All checks passed with no broken references.
+
+**Checks performed:**
+- All `onclick` function names → confirmed defined as JS functions (72 functions, 0 missing)
+- All `window.halq.*` calls in `index.html` → confirmed exposed in `preload.js` (27 methods, 0 missing)
+- All `ipcRenderer.invoke` channels in `preload.js` → confirmed handled by `ipcMain.handle` in `main.js` (26 channels, 0 missing)
+- All `ipcMain.handle` channels in `main.js` → confirmed called from `preload.js` (0 orphan handlers)
+- All `getElementById` call targets → confirmed present in HTML or dynamically created and null-guarded
+- No duplicate function declarations
+- No duplicate top-level `const`/`let` declarations
+- `switchMainView` correctly shows/hides all 3 panels (`#panel-layout`, `#email-panel`, `#notes-panel`)
+- `afBaseUrl` initialization chain confirmed: `loadAppSettings` → `applyAppfolioUrl` → `afBaseUrl` set before any WO click
+- No remaining IMAP/SMTP/email dead code anywhere
+
+**Known dead functions (not broken, just unreachable from UI):**
+- `ntCleanupOrphans()` — defined, no call site (cleanup button was removed from Notes topbar); still callable from DevTools console
+- `ntImport()` — defined, no call site; import flow was removed from Notes UI
+- `excelImport` in `preload.js` + `excel-import` handler in `main.js` — defined, never called from `index.html`; import flow removed when macro bar was removed
+
+These are harmless and retained in case the features are re-exposed.
+
+---
+
+## Session 3 — 2026-03-09
+
+---
+
+### [2026-03-09] Fix — Functional Gaps & Preference Wiring
+
+#### `index.html`
+
+**Filter chips — Urgent**
+- `toggleChip` was filtering by `w.tag === 'Urgent'` — a field that does not exist on WO objects loaded from Excel. Filter always returned empty.
+- Fixed to match WOs whose assigned category has the name `"urgent"` (case-insensitive): `getCatById(w._catId)?.name.toLowerCase() === 'urgent'`
+- Works automatically with any category the user names "Urgent" in the Category Manager.
+
+**Filter chips — Due Today**
+- Was filtering `w.age === 0` — age is an integer from Excel, so same-day WOs could have age 1 depending on when the formula runs.
+- Changed to `w.age <= 1` to reliably catch new WOs.
+
+**Preference toggle — Color Code WOs**
+- `getAgeClass()` and `getItemClass()` now check the `#pref-color-code` toggle state at render time.
+- When the toggle is off: WO items render with no age-based color classes (no red/yellow/green borders or age badges).
+- `togglePref()` extended: flipping `colorCodeWOs` now calls `renderWOList()` immediately so the change is visible without a reload.
+
+**Preference toggle — Auto-search on WO Click**
+- `selectWO()` now reads the `#pref-auto-search` toggle before firing the Appfolio URL search.
+- When off: clicking a WO opens the detail drawer but does not navigate the Appfolio webview.
+
+**Theme persistence**
+- `setTheme()` now calls `window.halq.settingsSave({ theme })` on every change.
+- `loadAppSettings()` extended: if `s.theme` is set, applies `data-theme` attribute to `<body>` and marks the correct `.theme-option` active.
+- Theme now survives app restarts.
+
+**Layout mode persistence**
+- `setLayoutOpt()` now calls `window.halq.settingsSave({ layoutMode: mode })` on every change.
+- `loadAppSettings()` extended: if `s.layoutMode` is set, calls `toggleLayout()` and marks the correct `.layout-option` active (distinguished from nav-style options by checking for `setLayoutOpt` in the `onclick` attribute).
+- Layout mode now survives app restarts.
+
+---
+
+### [2026-03-09] Fix — Minor Issues
+
+#### `index.html`
+
+**Duplicate email reload functions**
+- `emNavReload()` and `emRefresh()` were identical (`emGetView()?.reload()`).
+- Removed `emNavReload`. The email toolbar reload button updated to call `emRefresh()` directly (already the canonical function used by the topbar Refresh button).
+
+**`confirm()` dialogs in Notes delete — replaced with custom modal**
+- `ntDelete()` used three native `confirm()` calls (notebook, section, page). Native `confirm` is blocked/unreliable in Electron.
+- Added `ntConfirm(msg)` — a Promise-based helper using the same overlay pattern as the existing `ntPrompt`.
+- Added `ntConfirmOK()` and `ntConfirmCancel()` handler functions.
+- Added `#nt-confirm-overlay` modal HTML (reuses `.nt-prompt-overlay` / `.nt-prompt-box` CSS; Delete button styled red).
+- All three `confirm()` calls in `ntDelete` replaced with `await ntConfirm(...)`.
+
+---
+
+### [2026-03-09] Cleanup — Dead Code Removal
+
+#### `index.html`
+- Removed `ntCleanupOrphans()` — no UI call site; was only accessible via DevTools console. Backend `notes-cleanup` IPC handler in `main.js` retained and still invokable if needed.
+- Removed `ntImport()` — no UI call site; import flow had been removed from Notes UI. Backend `notes-import` IPC handler and all its logic in `main.js` retained.
+
+#### `preload.js`
+- Removed `excelImport` bridge (`ipcRenderer.invoke('excel-import', filePath)`) — never called from `index.html`. Backend `excel-import` handler in `main.js` retained.
+
+#### Files Changed
+- `index.html` — all fixes, minor repairs, and dead function removals above
+- `preload.js` — `excelImport` bridge removed
+- `main.js` — no changes
+- `CHANGELOG.md` — this entry
+
+---
+
+## Session 4 — 2026-03-09
+
+---
+
+### [2026-03-09] Feature — HALQ Launcher (Multi-Profile UI)
+
+New standalone launcher UI designed and previewed as a React artifact (`launcher-preview.jsx`). Full Electron implementation is the next milestone.
+
+**Launcher features (preview):**
+- Profile cards showing name, Appfolio URL, color avatar, and running state
+- Per-card ▶ Launch / ↗ Focus button
+- Per-card ⋮ menu: Edit Profile, Delete Profile
+- New Profile modal: name, Appfolio URL, color picker
+- Edit Profile modal with pre-filled values
+- Delete Profile confirmation modal
+- Custom checkbox per card with Select All (three-state: unchecked / indeterminate / checked)
+- **Launch Selected** — launches only checked profiles that are not yet running; shows count badge; disabled when all selected are already running
+- **Launch All** — launches every profile not yet running; disabled when all are running
+- Running state pill with animated green dot
+- Bottom status bar showing last action and clock
+- Fully matches HALQ dark theme (same CSS variables, JetBrains Mono, Inter)
+
+**Architecture plan documented (README.md):**
+- Each profile gets `userdata/profiles/<id>/` with its own `creds.enc`, `settings.json`, `wo-tags.json`, `notes/`, and isolated Electron session partitions (`persist:appfolio-<id>`, `persist:outlook-<id>`)
+- HALQ main app will accept `--profile=<id>` CLI argument so multiple instances can run simultaneously with completely isolated data
+
+#### Files Changed
+- `launcher-preview.jsx` — new file, launcher UI preview
+
+---
+
+### [2026-03-09] Feature — Auto-Updater (asar-swap)
+
+Lightweight update system that lets new versions be pushed to all users without redistributing the installer. Uses HTTPS to fetch a `version.json` manifest from GitHub, downloads a new `app.asar`, swaps it in place, and relaunches.
+
+#### `main.js`
+- Added `const APP_VERSION = '1.0.0'` — bump this on every release
+- Added `const UPDATE_URL` — points to `releases/` folder in GitHub repo (replace `YOUR_USERNAME`)
+- Added `httpsGet(url)` — Promise-based HTTPS GET with redirect following
+- Added `httpsDownload(url, destPath)` — Promise-based binary download with redirect following
+- Added `isNewer(local, remote)` — semver comparison, returns true if remote > local
+- Added IPC handler `update-check` — fetches `version.json`, returns `{ available, version, asarUrl, notes }` or `{ available: false }`
+- Added IPC handler `update-download` — downloads new `app.asar` to `.update` temp file, swaps atomically (live → `.bak`, download → live), returns `{ ok }`
+- Added IPC handler `update-restart` — calls `app.relaunch()` + `app.exit(0)`
+- Added IPC handler `update-version` — returns current `APP_VERSION` string
+
+#### `preload.js`
+- Exposed four updater channels: `updateCheck`, `updateDownload`, `updateRestart`, `updateVersion`
+
+#### `index.html`
+- Added `.update-banner` CSS — fixed-position toast above bottom bar, slide-up animation, themed to match app
+- Added `#app-version-label` to sidebar logo `div` — populated at runtime with live version
+- Added `#update-banner` HTML — shows new version label, optional release notes, Install & Restart button, Dismiss button, download progress text
+- Added `checkForUpdate()` — called 3 seconds after startup; fetches version, updates sidebar label, shows banner if newer version available
+- Added `updateInstall()` — triggers download, shows progress, calls restart on success
+- Added `updateDismiss()` — hides banner without installing
+- `waitForHalq` block: added `setTimeout(checkForUpdate, 3000)` — non-blocking, fires after app is fully loaded
+
+**Update flow:**
+1. Edit source files → bump `APP_VERSION` in `main.js`
+2. `npm run build` → copy `dist/win-unpacked/resources/app.asar` → `releases/app.asar`
+3. Update `releases/version.json` with new version + notes
+4. `git push` → all running instances see update within 3 seconds of next launch
+
+**Alternatively (no recompile):** repack manually with `asar pack` for UI-only changes. See README.
+
+#### Files Changed
+- `main.js` — updater constants + 4 IPC handlers added
+- `preload.js` — 4 updater bridge methods added
+- `index.html` — banner CSS/HTML + `checkForUpdate`, `updateInstall`, `updateDismiss` JS
+
+---
+
+### [2026-03-09] Docs & Infrastructure — README + Git Setup
+
+#### New files
+- `README.md` — full project documentation covering: project structure, dev setup, `package.json` template, running in dev mode, building the exe, auto-updater release workflow, multi-profile architecture plan, Git workflow (initial push, day-to-day, release commits, branching), and file reference table
+- `.gitignore` — excludes `node_modules/`, `userdata/`, `dist/`, `out/`, `build/`, `*.asar.update`, `*.asar.bak`, OS files, editor files
+- `releases/version.json` — update manifest template; hosted in `releases/` folder on GitHub
+- `CHANGELOG.md` — this entry
+
+#### Repository
+- Remote: `https://github.com/BossArQue/HALQ-Maintenance.git`
+- Branch: `main`
+- Initial push includes all source files and documentation

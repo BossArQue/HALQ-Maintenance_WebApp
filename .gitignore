@@ -1,6 +1,28 @@
+# Dependencies
 node_modules/
+
+# User data — credentials, notes, settings are local only, never committed
 userdata/
-*.enc
-*.ps1
-import_tmp.csv
-.env
+
+# Electron build output
+dist/
+out/
+build/
+
+# Temp update files
+*.asar.update
+*.asar.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.user

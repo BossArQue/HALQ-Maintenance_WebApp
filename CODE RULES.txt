@@ -1,0 +1,63 @@
+1. Coding Style & Consistency
+Follow a consistent indentation (tabs vs. spaces).
+
+Use meaningful variable/function names (avoid x, temp).
+
+Follow naming conventions (e.g., camelCase, PascalCase, snake_case).
+
+Keep line lengths reasonable (e.g., 80–120 chars).
+
+Use comments where necessary, but avoid redundant ones.
+
+2. Code Structure & Best Practices
+Modularize code (use functions/classes, avoid monolithic scripts).
+
+Avoid hardcoding values (use constants/config files).
+
+DRY (Don’t Repeat Yourself) – reuse code via functions.
+
+KISS (Keep It Simple, Stupid) – avoid over-engineering.
+
+3. Error Handling & Robustness
+Validate inputs (avoid crashes on unexpected data).
+
+Use try-catch blocks (for languages that support them).
+
+Handle edge cases (empty inputs, extreme values).
+
+4. Performance & Optimization
+Avoid unnecessary loops/nested loops (O(n²) complexity).
+
+Use efficient data structures (hash maps, sets, etc.).
+
+Optimize database queries (if applicable).
+
+5. Version Control & Collaboration
+Use Git properly (meaningful commit messages, branching strategy).
+
+Follow pull request (PR) guidelines (peer review, tests).
+
+Avoid committing secrets (API keys, passwords).
+
+6. Testing & Documentation
+Write unit tests (if required).
+
+Document how to run the code (README.md).
+
+Specify dependencies (e.g., requirements.txt, package.json).
+
+7. Security Considerations
+Sanitize inputs to prevent SQL injection/XSS.
+
+Avoid deprecated libraries with known vulnerabilities.
+
+8. Language/Framework-Specific Rules
+Follow language idioms (e.g., Python’s PEP 8, JavaScript’s ESLint).
+
+9. Put a logical sections with clear labels
+
+Use linters/formatters (Prettier, Black, RuboCop).
+
+10. Once code has been established, do not keep on changing, unless instructed.
+
+11. Automatically update Changelog.md for major changes.

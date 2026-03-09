@@ -21,8 +21,20 @@ contextBridge.exposeInMainWorld('halq', {
 
   // --- Excel ---
   excelLoad:   ()               => ipcRenderer.invoke('excel-load'),
-  excelImport: (filePath)       => ipcRenderer.invoke('excel-import', filePath),
   macroRun:    (macroName)      => ipcRenderer.invoke('macro-run', macroName),
+
+  // --- Notes ---
+  notesMetaLoad:   ()                      => ipcRenderer.invoke('notes-meta-load'),
+  notesMetaSave:   (data)                  => ipcRenderer.invoke('notes-meta-save', data),
+  notesPageLoad:   (pageId)                => ipcRenderer.invoke('notes-page-load', pageId),
+  notesPageSave:   (pageId, content)       => ipcRenderer.invoke('notes-page-save', pageId, content),
+  notesPageDelete: (pageId)                => ipcRenderer.invoke('notes-page-delete', pageId),
+  notesAssetSave:  (pageId, name, b64)     => ipcRenderer.invoke('notes-asset-save', pageId, name, b64),
+  notesFileRead:   (filePath)              => ipcRenderer.invoke('notes-file-read', filePath),
+  notesAssetOpen:  (filePath)              => ipcRenderer.invoke('notes-asset-open', filePath),
+  notesExport:     (opts)                  => ipcRenderer.invoke('notes-export', opts),
+  notesImport:     ()                      => ipcRenderer.invoke('notes-import'),
+  notesCleanup:    ()                      => ipcRenderer.invoke('notes-cleanup'),
 
   // --- Menu bar ---
   toggleMenuBar: (visible) => ipcRenderer.send('toggle-menubar', visible),
@@ -36,6 +48,16 @@ contextBridge.exposeInMainWorld('halq', {
   categoriesLoad: ()     => ipcRenderer.invoke('categories-load'),
 
   // --- New tab from webview link ---
-  onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_e, url) => callback(url))
+  onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_e, url) => callback(url)),
+
+  // --- App Settings (Excel path, theme, layout, prefs) ---
+  settingsLoad: ()       => ipcRenderer.invoke('settings-load'),
+  settingsSave: (data)   => ipcRenderer.invoke('settings-save', data),
+
+  // --- Auto-updater ---
+  updateCheck:    ()         => ipcRenderer.invoke('update-check'),
+  updateDownload: (asarUrl)  => ipcRenderer.invoke('update-download', asarUrl),
+  updateRestart:  ()         => ipcRenderer.invoke('update-restart'),
+  updateVersion:  ()         => ipcRenderer.invoke('update-version'),
 
 })
