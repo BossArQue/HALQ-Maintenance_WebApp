@@ -70,6 +70,38 @@
   .tb-btn:hover { background: var(--border2); color: var(--text); }
   .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+  /* COMPACT TITLEBAR — active in topnav/tabs mode only */
+  body.nav-compact .top-nav,
+  body.nav-compact .section-tabs,
+  body.nav-compact .topbar { display: none !important; }
+
+  body.nav-compact .titlebar { height: 40px; gap: 0; padding: 0 12px 0 4px; }
+
+  .tb-inline-nav { display: none; align-items: stretch; -webkit-app-region: no-drag; }
+  body.nav-compact .tb-inline-nav { display: flex; }
+
+  .tb-inline-nav .top-nav-item {
+    padding: 0 12px; font-size: 12px; height: 40px;
+    display: flex; align-items: center;
+    cursor: pointer; color: var(--text3);
+    border-radius: 0; transition: all 0.15s;
+  }
+  .tb-inline-nav .top-nav-item:hover { background: var(--surface2); color: var(--text); }
+  .tb-inline-nav .top-nav-item.active { background: var(--surface2); color: var(--accent); }
+
+  .tb-inline-nav .section-tab {
+    padding: 0 14px; font-size: 12px; height: 40px;
+    display: flex; align-items: center;
+    cursor: pointer; color: var(--text3);
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+    box-sizing: border-box;
+  }
+  .tb-inline-nav .section-tab:hover { color: var(--text); }
+  .tb-inline-nav .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tb-refresh { display: none; -webkit-app-region: no-drag; margin-left: 6px; }
+  body.nav-compact .tb-controls .tb-refresh { display: block; }
+
   /* APP LAYOUT */
   .app { display: flex; flex: 1; overflow: hidden; }
 
@@ -938,8 +970,23 @@
 
 <!-- TITLEBAR -->
 <div class="titlebar">
+  <!-- Inline nav: Top Bar style (topnav mode) -->
+  <div class="tb-inline-nav" id="tb-inline-topnav">
+    <div class="top-nav-item active" id="tb-topnav-wo"    onclick="switchMainView('wo')">📋 Work Orders</div>
+    <div class="top-nav-item"        id="tb-topnav-email" onclick="switchMainView('email')">✉ Email</div>
+    <div class="top-nav-item"        id="tb-topnav-notes" onclick="switchMainView('notes')">📝 Notes</div>
+  </div>
+  <!-- Inline nav: Tabs style (tabs mode) -->
+  <div class="tb-inline-nav" id="tb-inline-tabs">
+    <div class="section-tab active" id="tb-sectab-wo"    onclick="switchMainView('wo')">Work Orders</div>
+    <div class="section-tab"        id="tb-sectab-email" onclick="switchMainView('email')">Email</div>
+    <div class="section-tab"        id="tb-sectab-notes" onclick="switchMainView('notes')">Notes</div>
+  </div>
   <div class="tb-title">HALQ — Maintenance Command</div>
   <div class="tb-controls">
+    <div class="tb-refresh" id="tb-refresh">
+      <button class="btn btn-primary" onclick="navReload()" style="font-size:10px;padding:3px 10px;">↻ Refresh</button>
+    </div>
     <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
   </div>
 </div>
@@ -2092,6 +2139,12 @@ function toggleNav(mode) {
   document.getElementById('top-nav').classList.remove('visible');
   document.getElementById('section-tabs').classList.remove('visible');
 
+  // Compact titlebar: collapse rows 2+3+4 into titlebar for topnav/tabs
+  const isCompact = (mode === 'topnav' || mode === 'tabs');
+  document.body.classList.toggle('nav-compact', isCompact);
+  document.getElementById('tb-inline-topnav').style.display = (mode === 'topnav') ? 'flex' : 'none';
+  document.getElementById('tb-inline-tabs').style.display   = (mode === 'tabs')   ? 'flex' : 'none';
+
   if (mode === 'sidebar') document.getElementById('sidebar').className = 'sidebar';
   else if (mode === 'topnav') document.getElementById('top-nav').classList.add('visible');
   else if (mode === 'tabs') document.getElementById('section-tabs').classList.add('visible');
@@ -3032,15 +3085,21 @@ function switchMainView (view) {
   document.getElementById('nav-email')?.classList.toggle('active', isEmail)
   document.getElementById('nav-notes')?.classList.toggle('active', isNotes)
 
-  // --- top-nav active state ---
+  // --- top-nav active state (standalone row + titlebar inline) ---
   document.getElementById('topnav-wo')?.classList.toggle('active', isWO)
   document.getElementById('topnav-email')?.classList.toggle('active', isEmail)
   document.getElementById('topnav-notes')?.classList.toggle('active', isNotes)
+  document.getElementById('tb-topnav-wo')?.classList.toggle('active', isWO)
+  document.getElementById('tb-topnav-email')?.classList.toggle('active', isEmail)
+  document.getElementById('tb-topnav-notes')?.classList.toggle('active', isNotes)
 
-  // --- section-tab active state ---
+  // --- section-tab active state (standalone row + titlebar inline) ---
   document.getElementById('sectab-wo')?.classList.toggle('active', isWO)
   document.getElementById('sectab-email')?.classList.toggle('active', isEmail)
   document.getElementById('sectab-notes')?.classList.toggle('active', isNotes)
+  document.getElementById('tb-sectab-wo')?.classList.toggle('active', isWO)
+  document.getElementById('tb-sectab-email')?.classList.toggle('active', isEmail)
+  document.getElementById('tb-sectab-notes')?.classList.toggle('active', isNotes)
 
   // --- view-specific init ---
   if (isNotes) {
