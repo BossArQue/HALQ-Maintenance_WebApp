@@ -1954,59 +1954,73 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 
 ---
 
-### [2026-03-09] Fix — Single-Exe Merge + Critical Path Fixes
+## Session 6 — 2026-03-11
 
-#### Architecture change: Launcher + HALQ merged into one exe
+---
 
-Previously the launcher and HALQ app required two separate executables. Both are now driven by a single `main.js` entry point with mode detection at startup.
+### [2026-03-11] UI — Compact Single-Row Titlebar (Top Bar & Tabs nav modes)
 
-**Mode detection logic:**
-- No `--profile=` arg → **Launcher mode** → loads `launcher/index.html` with `launcher/preload.js`
-- `--profile=<id>` arg → **HALQ mode** → loads `index.html` with `preload.js`
+**Files changed:** `index.html`
 
-When a profile is launched from the launcher, it spawns `process.execPath --profile=<id>` (same exe, different args).
+**Problem:** In Top Bar and Tabs nav modes, three separate rows consumed vertical space:
+- Row 1: Titlebar (HALQ — Maintenance Command + ⚙ Settings)
+- Row 2: Top Nav or Section Tabs (tab strip)
+- Row 3: Topbar (section title + Refresh button)
 
-#### `main.js` — merged + fixed
+**Fix:** For Top Bar and Tabs modes only, all three rows collapse into a single 40px row.
 
-- Absorbed all `launcher/main.js` IPC handlers (`profiles-load`, `profiles-save`, `profile-launch`, `profile-running-state`, `profile-delete-data`) directly into root `main.js`
-- Removed `launcher/main.js` as a separate file — no longer needed
-- Added `IS_LAUNCHER` / `PROFILE_ID` constants derived from `process.argv`
-- Added `createLauncherWindow()` and `createHalqWindow()` — called conditionally based on mode
-- `app.whenReady()`: skips `setupAppfolioSession()` / `setupOutlookSession()` in launcher mode
-- Running process poll (`setInterval` every 5s) only fires in launcher mode
+**Layout:** `[📋 Work Orders | ✉ Email | 📝 Notes]  HALQ — Maintenance Command  [↻ Refresh] [⚙ Settings]`
 
-#### Bug fix — `ENOTDIR: not a directory` (profiles path collision)
+**Implementation:**
+- Added `body.nav-compact` CSS class — applied by `toggleNav()` when mode is `topnav` or `tabs`
+- `body.nav-compact` hides standalone `top-nav`, `section-tabs`, and `topbar` rows via `display:none !important`
+- Added `.tb-inline-nav` groups inside titlebar HTML: `#tb-inline-topnav` (pill-style) and `#tb-inline-tabs` (underline-style)
+- Added `#tb-refresh` button inside titlebar `tb-controls` — only visible when `nav-compact` is active
+- `toggleNav()` updated: sets `nav-compact` on body, shows correct `tb-inline-nav` group, shows/hides refresh button
+- `switchMainView()` updated: syncs active state on both standalone and inline tab elements (`tb-topnav-*`, `tb-sectab-*`)
+- Left Sidebar and Hidden modes: completely unaffected, no changes to their behavior
 
-`profiles.json` and `profiles/` directory cannot coexist in the same folder on Windows.
+---
 
-- Renamed `userdata/profiles.json` → `userdata/profiles-db.json` to free the `profiles/` name for use as a directory
+### [2026-03-11] UI — Category Color Strips on WO Cards
 
-#### Bug fix — `ENOTDIR: not a directory` (Electron userData in launcher mode)
+**Files changed:** `index.html`
 
-In launcher mode, `app.setPath('userData')` was pointing to `userdata/` root — the same folder where `profiles-db.json` lives — causing Electron's internal storage to collide with app data files.
+**Change:** Replaced the small color dot next to WO cards with a full-width labeled color strip at the bottom of each card.
 
-- Added `ELECTRON_DATA_DIR`: launcher uses `userdata/launcher/`, HALQ profiles use `userdata/profiles/<id>/`
-- `app.setPath('userData')` and `app.setPath('sessionData')` now always point into isolated subfolders
+- Strip height: 16px, border-radius: 3px
+- Category name printed inside the strip in uppercase bold dark text
+- Multiple categories = multiple equal-width strips side by side (e.g. `|--For Approval--|--BH Properties--|`)
+- Single category = full-width strip (e.g. `|------------HVAC Issue------------|`)
+- Strip color still comes from the color assigned in Category Manager
 
-#### Bug fix — `userdata/` never created in packaged app
+---
 
-Inside a packaged asar, `__dirname` is a virtual path inside the read-only archive. `path.join(__dirname, 'userdata')` silently pointed into the asar and all file writes failed.
+### [2026-03-11] Feature — Multi-Select Categories
 
-- `BASE_DIR` now uses `path.dirname(process.execPath)` when `app.isPackaged` is true
-- In dev mode, `__dirname` is still used (points to project root as expected)
-- Result: `userdata/` is now correctly created next to `HALQ.exe` on disk
+**Files changed:** `index.html`
 
-#### `package.json`
+**Change:** Category assignment upgraded from single-select dropdown to multi-select checkbox list.
 
-- Removed `start:launcher` script — no longer needed (single entry point)
-- Updated `files` array: includes `launcher/index.html`, `launcher/preload.js`, `releases/**/*`
-- Removed `launcher/main.js` from files (merged into root `main.js`)
+- Category dropdown now stays open after each selection (supports picking multiple)
+- Each category row shows a checkbox (✓ when selected)
+- "Clear all" removes all assigned categories at once
+- Data model migrated: `_catId` (single ID) → `_catIds` (array of IDs)
+- Full backward compatibility: existing saved `_catId` values are automatically migrated to `_catIds: [id]` on load
+- `selectedCatIds[]` replaces `selectedCatId` throughout: `selectCat()`, `saveWODetail()`, `selectWO()`, `renderCatDropdown()`
+- `updateCatTrigger()` — new helper, updates the trigger display for multiple selections (color dots + comma-separated names)
+- Urgent filter updated to check `_catIds` array
 
-#### Files changed
-- `main.js` — merged launcher, all three bug fixes applied
-- `package.json` — build config updated for single-exe
-- `launcher/main.js` — **deleted** (merged into root `main.js`)
-- `launcher/preload.js` — unchanged
-- `launcher/index.html` — unchanged
-- `preload.js` — unchanged
-- `index.html` — unchanged
+---
+
+### [2026-03-11] UI — Bold Week Section Dividers on WO List
+
+**Files changed:** `index.html`
+
+**Change:** Section dividers between WO groups (Due/No Date, This Week, Next Week, etc.) made significantly more prominent.
+
+- Thicker top border (`2px solid var(--border2)`)
+- Sticky positioning — header stays visible while scrolling within a section
+- Blue accent left bar (3×12px) inside each header
+- Count shown as a pill badge (rounded, bordered) instead of plain text
+- Background matches surface color for visual separation from card rows

@@ -249,12 +249,17 @@
   .wo-item.overdue { border-left-color: var(--red); }
   .wo-item.due-today { border-left-color: var(--yellow); }
   .wo-item.on-track { border-left-color: var(--green); }
-  /* Category color strips — horizontal bar at bottom of WO card */
+  /* Category color strips — labeled bar at bottom of WO card */
   .wo-cat-strips {
-    display: flex; gap: 2px; margin-top: 5px; height: 4px;
+    display: flex; gap: 2px; margin-top: 6px;
   }
   .wo-cat-strip {
-    flex: 1; border-radius: 2px; height: 4px;
+    flex: 1; border-radius: 3px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8.5px; font-weight: 700; color: rgba(0,0,0,0.75);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    padding: 0 4px; box-sizing: border-box;
   }
   .wo-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
   .wo-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; color: var(--accent); }
@@ -1456,7 +1461,7 @@ function renderWOList(data) {
     const catIds  = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
     const cats    = catIds.map(id => getCatById(id)).filter(Boolean)
     const strips  = cats.length
-      ? `<div class="wo-cat-strips">${cats.map(c => `<div class="wo-cat-strip" style="background:${c.color}" title="${c.name}"></div>`).join('')}</div>`
+      ? `<div class="wo-cat-strips">${cats.map(c => `<div class="wo-cat-strip" style="background:${c.color}" title="${c.name}">${c.name}</div>`).join('')}</div>`
       : ''
     const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
     return `
