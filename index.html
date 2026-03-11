@@ -70,38 +70,6 @@
   .tb-btn:hover { background: var(--border2); color: var(--text); }
   .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-  /* COMPACT TITLEBAR — active in topnav/tabs mode only */
-  body.nav-compact .top-nav,
-  body.nav-compact .section-tabs,
-  body.nav-compact .topbar { display: none !important; }
-
-  body.nav-compact .titlebar { height: 40px; gap: 0; padding: 0 12px 0 4px; }
-
-  .tb-inline-nav { display: none; align-items: stretch; -webkit-app-region: no-drag; }
-  body.nav-compact .tb-inline-nav { display: flex; }
-
-  .tb-inline-nav .top-nav-item {
-    padding: 0 12px; font-size: 12px; height: 40px;
-    display: flex; align-items: center;
-    cursor: pointer; color: var(--text3);
-    border-radius: 0; transition: all 0.15s;
-  }
-  .tb-inline-nav .top-nav-item:hover { background: var(--surface2); color: var(--text); }
-  .tb-inline-nav .top-nav-item.active { background: var(--surface2); color: var(--accent); }
-
-  .tb-inline-nav .section-tab {
-    padding: 0 14px; font-size: 12px; height: 40px;
-    display: flex; align-items: center;
-    cursor: pointer; color: var(--text3);
-    border-bottom: 2px solid transparent; transition: all 0.15s;
-    box-sizing: border-box;
-  }
-  .tb-inline-nav .section-tab:hover { color: var(--text); }
-  .tb-inline-nav .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  .tb-refresh { display: none; -webkit-app-region: no-drag; margin-left: 6px; }
-  body.nav-compact .tb-controls .tb-refresh { display: block; }
-
   /* APP LAYOUT */
   .app { display: flex; flex: 1; overflow: hidden; }
 
@@ -271,14 +239,23 @@
   .wo-list::-webkit-scrollbar { width: 4px; }
   .wo-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   .wo-item {
-    padding: 10px 12px; border-bottom: 1px solid var(--border);
-    cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent;
+    padding: 10px 12px 10px 10px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s;
+    display: flex; flex-direction: column; position: relative;
+    border-left: 3px solid transparent;
   }
   .wo-item:hover { background: var(--surface2); }
   .wo-item.active { background: var(--surface2); border-left-color: var(--accent); }
   .wo-item.overdue { border-left-color: var(--red); }
   .wo-item.due-today { border-left-color: var(--yellow); }
   .wo-item.on-track { border-left-color: var(--green); }
+  /* Category color strips — horizontal bar at bottom of WO card */
+  .wo-cat-strips {
+    display: flex; gap: 2px; margin-top: 5px; height: 4px;
+  }
+  .wo-cat-strip {
+    flex: 1; border-radius: 2px; height: 4px;
+  }
   .wo-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
   .wo-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; color: var(--accent); }
   .wo-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
@@ -585,11 +562,18 @@
     transition: background 0.1s;
   }
   .cat-opt:hover { background: var(--surface2); color: var(--text); }
-  .cat-opt.active { color: var(--accent); background: rgba(91,156,246,0.08); }
+  .cat-opt.active { color: var(--text); background: rgba(91,156,246,0.08); }
   .cat-opt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .cat-opt-clear { color: var(--text3); font-style: italic; }
   .cat-opt-manage { color: var(--accent); }
   .cat-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+  .cat-checkbox {
+    width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0;
+    border: 1.5px solid var(--border2); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s; font-size: 8px; color: #fff;
+  }
+  .cat-opt.active .cat-checkbox { background: var(--accent); border-color: var(--accent); }
 
   /* CATEGORY MANAGER MODAL */
   .catmgr-overlay {
@@ -970,23 +954,8 @@
 
 <!-- TITLEBAR -->
 <div class="titlebar">
-  <!-- Inline nav: Top Bar style (topnav mode) -->
-  <div class="tb-inline-nav" id="tb-inline-topnav">
-    <div class="top-nav-item active" id="tb-topnav-wo"    onclick="switchMainView('wo')">📋 Work Orders</div>
-    <div class="top-nav-item"        id="tb-topnav-email" onclick="switchMainView('email')">✉ Email</div>
-    <div class="top-nav-item"        id="tb-topnav-notes" onclick="switchMainView('notes')">📝 Notes</div>
-  </div>
-  <!-- Inline nav: Tabs style (tabs mode) -->
-  <div class="tb-inline-nav" id="tb-inline-tabs">
-    <div class="section-tab active" id="tb-sectab-wo"    onclick="switchMainView('wo')">Work Orders</div>
-    <div class="section-tab"        id="tb-sectab-email" onclick="switchMainView('email')">Email</div>
-    <div class="section-tab"        id="tb-sectab-notes" onclick="switchMainView('notes')">Notes</div>
-  </div>
   <div class="tb-title">HALQ — Maintenance Command</div>
   <div class="tb-controls">
-    <div class="tb-refresh" id="tb-refresh">
-      <button class="btn btn-primary" onclick="navReload()" style="font-size:10px;padding:3px 10px;">↻ Refresh</button>
-    </div>
     <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
   </div>
 </div>
@@ -1164,7 +1133,7 @@
               <div class="detail-label">Categorize</div>
               <div class="cat-wrap" id="cat-wrap">
                 <div class="cat-trigger" id="cat-trigger" onclick="toggleCatDropdown()">
-                  <div class="cat-trigger-dot" id="cat-trigger-dot"></div>
+                  <div id="cat-trigger-strips" style="display:flex;gap:3px;align-items:center;flex-shrink:0"></div>
                   <span class="cat-trigger-label" id="cat-trigger-label">— None —</span>
                   <span class="cat-trigger-arrow">▼</span>
                 </div>
@@ -1484,8 +1453,11 @@ function renderWOList(data) {
   const later     = withDate.filter(w => { const d = new Date(w._followup); return d >= weekAfterEnd                     }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
 
   function woCard (w) {
-    const cat = getCatById(w._catId)
-    const catDot = cat ? `<div style="width:7px;height:7px;border-radius:50%;background:${cat.color};flex-shrink:0" title="${cat.name}"></div>` : ''
+    const catIds  = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
+    const cats    = catIds.map(id => getCatById(id)).filter(Boolean)
+    const strips  = cats.length
+      ? `<div class="wo-cat-strips">${cats.map(c => `<div class="wo-cat-strip" style="background:${c.color}" title="${c.name}"></div>`).join('')}</div>`
+      : ''
     const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
     return `
       <div class="wo-item ${getItemClass(w.age)}" data-wo="${w.wo}">
@@ -1493,9 +1465,6 @@ function renderWOList(data) {
           <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
           <div class="wo-num">${w.wo}</div>
           ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
-          <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
-            ${catDot}
-          </div>
         </div>
         <div class="wo-prop">${w.prop}</div>
         <div class="wo-item-bot">
@@ -1503,16 +1472,22 @@ function renderWOList(data) {
           <div class="wo-age ${getAgeClass(w.age)}">${w.age}d</div>
         </div>
         ${followupLabel}
+        ${strips}
       </div>`
   }
 
   function sectionHeader (label, count) {
     return `<div style="
-      padding: 5px 10px 3px; font-size: 9px; font-weight: 600;
-      color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em;
-      border-top: 1px solid var(--border); margin-top: 4px;
-      display:flex; justify-content:space-between; align-items:center
-    "><span>${label}</span><span style="color:var(--border2)">${count}</span></div>`
+      padding: 6px 10px 5px; font-size: 9px; font-weight: 700;
+      color: var(--text2); text-transform: uppercase; letter-spacing: 0.12em;
+      background: var(--surface); margin-top: 6px;
+      border-top: 2px solid var(--border2); border-bottom: 1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center;
+      position: sticky; top: 0; z-index: 1;
+    "><span style="display:flex;align-items:center;gap:6px">
+      <span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--accent);flex-shrink:0"></span>
+      ${label}
+    </span><span style="background:var(--surface2);color:var(--text3);font-size:9px;padding:1px 6px;border-radius:8px;border:1px solid var(--border)">${count}</span></div>`
   }
 
   let html = ''
@@ -1557,7 +1532,7 @@ function toggleChip(el, filter) {
   else if (filter === 'today') filtered = wos.filter(w => w.age <= 1);
   else if (filter === 'assigned') filtered = wos.filter(w => w.status === 'Assigned');
   else if (filter === 'waiting') filtered = wos.filter(w => w.status === 'Waiting');
-  else if (filter === 'urgent') filtered = wos.filter(w => { const cat = getCatById(w._catId); return cat && cat.name.toLowerCase() === 'urgent'; });
+  else if (filter === 'urgent') filtered = wos.filter(w => { const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : []); return ids.some(id => { const c = getCatById(id); return c && c.name.toLowerCase() === 'urgent'; }); });
   renderWOList(filtered);
 }
 
@@ -1585,18 +1560,16 @@ function selectWO(woNum) {
   }
   document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'))
 
-  // Restore saved category for this WO
-  selectedCatId = selectedWO._catId || null
-  const cat   = getCatById(selectedCatId)
-  const dot   = document.getElementById('cat-trigger-dot')
-  const label = document.getElementById('cat-trigger-label')
-  if (cat) {
-    dot.style.background = cat.color
-    label.textContent    = cat.name
+  // Restore saved categories for this WO (support legacy single _catId)
+  const rawIds = selectedWO._catIds
+  if (Array.isArray(rawIds)) {
+    selectedCatIds = [...rawIds]
+  } else if (selectedWO._catId) {
+    selectedCatIds = [selectedWO._catId]
   } else {
-    dot.style.background = 'transparent'
-    label.textContent    = '— None —'
+    selectedCatIds = []
   }
+  updateCatTrigger()
 
   // Auto-search in Appfolio (only if pref is on)
   const autoSearchOn = !document.getElementById('pref-auto-search') || document.getElementById('pref-auto-search').classList.contains('on')
@@ -1629,12 +1602,12 @@ function saveWODetail () {
 
   // Commit to WO object
   selectedWO._followup = currentFollowup || null
-  selectedWO._catId    = selectedCatId   || null
+  selectedWO._catIds   = [...selectedCatIds]
 
   // Persist keyed by WO number
   woTags[selectedWO.wo] = {
     _followup: selectedWO._followup,
-    _catId:    selectedWO._catId
+    _catIds:   selectedWO._catIds
   }
   saveWOTags()
 
@@ -2103,7 +2076,13 @@ async function loadExcelData () {
     wos.forEach(w => {
       if (woTags[w.wo]) {
         w._followup = woTags[w.wo]._followup || null
-        w._catId    = woTags[w.wo]._catId    || null
+        if (Array.isArray(woTags[w.wo]._catIds)) {
+          w._catIds = woTags[w.wo]._catIds
+        } else if (woTags[w.wo]._catId) {
+          w._catIds = [woTags[w.wo]._catId]
+        } else {
+          w._catIds = []
+        }
       }
     })
   }
@@ -2138,12 +2117,6 @@ function toggleNav(mode) {
   document.getElementById('sidebar').className = 'sidebar hidden';
   document.getElementById('top-nav').classList.remove('visible');
   document.getElementById('section-tabs').classList.remove('visible');
-
-  // Compact titlebar: collapse rows 2+3+4 into titlebar for topnav/tabs
-  const isCompact = (mode === 'topnav' || mode === 'tabs');
-  document.body.classList.toggle('nav-compact', isCompact);
-  document.getElementById('tb-inline-topnav').style.display = (mode === 'topnav') ? 'flex' : 'none';
-  document.getElementById('tb-inline-tabs').style.display   = (mode === 'tabs')   ? 'flex' : 'none';
 
   if (mode === 'sidebar') document.getElementById('sidebar').className = 'sidebar';
   else if (mode === 'topnav') document.getElementById('top-nav').classList.add('visible');
@@ -2769,7 +2742,14 @@ async function loadWOTags () {
       wos.forEach(w => {
         if (woTags[w.wo]) {
           w._followup = woTags[w.wo]._followup || null
-          w._catId    = woTags[w.wo]._catId    || null
+          // Support legacy _catId (single) and new _catIds (array)
+          if (Array.isArray(woTags[w.wo]._catIds)) {
+            w._catIds = woTags[w.wo]._catIds
+          } else if (woTags[w.wo]._catId) {
+            w._catIds = [woTags[w.wo]._catId]
+          } else {
+            w._catIds = []
+          }
         }
       })
       renderWOList()
@@ -2808,25 +2788,24 @@ async function saveCategories () {
     console.error('[CAT] save error:', e)
   }
 }
-let selectedCatId = null   // for current WO
+let selectedCatIds = []   // for current WO (multi-select)
 let catMgrSelected = null  // for manager modal
 
 function getCatById (id) { return categories.find(c => c.id === id) || null }
 
 function renderCatDropdown () {
   const dd = document.getElementById('cat-dropdown')
-  const activeCat = getCatById(selectedCatId)
-
   dd.innerHTML = `
     <div class="cat-opt cat-opt-clear" onclick="selectCat(null)">
       <div class="cat-opt-dot" style="background:var(--border2)"></div>
-      <span>Clear tag</span>
+      <span>Clear all</span>
     </div>
     <div class="cat-sep"></div>
     ${categories.map(c => `
-      <div class="cat-opt ${selectedCatId === c.id ? 'active' : ''}" onclick="selectCat(${c.id})">
+      <div class="cat-opt ${selectedCatIds.includes(c.id) ? 'active' : ''}" onclick="selectCat(${c.id})">
         <div class="cat-opt-dot" style="background:${c.color}"></div>
-        <span>${c.name}</span>
+        <span style="flex:1">${c.name}</span>
+        <div class="cat-checkbox">${selectedCatIds.includes(c.id) ? '✓' : ''}</div>
       </div>
     `).join('')}
     <div class="cat-sep"></div>
@@ -2862,20 +2841,32 @@ function toggleCatDropdown () {
 }
 
 function selectCat (id) {
-  selectedCatId = id
-  const cat = getCatById(id)
-  const dot   = document.getElementById('cat-trigger-dot')
-  const label = document.getElementById('cat-trigger-label')
-  if (cat) {
-    dot.style.background = cat.color
-    label.textContent    = cat.name
+  if (id === null) {
+    selectedCatIds = []
   } else {
-    dot.style.background = 'transparent'
-    label.textContent    = '— None —'
+    const idx = selectedCatIds.indexOf(id)
+    if (idx === -1) selectedCatIds.push(id)
+    else selectedCatIds.splice(idx, 1)
   }
-  // Update WO item color in list
-  if (selectedWO) selectedWO._catId = id
-  closeAllDropdowns()
+  updateCatTrigger()
+  if (selectedWO) selectedWO._catIds = [...selectedCatIds]
+  // Re-render dropdown in place (keep open for multi-select)
+  renderCatDropdown()
+}
+
+function updateCatTrigger () {
+  const strips = document.getElementById('cat-trigger-strips')
+  const label  = document.getElementById('cat-trigger-label')
+  const cats   = selectedCatIds.map(id => getCatById(id)).filter(Boolean)
+  if (cats.length) {
+    strips.innerHTML = cats.map(c =>
+      `<div style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0" title="${c.name}"></div>`
+    ).join('')
+    label.textContent = cats.length === 1 ? cats[0].name : cats.map(c => c.name).join(', ')
+  } else {
+    strips.innerHTML  = ''
+    label.textContent = '— None —'
+  }
 }
 
 // =====================
@@ -3085,21 +3076,15 @@ function switchMainView (view) {
   document.getElementById('nav-email')?.classList.toggle('active', isEmail)
   document.getElementById('nav-notes')?.classList.toggle('active', isNotes)
 
-  // --- top-nav active state (standalone row + titlebar inline) ---
+  // --- top-nav active state ---
   document.getElementById('topnav-wo')?.classList.toggle('active', isWO)
   document.getElementById('topnav-email')?.classList.toggle('active', isEmail)
   document.getElementById('topnav-notes')?.classList.toggle('active', isNotes)
-  document.getElementById('tb-topnav-wo')?.classList.toggle('active', isWO)
-  document.getElementById('tb-topnav-email')?.classList.toggle('active', isEmail)
-  document.getElementById('tb-topnav-notes')?.classList.toggle('active', isNotes)
 
-  // --- section-tab active state (standalone row + titlebar inline) ---
+  // --- section-tab active state ---
   document.getElementById('sectab-wo')?.classList.toggle('active', isWO)
   document.getElementById('sectab-email')?.classList.toggle('active', isEmail)
   document.getElementById('sectab-notes')?.classList.toggle('active', isNotes)
-  document.getElementById('tb-sectab-wo')?.classList.toggle('active', isWO)
-  document.getElementById('tb-sectab-email')?.classList.toggle('active', isEmail)
-  document.getElementById('tb-sectab-notes')?.classList.toggle('active', isNotes)
 
   // --- view-specific init ---
   if (isNotes) {
