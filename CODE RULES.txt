@@ -60,4 +60,6 @@ Use linters/formatters (Prettier, Black, RuboCop).
 
 10. Once code has been established, do not keep on changing, unless instructed.
 
-11. Automatically update Changelog.md for major changes.
+11. Automatically update Changelog.md and readme.md for major changes.
+
+12. Always check if there is a Git to push 
