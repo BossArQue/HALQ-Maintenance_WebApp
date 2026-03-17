@@ -2024,3 +2024,28 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - Blue accent left bar (3×12px) inside each header
 - Count shown as a pill badge (rounded, bordered) instead of plain text
 - Background matches surface color for visual separation from card rows
+
+---
+
+## Session 7 — 2026-03-17
+
+---
+
+### [2026-03-17] Fix — Compact Titlebar (Top Bar & Tabs nav modes) — Rewrite
+
+**Files changed:** `index.html`
+
+**Problem:** The Session 6 implementation of the compact single-row titlebar was broken. The uploaded source file contained orphaned CSS from a prior partial attempt (`#tb-inline-topnav`, `#tb-inline-tabs`, `.tb-inline-nav-item`, `.tb-inline-tab-item`) with no matching HTML elements. A second implementation was layered on top, causing conflicts — `body.nav-compact` was hiding `.topbar` regardless of nav mode, so the topbar disappeared even in Left Sidebar mode.
+
+**Root cause:** Session 6 code was written against a different version of the file than what was actually deployed. The ghost CSS was never cleaned up.
+
+**Fix — clean rewrite from original source:**
+
+- Removed all orphaned Session 6 CSS (`#tb-inline-topnav`, `#tb-inline-tabs`, `.tb-inline-nav-item`, `.tb-inline-tab-item`)
+- Single unified inline nav structure: `.tb-inline-nav` container with three `.tb-nav-item` elements (`#tb-nav-wo`, `#tb-nav-email`, `#tb-nav-notes`)
+- `body.nav-compact` applied **only** when `mode === 'topnav' || mode === 'tabs'` — never for `sidebar` or `none`
+- `toggleNav()` — single `classList.toggle('nav-compact', ...)` call handles both apply and remove
+- `setNavOpt()` — `none` branch explicitly calls `classList.remove('nav-compact')`
+- `switchMainView()` — tracks `window._currentView`; syncs `.tb-nav-*` active states; hides `#tb-refresh` when on Notes
+- `_tbRefresh()` — new helper routing inline Refresh to `emRefresh()` or `navReload()` based on `window._currentView`
+- Left Sidebar and Hidden modes: completely unaffected

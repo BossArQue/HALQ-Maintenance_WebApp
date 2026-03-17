@@ -70,6 +70,24 @@
   .tb-btn:hover { background: var(--border2); color: var(--text); }
   .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+  /* NAV-COMPACT — topnav & tabs modes only: collapse nav row + topbar into the titlebar */
+  body.nav-compact .top-nav,
+  body.nav-compact .section-tabs,
+  body.nav-compact .topbar { display: none !important; }
+  /* inline nav tabs inside titlebar */
+  .tb-inline-nav { display: none; align-items: center; gap: 2px; -webkit-app-region: no-drag; }
+  body.nav-compact .tb-inline-nav { display: flex; }
+  .tb-nav-item {
+    padding: 4px 10px; border-radius: 6px; font-size: 11px;
+    cursor: pointer; color: var(--text3); transition: all 0.15s;
+    -webkit-app-region: no-drag;
+  }
+  .tb-nav-item:hover { background: var(--surface2); color: var(--text); }
+  .tb-nav-item.active { background: var(--surface2); color: var(--accent); }
+  /* inline refresh button inside titlebar */
+  #tb-refresh { display: none; }
+  body.nav-compact #tb-refresh { display: flex; }
+
   /* APP LAYOUT */
   .app { display: flex; flex: 1; overflow: hidden; }
 
@@ -959,8 +977,14 @@
 
 <!-- TITLEBAR -->
 <div class="titlebar">
+  <div class="tb-inline-nav">
+    <div class="tb-nav-item active" id="tb-nav-wo"    onclick="switchMainView('wo')">📋 Work Orders</div>
+    <div class="tb-nav-item"        id="tb-nav-email" onclick="switchMainView('email')">✉ Email</div>
+    <div class="tb-nav-item"        id="tb-nav-notes" onclick="switchMainView('notes')">📝 Notes</div>
+  </div>
   <div class="tb-title">HALQ — Maintenance Command</div>
   <div class="tb-controls">
+    <button class="tb-btn" id="tb-refresh" onclick="_tbRefresh()">↻ Refresh</button>
     <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
   </div>
 </div>
@@ -2127,6 +2151,9 @@ function toggleNav(mode) {
   else if (mode === 'topnav') document.getElementById('top-nav').classList.add('visible');
   else if (mode === 'tabs') document.getElementById('section-tabs').classList.add('visible');
 
+  // Compact mode: topnav/tabs collapse nav row + topbar into the titlebar
+  document.body.classList.toggle('nav-compact', mode === 'topnav' || mode === 'tabs');
+
   // Persist so overlay views (Email, Notes) can read it
   window._navMode = mode;
 
@@ -2142,6 +2169,12 @@ function _applyNavToOverlays (mode) {
   // their topbar is always present and always shows all 3 tabs.
 }
 
+// Inline titlebar Refresh — routes to correct view's reload action
+function _tbRefresh() {
+  if (window._currentView === 'email') emRefresh()
+  else navReload()
+}
+
 function setNavOpt(mode, el) {
   el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
@@ -2150,6 +2183,7 @@ function setNavOpt(mode, el) {
     document.getElementById('sidebar').className = 'sidebar hidden';
     document.getElementById('top-nav').classList.remove('visible');
     document.getElementById('section-tabs').classList.remove('visible');
+    document.body.classList.remove('nav-compact');
   } else {
     toggleNav(mode);
   }
@@ -3047,6 +3081,7 @@ const VIEW_META = {
 }
 
 function switchMainView (view) {
+  window._currentView = view
   const isNotes = view === 'notes'
   const isEmail = view === 'email'
   const isWO    = view === 'wo'
@@ -3090,6 +3125,14 @@ function switchMainView (view) {
   document.getElementById('sectab-wo')?.classList.toggle('active', isWO)
   document.getElementById('sectab-email')?.classList.toggle('active', isEmail)
   document.getElementById('sectab-notes')?.classList.toggle('active', isNotes)
+
+  // --- inline titlebar nav active state (nav-compact modes) ---
+  document.getElementById('tb-nav-wo')?.classList.toggle('active', isWO)
+  document.getElementById('tb-nav-email')?.classList.toggle('active', isEmail)
+  document.getElementById('tb-nav-notes')?.classList.toggle('active', isNotes)
+  // hide Refresh in Notes (no reload action); show for WO and Email
+  const tbRefresh = document.getElementById('tb-refresh')
+  if (tbRefresh) tbRefresh.style.display = isNotes ? 'none' : ''
 
   // --- view-specific init ---
   if (isNotes) {
