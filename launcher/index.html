@@ -41,12 +41,7 @@
   input:focus { outline: none; border-color: var(--accent) !important; }
 
   /* ── TITLEBAR ── */
-  .titlebar {
-    height: 36px; background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center;
-    padding: 0 14px; gap: 8px; flex-shrink: 0;
-  }
+  /* .titlebar — see enhanced definition in upgrade block below */
   .tb-logo {
     width: 22px; height: 22px; border-radius: 6px;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
@@ -306,12 +301,6 @@
   }
 
   .confirm-msg { font-size: 12px; color: var(--text2); line-height: 1.6; }
-
-  /* ============================================================
-     HALQ LAUNCHER VISUAL INTERACTIVE UPGRADES — launcher/index.html
-     Paste this entire block just before the closing </style> tag.
-     All existing classes and JS are preserved — CSS overrides only.
-     ============================================================ */
 
   /* ── TITLEBAR: gradient accent line at bottom ── */
   .titlebar {
