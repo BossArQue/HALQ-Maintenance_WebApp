@@ -982,11 +982,7 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
-  /* ============================================================
-     HALQ VISUAL INTERACTIVE UPGRADES — index.html
-     Paste this entire block just before the closing </style> tag.
-     All existing classes and JS are preserved — CSS overrides only.
-     ============================================================ */
+  /* ── HALQ VISUAL INTERACTIVE UPGRADES ── */
 
   /* ── TITLEBAR: gradient accent line at bottom ── */
   .titlebar {
@@ -1713,40 +1709,35 @@ function renderWOList(data) {
       ? `<div class="wo-cat-strips">${cats.map(c => `<div class="wo-cat-strip" style="background:${c.color}" title="${c.name}">${c.name}</div>`).join('')}</div>`
       : ''
     const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
-    // Age ring — SVG circle fills based on age: green <14d, yellow 14-45d, red >45d
     const ageColor = w.age > 45 ? 'var(--red)' : w.age > 14 ? 'var(--yellow)' : 'var(--green)'
     const ageBg    = w.age > 45 ? 'rgba(248,113,113,0.12)' : w.age > 14 ? 'rgba(251,191,36,0.12)' : 'rgba(74,222,128,0.12)'
-    const circumference = 81.7  // 2 * pi * 13
+    const circumference = 81.7
     const fillRatio = Math.min(w.age / 90, 1)
     const dashOffset = circumference * (1 - fillRatio)
     const colorCodeOn = !document.getElementById('pref-color-code') || document.getElementById('pref-color-code').classList.contains('on')
     const ringColor   = colorCodeOn ? ageColor : 'var(--border2)'
     const ringBg      = colorCodeOn ? ageBg    : 'rgba(255,255,255,0.05)'
-    const ageRing = `<div class="wo-age-ring">
-      <svg viewBox="0 0 36 36" width="36" height="36">
-        <circle cx="18" cy="18" r="13" fill="none" stroke="${ringBg}" stroke-width="2.5"/>
-        <circle cx="18" cy="18" r="13" fill="none" stroke="${ringColor}" stroke-width="2.5"
-          stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset.toFixed(1)}" stroke-linecap="round"/>
-      </svg>
-      <span class="wo-age-ring-label" style="color:${ringColor}">${w.age}d</span>
-    </div>`
-    return `
-      <div class="wo-item ${getItemClass(w.age, w._followup)}" data-wo="${w.wo}" style="flex-direction:row;gap:8px;align-items:flex-start;padding:8px 10px 8px 8px">
-        ${ageRing}
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
-          <div class="wo-item-top">
-            <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
-            <div class="wo-num">${w.wo}</div>
-            ${w.tag ? `<div class="wo-tag">${w.tag}</div>` : ''}
-          </div>
-          <div class="wo-prop">${w.prop}</div>
-          <div class="wo-item-bot">
-            <div class="wo-vendor">${w.vendor}</div>
-          </div>
-          ${followupLabel}
-          ${strips}
-        </div>
-      </div>`
+    const ageRing = '<div class="wo-age-ring">'
+      + '<svg viewBox="0 0 36 36" width="36" height="36">'
+      + '<circle cx="18" cy="18" r="13" fill="none" stroke="' + ringBg + '" stroke-width="2.5"/>'
+      + '<circle cx="18" cy="18" r="13" fill="none" stroke="' + ringColor + '" stroke-width="2.5"'
+      + ' stroke-dasharray="' + circumference + '" stroke-dashoffset="' + dashOffset.toFixed(1) + '" stroke-linecap="round"/>'
+      + '</svg>'
+      + '<span class="wo-age-ring-label" style="color:' + ringColor + '">' + w.age + 'd</span>'
+      + '</div>'
+    return '<div class="wo-item ' + getItemClass(w.age, w._followup) + '" data-wo="' + w.wo + '" style="flex-direction:row;gap:8px;align-items:flex-start;padding:8px 10px 8px 8px">'
+      + ageRing
+      + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;">'
+      + '<div class="wo-item-top">'
+      + '<div class="wo-status-dot ' + getStatusClass(w.status) + '"></div>'
+      + '<div class="wo-num">' + w.wo + '</div>'
+      + (w.tag ? '<div class="wo-tag">' + w.tag + '</div>' : '')
+      + '</div>'
+      + '<div class="wo-prop">' + w.prop + '</div>'
+      + '<div class="wo-item-bot"><div class="wo-vendor">' + w.vendor + '</div></div>'
+      + followupLabel
+      + strips
+      + '</div></div>'
   }
 
   function sectionHeader (label, count) {
