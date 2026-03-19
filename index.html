@@ -982,6 +982,188 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
+  /* ============================================================
+     HALQ VISUAL INTERACTIVE UPGRADES — index.html
+     Paste this entire block just before the closing </style> tag.
+     All existing classes and JS are preserved — CSS overrides only.
+     ============================================================ */
+
+  /* ── TITLEBAR: gradient accent line at bottom ── */
+  .titlebar {
+    height: 36px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 12px; gap: 8px; flex-shrink: 0;
+    user-select: none; -webkit-app-region: drag;
+    position: relative; overflow: hidden;
+  }
+  .titlebar::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent) 40%, var(--accent2) 60%, transparent 100%);
+    opacity: 0.4; pointer-events: none;
+  }
+
+  /* ── TITLEBAR BUTTONS: accent hover glow ── */
+  .tb-btn {
+    padding: 3px 10px; border-radius: 4px; font-size: 10px;
+    cursor: pointer; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text2);
+    transition: all 0.18s;
+  }
+  .tb-btn:hover {
+    background: rgba(91,156,246,0.1);
+    border-color: rgba(91,156,246,0.4);
+    color: var(--accent);
+  }
+  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── INLINE NAV ITEMS (compact modes: topnav + tabs) ── */
+  .tb-nav-item {
+    padding: 4px 10px; border-radius: 6px; font-size: 11px;
+    cursor: pointer; color: var(--text3); transition: all 0.15s;
+    -webkit-app-region: no-drag;
+    border: 1px solid transparent;
+  }
+  .tb-nav-item:hover { background: var(--surface2); color: var(--text); }
+  .tb-nav-item.active {
+    background: rgba(91,156,246,0.12);
+    border-color: rgba(91,156,246,0.28);
+    color: var(--accent);
+  }
+
+  /* ── SIDEBAR: smooth cubic easing on show/hide ── */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+    transition: width 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sidebar.hidden { transform: translateX(-100%); width: 0; overflow: hidden; }
+
+  /* ── SIDEBAR NAV ITEMS: accent glow on hover + active ── */
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; cursor: pointer; font-size: 12.5px; color: var(--text2);
+    border-left: 2px solid transparent; transition: all 0.15s; white-space: nowrap;
+    position: relative; overflow: hidden;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    color: var(--accent); border-left-color: var(--accent); background: var(--surface2);
+  }
+
+  /* ── TOP NAV ITEMS (top-nav row, sidebar mode) ── */
+  .top-nav-item {
+    padding: 6px 12px; border-radius: 6px; font-size: 12px;
+    cursor: pointer; color: var(--text3); transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .top-nav-item:hover { background: var(--surface2); color: var(--text); }
+  .top-nav-item.active {
+    background: rgba(91,156,246,0.1);
+    border-color: rgba(91,156,246,0.22);
+    color: var(--accent);
+  }
+
+  /* ── SECTION TABS (tabs row, sidebar mode) ── */
+  .section-tab {
+    padding: 8px 14px; font-size: 12px; cursor: pointer; color: var(--text3);
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .section-tab:hover { color: var(--text); }
+  .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── WO LIST ITEMS: slide-right + accent left bar on hover ── */
+  .wo-item {
+    padding: 10px 12px 10px 10px; border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, border-left-color 0.15s;
+    display: flex; flex-direction: column; position: relative;
+    border-left: 3px solid transparent;
+  }
+  .wo-item:hover { background: var(--surface2); transform: translateX(2px); }
+  .wo-item.active { background: var(--surface2); border-left-color: var(--accent); }
+  .wo-item.overdue { border-left-color: var(--red); }
+  .wo-item.due-today { border-left-color: var(--yellow); }
+  .wo-item.on-track { border-left-color: var(--green); }
+
+  /* ── FILTER CHIPS: accent hover ── */
+  .filter-chip {
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
+    border: 1px solid var(--border2); color: var(--text3); white-space: nowrap;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .filter-chip:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(91,156,246,0.06);
+  }
+  .filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── BUTTONS: smooth hover ── */
+  .btn-primary { background: var(--accent); color: #fff; transition: filter 0.15s; }
+  .btn-primary:hover { filter: brightness(1.14); }
+  .btn-ghost {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border2); transition: all 0.15s;
+  }
+  .btn-ghost:hover {
+    background: var(--surface2);
+    border-color: rgba(91,156,246,0.35);
+    color: var(--accent);
+  }
+
+  /* ── STATUS DOT: breathing pulse ── */
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    animation: statusPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes statusPulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+    50%       { opacity: 1;   box-shadow: 0 0 0 5px rgba(74,222,128,0); }
+  }
+
+  /* ── APPFOLIO TABS + TOOLBAR BUTTONS ── */
+  .af-tab      { transition: all 0.15s; }
+  .af-tab:hover { color: var(--text); background: var(--surface2); }
+  .af-nav-btn  { transition: all 0.15s; }
+  .af-nav-btn:hover { background: var(--border2); color: var(--text); }
+  .af-go-btn   { transition: filter 0.15s; }
+  .af-go-btn:hover { filter: brightness(1.14); }
+
+  /* ── BOTTOM BAR: bolder numbers ── */
+  .bb-item span { font-size: 13px; font-weight: 700; color: var(--text); }
+  .bb-item:nth-child(2) span { color: var(--orange); }
+
+  /* ── CAT STRIPS: brighten on card hover ── */
+  .wo-cat-strip { transition: filter 0.15s; }
+  .wo-item:hover .wo-cat-strip { filter: brightness(1.12); }
+
+  /* ── SETTINGS PANEL ELEMENTS ── */
+  .settings-close { transition: color 0.15s; }
+  .settings-close:hover { color: var(--red); }
+  .theme-option { transition: all 0.15s; }
+  .layout-option { transition: all 0.15s; }
+  .toggle { transition: background 0.2s; cursor: pointer; }
+
+  /* ── UPDATE BANNER BUTTON ── */
+  .update-banner-install { transition: filter 0.15s; }
+  .update-banner-install:hover { filter: brightness(1.14); }
+
+  /* ── NOTES TREE BUTTONS ── */
+  .ntree-btn { transition: all 0.12s; }
+  .ntree-btn:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── DETAIL DRAWER CLOSE ── */
+  .wo-detail-close { transition: color 0.15s; }
+  .wo-detail-close:hover { color: var(--red); }
+
+  /* ── CATMGR COLORS ── */
+  .catmgr-color { transition: transform 0.12s, border-color 0.12s; }
+  .catmgr-color:hover { transform: scale(1.18); }
+  .catmgr-color.selected { border-color: #fff; transform: scale(1.12); }
+
 </style>
 </head>
 <body data-theme="dark">

@@ -306,6 +306,200 @@
   }
 
   .confirm-msg { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  /* ============================================================
+     HALQ LAUNCHER VISUAL INTERACTIVE UPGRADES — launcher/index.html
+     Paste this entire block just before the closing </style> tag.
+     All existing classes and JS are preserved — CSS overrides only.
+     ============================================================ */
+
+  /* ── TITLEBAR: gradient accent line at bottom ── */
+  .titlebar {
+    height: 36px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 14px; gap: 8px; flex-shrink: 0;
+    position: relative; overflow: hidden;
+  }
+  .titlebar::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent2) 40%, var(--accent) 60%, transparent 100%);
+    opacity: 0.45; pointer-events: none;
+  }
+
+  /* ── PROFILE CARDS: slide + animated left accent bar ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; left: 0; top: 4px; bottom: 4px;
+    width: 3px; border-radius: 0 2px 2px 0;
+    background: transparent;
+    transition: background 0.15s, opacity 0.15s;
+    opacity: 0;
+  }
+  .card:hover {
+    background: rgba(91,156,246,0.04);
+    border-color: rgba(91,156,246,0.2);
+    transform: translateX(2px);
+  }
+  .card:hover::before { background: var(--accent); opacity: 1; }
+  .card.selected {
+    background: rgba(91,156,246,0.055);
+    border-color: rgba(91,156,246,0.35);
+  }
+  .card.selected::before { background: var(--accent); opacity: 1; }
+  .card.running-card {
+    border-color: rgba(74,222,128,0.25);
+    box-shadow: 0 0 0 1px rgba(74,222,128,0.07);
+  }
+  .card.running-card::before {
+    background: var(--green); opacity: 1;
+    animation: runningBar 2s ease-in-out infinite;
+  }
+  @keyframes runningBar {
+    0%, 100% { opacity: 0.55; }
+    50%       { opacity: 1;    }
+  }
+
+  /* ── AVATAR: subtle scale on card hover ── */
+  .avatar {
+    width: 38px; height: 38px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; flex-shrink: 0;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    transition: transform 0.15s;
+  }
+  .card:hover .avatar { transform: scale(1.06); }
+
+  /* ── RUNNING PILL ── */
+  .running-pill {
+    display: flex; align-items: center; gap: 5px;
+    border-radius: 10px; padding: 3px 8px;
+    font-size: 9px; font-weight: 600;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.28);
+    color: var(--green);
+  }
+
+  /* ── RUNNING DOT: pulse animation ── */
+  .running-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    animation: runPulse 2s ease-in-out infinite;
+  }
+  @keyframes runPulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+    50%       { opacity: 1;   box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+  }
+
+  /* ── LAUNCH BUTTON ── */
+  .btn-card-launch {
+    padding: 4px 12px; border-radius: 6px; border: none;
+    font-size: 11px; font-weight: 500; color: #fff;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .btn-card-launch:not(:disabled):hover { filter: brightness(1.18); transform: scale(1.03); }
+
+  /* ── FOCUS BUTTON ── */
+  .btn-card-focus {
+    padding: 4px 12px; border-radius: 6px;
+    border: 1px solid var(--border2);
+    font-size: 11px; font-weight: 500;
+    background: var(--surface2); color: var(--text2);
+    transition: all 0.15s;
+  }
+  .btn-card-focus:hover {
+    border-color: rgba(91,156,246,0.4);
+    color: var(--accent);
+    background: rgba(91,156,246,0.08);
+  }
+
+  /* ── KEBAB BUTTON ── */
+  .btn-kebab {
+    width: 26px; height: 26px; border-radius: 5px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text3); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .btn-kebab:not(:disabled):hover {
+    border-color: rgba(255,255,255,0.25);
+    color: var(--text); background: var(--surface2);
+  }
+
+  /* ── NEW PROFILE BUTTON ── */
+  .btn-new {
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .btn-new:not(:disabled):hover { filter: brightness(1.14); transform: scale(1.02); }
+
+  /* ── LAUNCH SELECTED ── */
+  .btn-launch-sel {
+    padding: 5px 13px; border-radius: 6px; border: none;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+    transition: filter 0.15s;
+  }
+  .btn-launch-sel:not(:disabled):hover { filter: brightness(1.14); }
+  .btn-launch-sel:disabled { background: var(--surface2); color: var(--text3); }
+
+  /* ── LAUNCH ALL ── */
+  .btn-launch-all {
+    padding: 5px 13px; border-radius: 6px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); font-size: 11px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn-launch-all:not(:disabled):hover {
+    border-color: rgba(91,156,246,0.4);
+    color: var(--accent);
+    background: rgba(91,156,246,0.06);
+  }
+  .btn-launch-all:disabled { border-color: var(--border); color: var(--text3); }
+
+  /* ── CHECKBOX: hover accent border ── */
+  .cb { transition: all 0.12s; }
+  .cb:hover { border-color: var(--accent); }
+  .cb.checked, .cb.indeterminate { border-color: var(--accent); }
+  .cb.checked { background: var(--accent); }
+
+  /* ── SELECT BAR: hover border brighten ── */
+  .select-bar { transition: border-color 0.15s; }
+  .select-bar:hover { border-color: var(--border2); }
+
+  /* ── BOTTOM BAR DOT: pulse when running ── */
+  .bb-dot { transition: background 0.3s; }
+  .bb-dot.running {
+    background: var(--green);
+    animation: runPulse 2s ease-in-out infinite;
+  }
+
+  /* ── MODAL BUTTONS ── */
+  .btn-save    { transition: filter 0.15s; }
+  .btn-save:not(:disabled):hover { filter: brightness(1.12); }
+  .btn-cancel  { transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+  .btn-delete-confirm { transition: filter 0.15s; }
+  .btn-delete-confirm:not(:disabled):hover { filter: brightness(1.1); }
+
+  /* ── KEBAB MENU ITEMS ── */
+  .kebab-item { transition: background 0.1s; }
+  .kebab-item.danger:hover { background: rgba(248,113,113,0.1); }
+
 </style>
 </head>
 <body>

@@ -2191,3 +2191,53 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - Chips use `filter = 'cat:<id>'` — `toggleChip()` filters WOs by that category ID
 - Chips re-render after every `renderWOList()` call so they stay in sync
 - Only categories that have at least one WO assigned appear as chips
+
+---
+
+### [2026-03-19] UI — Visual Interactive Upgrade (index.html + launcher/index.html)
+
+**Scope:** CSS-only overrides appended before `</style>` in both files. Zero changes to HTML structure, JS functions, IPC channels, class names, or existing IDs. All existing features remain intact.
+
+#### What changed
+
+**Shared (both files)**
+- Titlebar gets a gradient accent line along the bottom edge (`::after` pseudo-element, `linear-gradient` from `--accent` to `--accent2`). Visible in all 4 nav modes since the titlebar is always rendered.
+
+**index.html — main app**
+- `.titlebar` — added `position: relative; overflow: hidden` to support the `::after` line
+- `.tb-btn` — added `transition: all 0.18s`; hover now shows accent border + accent text + subtle background tint
+- `.tb-nav-item` (compact modes: Top Bar, Tabs) — active state now shows a bordered pill (`border: 1px solid rgba(91,156,246,0.28)`) instead of just a color change; hover is smoother
+- `.sidebar` — easing changed from linear to `cubic-bezier(0.4,0,0.2,1)` for show/hide transition
+- `.nav-item` — hover and active states retain existing behavior; added `position: relative; overflow: hidden` for future ripple support
+- `.top-nav-item` (Top Nav row, sidebar mode) — active state now has bordered pill styling matching inline nav
+- `.section-tab` (Section Tabs row, sidebar mode) — unchanged behavior, transition added
+- `.wo-item` — added `transform: translateX(2px)` on hover (slide-right effect); `border-left-color` transition added; all overdue/due-today/on-track color states preserved
+- `.filter-chip` — hover now shows accent border + text + faint background; active state unchanged
+- `.btn-primary` / `.btn-ghost` — hover transitions added; ghost hover shows accent border + text
+- `.status-dot` — replaced `animation: blink` with `statusPulse` keyframe that adds a fading ring (`box-shadow`) for a breathing effect
+- `.af-tab`, `.af-nav-btn`, `.af-go-btn` — transitions added for hover feedback
+- `.bb-item span` — font-weight raised to `700`, size to `13px` for bolder stat numbers
+- `.wo-cat-strip` — `filter: brightness(1.12)` applied when parent `.wo-item` is hovered
+- `.settings-close`, `.wo-detail-close` — hover turns red
+- `.catmgr-color` — hover scale increased slightly; transition added
+
+**launcher/index.html — launcher**
+- `.card` — added `::before` pseudo-element (3px left accent bar); transparent by default, animates to `--accent` on hover/selected, `--green` with pulse animation when `running-card`
+- `.card:hover` — `transform: translateX(2px)` + border accent tint
+- `.avatar` — `transform: scale(1.06)` on parent card hover
+- `.running-dot` — replaced `animation: blink` with `runPulse` keyframe (breathing ring)
+- `.running-pill` — border opacity increased slightly
+- `.btn-card-launch` — `transform: scale(1.03)` + `brightness(1.18)` on hover
+- `.btn-card-focus` — hover shows accent border + text
+- `.btn-kebab` — hover shows brighter border + surface background
+- `.btn-new` — `scale(1.02)` + `brightness(1.14)` on hover
+- `.btn-launch-sel` / `.btn-launch-all` — transitions added; Launch All hover shows accent
+- `.cb` — hover shows accent border before checking
+- `.select-bar` — border brightens on hover
+- `.bb-dot.running` — uses same `runPulse` animation as running dot
+
+#### Files changed
+- `index.html` — CSS block appended before `</style>`
+- `launcher/index.html` — CSS block appended before `</style>`
+- `patch.ps1` — updated (see separate entry)
+- `CHANGELOG.md` — this entry
