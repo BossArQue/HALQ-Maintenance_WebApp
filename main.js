@@ -208,8 +208,12 @@ ipcMain.handle('profiles-save', (_e, profiles) => {
 })
 
 ipcMain.handle('profile-launch', (_e, profileId) => {
-  try   { return launchProfile(profileId) }
-  catch (err) { return { ok: false, error: err.message } }
+  try {
+    const result = launchProfile(profileId)
+    // Auto-close launcher 1.5s after a successful launch
+    if (result.ok && win) setTimeout(() => { if (win && !win.isDestroyed()) win.close() }, 1500)
+    return result
+  } catch (err) { return { ok: false, error: err.message } }
 })
 
 ipcMain.handle('profile-running-state', () => {
