@@ -72,7 +72,7 @@ function createLauncherWindow () {
     }
   })
   win.setMenuBarVisibility(false)
-  win.loadFile(path.join(__dirname, 'launcher', 'index.html'))
+  win.loadFile(path.join(__dirname, 'launcher_index.html'))
 }
 
 // =====================

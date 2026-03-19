@@ -25,7 +25,7 @@ Write-Host "Copying updated files..." -ForegroundColor Yellow
 Copy-Item "$projectDir\main.js"             -Destination "$srcDir\main.js"             -Force
 Copy-Item "$projectDir\preload.js"          -Destination "$srcDir\preload.js"          -Force
 Copy-Item "$projectDir\index.html"          -Destination "$srcDir\index.html"          -Force
-Copy-Item "$projectDir\launcher\index.html" -Destination "$srcDir\launcher\index.html" -Force
+Copy-Item "$projectDir\launcher_index.html"  -Destination "$srcDir\launcher\index.html" -Force
 Copy-Item "$projectDir\launcher\preload.js" -Destination "$srcDir\launcher\preload.js" -Force
 
 # Step 4 — repack
