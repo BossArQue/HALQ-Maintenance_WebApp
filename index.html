@@ -1473,9 +1473,25 @@ function getWeekStart (d) {
   return mon
 }
 
+function getFilteredWOs () {
+  const today = new Date(); today.setHours(0,0,0,0)
+  if (currentFilter === 'overdue')
+    return wos.filter(w => w._followup && new Date(w._followup + 'T00:00:00') < today)
+  if (currentFilter === 'today')
+    return wos.filter(w => w._followup && new Date(w._followup + 'T00:00:00').getTime() === today.getTime())
+  if (currentFilter.startsWith('cat:')) {
+    const catId = parseInt(currentFilter.split(':')[1])
+    return wos.filter(w => {
+      const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
+      return ids.includes(catId)
+    })
+  }
+  return wos
+}
+
 function renderWOList(data) {
   const list = document.getElementById('wo-list')
-  if (!data) data = wos
+  if (!data) data = getFilteredWOs()
   if (data.length === 0) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No work orders found</div>'
     return
@@ -1574,35 +1590,16 @@ function toggleChip(el, filter) {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   currentFilter = filter;
-  const today = new Date(); today.setHours(0,0,0,0)
-  let filtered = wos;
-  if (filter === 'overdue') {
-    filtered = wos.filter(w => {
-      if (!w._followup) return false
-      const due = new Date(w._followup + 'T00:00:00')
-      return due < today
-    })
-  } else if (filter === 'today') {
-    filtered = wos.filter(w => {
-      if (!w._followup) return false
-      const due = new Date(w._followup + 'T00:00:00')
-      return due.getTime() === today.getTime()
-    })
-  } else if (filter.startsWith('cat:')) {
-    const catId = parseInt(filter.split(':')[1])
-    filtered = wos.filter(w => {
-      const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
-      return ids.includes(catId)
-    })
-    // Apply category color to active chip
-    const cat = getCatById(catId)
+  // Apply category color to active chip
+  if (filter.startsWith('cat:')) {
+    const cat = getCatById(parseInt(filter.split(':')[1]))
     if (cat && el) {
       el.style.background = cat.color
       el.style.borderColor = cat.color
       el.style.color = '#fff'
     }
   }
-  renderWOList(filtered);
+  renderWOList()
 }
 
 // Render dynamic category chips based on categories that have at least one WO assigned
