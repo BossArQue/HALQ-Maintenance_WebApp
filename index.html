@@ -1067,11 +1067,8 @@
             <button class="wo-filters-arrow disabled" id="chips-arrow-left" onclick="scrollChips(-1)">◀</button>
             <div class="wo-filters" id="wo-filters">
               <div class="filter-chip active" onclick="toggleChip(this,'all')">All</div>
-              <div class="filter-chip" onclick="toggleChip(this,'overdue')">Overdue</div>
-              <div class="filter-chip" onclick="toggleChip(this,'today')">Due Today</div>
-              <div class="filter-chip" onclick="toggleChip(this,'assigned')">Assigned</div>
-              <div class="filter-chip" onclick="toggleChip(this,'waiting')">Waiting</div>
-              <div class="filter-chip" onclick="toggleChip(this,'urgent')">Urgent</div>
+              <div class="filter-chip" id="chip-overdue" onclick="toggleChip(this,'overdue')">Overdue</div>
+              <div class="filter-chip" id="chip-today" onclick="toggleChip(this,'today')">Due Today</div>
             </div>
             <button class="wo-filters-arrow" id="chips-arrow-right" onclick="scrollChips(1)">▶</button>
           </div>
@@ -1453,9 +1450,16 @@ function getAgeClass(age) {
   if (document.getElementById('pref-color-code') && !document.getElementById('pref-color-code').classList.contains('on')) return ''
   return age > 60 ? 'old' : age > 20 ? 'mid' : 'new';
 }
-function getItemClass(age) {
+function getItemClass(age, followup) {
   if (document.getElementById('pref-color-code') && !document.getElementById('pref-color-code').classList.contains('on')) return ''
-  return age > 60 ? 'overdue' : age === 0 ? 'due-today' : 'on-track';
+  if (followup) {
+    const today = new Date(); today.setHours(0,0,0,0)
+    const due   = new Date(followup + 'T00:00:00')
+    if (due < today)  return 'overdue'
+    if (due.getTime() === today.getTime()) return 'due-today'
+    return 'on-track'
+  }
+  return 'on-track'
 }
 function getStatusClass(s) { return s === 'Assigned' ? 'assigned' : s === 'Scheduled' ? 'scheduled' : 'waiting'; }
 
@@ -1497,7 +1501,7 @@ function renderWOList(data) {
       : ''
     const followupLabel = w._followup ? `<div style="font-size:9px;color:var(--accent);margin-top:2px">📅 ${fmtDate(new Date(w._followup + 'T00:00:00'))}</div>` : ''
     return `
-      <div class="wo-item ${getItemClass(w.age)}" data-wo="${w.wo}">
+      <div class="wo-item ${getItemClass(w.age, w._followup)}" data-wo="${w.wo}">
         <div class="wo-item-top">
           <div class="wo-status-dot ${getStatusClass(w.status)}"></div>
           <div class="wo-num">${w.wo}</div>
@@ -1546,6 +1550,9 @@ function renderWOList(data) {
   list.querySelectorAll('.wo-item').forEach(el => {
     el.addEventListener('click', () => selectWO(el.dataset.wo))
   })
+
+  // Refresh category filter chips to match currently assigned categories
+  renderCategoryChips()
 }
 
 function filterWOs(query) {
@@ -1564,13 +1571,68 @@ function toggleChip(el, filter) {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   currentFilter = filter;
+  const today = new Date(); today.setHours(0,0,0,0)
   let filtered = wos;
-  if (filter === 'overdue') filtered = wos.filter(w => w.age > 60);
-  else if (filter === 'today') filtered = wos.filter(w => w.age <= 1);
-  else if (filter === 'assigned') filtered = wos.filter(w => w.status === 'Assigned');
-  else if (filter === 'waiting') filtered = wos.filter(w => w.status === 'Waiting');
-  else if (filter === 'urgent') filtered = wos.filter(w => { const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : []); return ids.some(id => { const c = getCatById(id); return c && c.name.toLowerCase() === 'urgent'; }); });
+  if (filter === 'overdue') {
+    filtered = wos.filter(w => {
+      if (!w._followup) return false
+      const due = new Date(w._followup + 'T00:00:00')
+      return due < today
+    })
+  } else if (filter === 'today') {
+    filtered = wos.filter(w => {
+      if (!w._followup) return false
+      const due = new Date(w._followup + 'T00:00:00')
+      return due.getTime() === today.getTime()
+    })
+  } else if (filter.startsWith('cat:')) {
+    const catId = parseInt(filter.split(':')[1])
+    filtered = wos.filter(w => {
+      const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
+      return ids.includes(catId)
+    })
+    // Apply category color to active chip
+    const cat = getCatById(catId)
+    if (cat && el) {
+      el.style.background = cat.color
+      el.style.borderColor = cat.color
+      el.style.color = '#fff'
+    }
+  }
   renderWOList(filtered);
+}
+
+// Render dynamic category chips based on categories that have at least one WO assigned
+function renderCategoryChips () {
+  const filtersEl = document.getElementById('wo-filters')
+  if (!filtersEl) return
+  // Remove existing category chips
+  filtersEl.querySelectorAll('.chip-cat').forEach(c => c.remove())
+  // Find categories that are actually used in current wos
+  const usedCatIds = new Set()
+  wos.forEach(w => {
+    const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
+    ids.forEach(id => usedCatIds.add(id))
+  })
+  // Add a chip for each used category, styled with its color
+  categories.forEach(cat => {
+    if (!usedCatIds.has(cat.id)) return
+    const chip = document.createElement('div')
+    chip.className = 'filter-chip chip-cat'
+    chip.textContent = cat.name
+    chip.dataset.catid = cat.id
+    chip.style.borderColor = cat.color
+    chip.style.color = cat.color
+    chip.onclick = function () { toggleChip(this, 'cat:' + cat.id) }
+    // If this chip is currently active, restore active style
+    if (currentFilter === 'cat:' + cat.id) {
+      chip.classList.add('active')
+      chip.style.background = cat.color
+      chip.style.color = '#fff'
+      chip.style.borderColor = cat.color
+    }
+    filtersEl.appendChild(chip)
+  })
 }
 
 function selectWO(woNum) {
@@ -2086,7 +2148,8 @@ function runQuickTransfer (el) {
 // =====================
 function updateBottomBar () {
   const count   = wos.length
-  const overdue = wos.filter(w => w.age > 60).length
+  const today = new Date(); today.setHours(0,0,0,0)
+  const overdue = wos.filter(w => w._followup && new Date(w._followup + 'T00:00:00') < today).length
   const wocl = document.getElementById('wo-count-label')
   if (wocl) wocl.textContent = 'Active Monitoring · ' + count + ' open'
   document.getElementById('bb-wo-count').textContent  = count || '—'

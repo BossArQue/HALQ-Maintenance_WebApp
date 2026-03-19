@@ -2166,3 +2166,28 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 2. `loadCredsToUI()`
 3. `loadWOTags()` ← moved up
 4. `loadExcelData()` (which calls `autoTagNewWOs()` internally)
+
+---
+
+### [2026-03-19] Feature — Filter Chips Overhaul
+
+**Files changed:** `index.html`
+
+**Changes:**
+
+**Overdue / Due Today now based on follow-up date (not WO age):**
+- `getItemClass()` updated to accept `followup` param — compares `_followup` date against today
+- WO card left-border color (red = overdue, yellow = due today) now reflects follow-up date
+- `toggleChip('overdue')` filters WOs where `_followup < today`
+- `toggleChip('today')` filters WOs where `_followup === today`
+- Bottom bar overdue count also updated to use follow-up date
+- WOs with no follow-up date set are never shown as overdue
+
+**Removed static chips:** Assigned, Waiting, Urgent removed from the filter bar.
+
+**Dynamic category chips:**
+- Added `renderCategoryChips()` — scans all WOs, finds which categories are actually assigned, renders one chip per used category
+- Each chip is styled with the category's own color (border + text), turns solid on active
+- Chips use `filter = 'cat:<id>'` — `toggleChip()` filters WOs by that category ID
+- Chips re-render after every `renderWOList()` call so they stay in sync
+- Only categories that have at least one WO assigned appear as chips
