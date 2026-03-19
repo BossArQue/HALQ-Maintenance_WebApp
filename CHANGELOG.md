@@ -2049,3 +2049,90 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - `switchMainView()` — tracks `window._currentView`; syncs `.tb-nav-*` active states; hides `#tb-refresh` when on Notes
 - `_tbRefresh()` — new helper routing inline Refresh to `emRefresh()` or `navReload()` based on `window._currentView`
 - Left Sidebar and Hidden modes: completely unaffected
+---
+
+## Session 8 — 2026-03-19
+
+---
+
+### [2026-03-19] Fix — Appfolio Advanced Search URL scoped to Work Orders
+
+**Files changed:** `index.html`
+
+**Problem:** Auto-search and "Open in Appfolio" were firing a full-site search, returning results across all Appfolio record types.
+
+**Fix:** Added `&section_keys=work_orders` to both search URL builders so results are scoped to Work Orders only.
+
+- `setWO()` auto-search URL: `${afBaseUrl}/search/advanced_search?full_text_search=${woSearch}&section_keys=work_orders`
+- `openInAppfolio()` URL: `${afBaseUrl}/search/advanced_search?full_text_search=${woNum}&section_keys=work_orders`
+
+---
+
+### [2026-03-19] Fix — Follow-up Date: Weekend Skip for Tomorrow and Next Day
+
+**Files changed:** `index.html`
+
+**Problem:** "Tomorrow" and "Next Day" follow-up options used raw +1/+2 calendar days, landing on Saturday or Sunday in edge cases (e.g. Friday → Saturday, Thursday → Saturday).
+
+**Fix:** Replaced raw date math with business-day-aware helpers.
+
+- Added `skipWeekend(d)` — advances Sat to Mon (+2), Sun to Mon (+1), weekdays unchanged
+- Added `nextBizDay(d)` — returns the first business day after `d` (always skips weekends)
+- Added `nextNextBizDay(d)` — returns the business day after `nextBizDay(d)` (two hops, each weekend-aware)
+- **Tomorrow** now uses `nextBizDay(today)`: Fri → Mon, Thu → Fri, Wed → Thu
+- **Next Day** now uses `nextNextBizDay(today)`: Fri → Tue, Thu → Mon, Wed → Fri
+- Both `initFollowupDates()` (display labels) and `setFollowup()` (actual date assignment) updated to use the new helpers
+
+**Examples:**
+
+| Today | Tomorrow | Next Day |
+|-------|----------|----------|
+| Thursday | Friday | Monday |
+| Friday | Monday | Tuesday |
+| Saturday | Monday | Tuesday |
+
+---
+
+### [2026-03-19] Fix — Follow-up Custom Date: Auto-open Calendar on Click
+
+**Files changed:** `index.html`
+
+**Problem:** Clicking "Custom" expanded the date input row but required a second click on the input to open the calendar picker.
+
+**Fix:** `setFollowup('custom')` now calls `inp.showPicker()` immediately after opening the row and focusing the input — calendar opens on the first click.
+
+---
+
+### [2026-03-19] Feature — Auto Due Date on New Work Orders
+
+**Files changed:** `index.html`
+
+**Behavior:** When the WO list is refreshed and a WO has no entry in `woTags` (never seen before in HALQ) and its age is ≤ 2 business days old, HALQ silently auto-assigns a follow-up due date of **today + 3 business days**, weekend-skipping included.
+
+**Detection logic:**
+- "New" = not present in `woTags` AND business-day age ≤ 2
+- Business-day age is computed by `calendarAgeToBizDays(w.age)` — counts only Mon–Fri between creation date and today, so a WO created Friday evening and first seen Monday = 1 business day old (not 3 calendar days)
+- This correctly handles weekend edge cases: Sat/Sun creation dates count as 0 business days until Monday
+
+**Why business days, not calendar age:** A WO created Friday evening and checked Monday is 3 calendar days old but only 1 business day old — it would be incorrectly skipped by a raw day threshold. Business-day counting gives a reliable 2-day window regardless of weekends.
+
+**Implementation:**
+- Added `calendarAgeToBizDays(calendarAge)` — walks day-by-day from `(today - age)` to today, counting only weekdays
+- Added `autoTagNewWOs()` — iterates all loaded WOs; if not in `woTags` and biz age ≤ 2, computes `today + 3 biz days` and writes to `woTags[w.wo]._followup`; calls `saveWOTags()` if any were tagged
+- `loadExcelData()` calls `autoTagNewWOs()` before re-applying saved tags, so auto-assigned dates are persisted immediately
+- Silent — no visual indicator shown to the user
+
+---
+
+### [2026-03-19] Feature — Category Manager: Drag-and-Drop Sort
+
+**Files changed:** `index.html`
+
+**Behavior:** Categories in the Category Manager modal can be reordered by dragging rows up or down. The drag handle (⠿) on the left of each row is the grab target. Order is persisted immediately to `categories.json`.
+
+**Implementation:**
+- Each category row renders with `draggable="true"` and a `⠿` handle icon
+- `initCatDrag()` attaches `dragstart`, `dragend`, `dragover`, `dragleave`, `drop` listeners to all rows after each render
+- On drop: finds `fromIdx` and `toIdx` in the `categories` array by `data-catid`, splices and re-inserts the moved item
+- After reorder: calls `renderCatMgrList()`, `renderCatDropdown()`, and `saveCategories()` — the new order is immediately reflected in the category dropdown on WO cards
+- Visual feedback: dragged row goes to 35% opacity (`.dragging`), target row gets a 2px accent outline (`.drag-over`)

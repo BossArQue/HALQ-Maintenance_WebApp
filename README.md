@@ -347,3 +347,28 @@ git pull            # Pull latest from GitHub (if working on multiple machines)
 - `safeStorage` encrypts credentials using the OS keychain — they are tied to the machine and user account, not transferable
 - The `app.asar.bak` file created during updates is safe to delete
 - To roll back an update manually: rename `app.asar.bak` to `app.asar` in the `resources/` folder of your install directory
+---
+
+## Key Behaviors (index.html)
+
+### Appfolio Advanced Search
+WO clicks and the "Open in Appfolio" button both fire:
+```
+{afBaseUrl}/search/advanced_search?full_text_search={WO#}&section_keys=work_orders
+```
+Results are scoped to Work Orders only via `section_keys=work_orders`.
+
+### Follow-up Date — Weekend Skipping
+"Tomorrow" and "Next Day" are business-day-aware:
+
+| Today | Tomorrow | Next Day |
+|-------|----------|----------|
+| Thursday | Friday | Monday |
+| Friday | Monday | Tuesday |
+| Saturday | Monday | Tuesday |
+
+### Auto Due Date on New WOs
+On every Excel load, WOs that have no saved tag and are ≤ 2 **business** days old get a follow-up date of `today + 3 business days` assigned silently. Business-day age is used (not calendar age) so weekend-created WOs are correctly detected on Monday.
+
+### Category Drag-and-Drop Sort
+Categories can be reordered via drag-and-drop in the Category Manager modal. The `⠿` handle on the left of each row is the grab target. New order is saved immediately to `categories.json`.
