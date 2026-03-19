@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HALQ Launcher</title>
 <style>
-  /* System fonts ΓÇö no network block on startup */
+  /* System fonts — no network block on startup */
 
   :root {
     --bg:       #1c1c1c;
@@ -40,7 +40,7 @@
   input { font-family: inherit; }
   input:focus { outline: none; border-color: var(--accent) !important; }
 
-  /* ΓöÇΓöÇ TITLEBAR ΓöÇΓöÇ */
+  /* ── TITLEBAR ── */
   .titlebar {
     height: 36px; background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -62,7 +62,7 @@
     font-size: 9px; color: var(--text3); margin-left: 2px;
   }
 
-  /* ΓöÇΓöÇ BODY ΓöÇΓöÇ */
+  /* ── BODY ── */
   .body {
     flex: 1; overflow-y: auto; padding: 22px 26px;
     max-width: 640px; width: 100%; margin: 0 auto;
@@ -71,7 +71,7 @@
   .body::-webkit-scrollbar-track { background: transparent; }
   .body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-  /* ΓöÇΓöÇ TOP ROW ΓöÇΓöÇ */
+  /* ── TOP ROW ── */
   .top-row {
     display: flex; align-items: center;
     justify-content: space-between; margin-bottom: 16px;
@@ -88,7 +88,7 @@
     display: flex; align-items: center; gap: 5px;
   }
 
-  /* ΓöÇΓöÇ EMPTY STATE ΓöÇΓöÇ */
+  /* ── EMPTY STATE ── */
   .empty {
     text-align: center; padding: 48px 20px;
     color: var(--text3); font-size: 12px;
@@ -96,7 +96,7 @@
   .empty-icon { font-size: 32px; margin-bottom: 10px; }
   .empty-sub { font-size: 11px; margin-top: 6px; }
 
-  /* ΓöÇΓöÇ SELECT-ALL BAR ΓöÇΓöÇ */
+  /* ── SELECT-ALL BAR ── */
   .select-bar {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; margin-bottom: 8px;
@@ -124,7 +124,7 @@
   }
   .btn-launch-all:disabled { border-color: var(--border); color: var(--text3); }
 
-  /* ΓöÇΓöÇ CHECKBOX ΓöÇΓöÇ */
+  /* ── CHECKBOX ── */
   .cb {
     width: 15px; height: 15px; flex-shrink: 0; border-radius: 3px;
     border: 1.5px solid var(--border2); background: transparent;
@@ -141,7 +141,7 @@
   }
   .cb.indeterminate .cb-dash { display: block; }
 
-  /* ΓöÇΓöÇ CARDS ΓöÇΓöÇ */
+  /* ── CARDS ── */
   .cards { display: flex; flex-direction: column; gap: 6px; }
 
   .card {
@@ -211,7 +211,7 @@
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* ΓöÇΓöÇ KEBAB MENU ΓöÇΓöÇ */
+  /* ── KEBAB MENU ── */
   .kebab-menu {
     display: none; position: absolute; right: 14px; top: 46px; z-index: 100;
     background: var(--surface); border: 1px solid var(--border2);
@@ -230,7 +230,7 @@
   .kebab-item.danger { color: var(--red); }
   .kebab-item.danger:hover { background: rgba(248,113,113,0.1); }
 
-  /* ΓöÇΓöÇ BOTTOM BAR ΓöÇΓöÇ */
+  /* ── BOTTOM BAR ── */
   .bottombar {
     height: 26px; background: var(--surface);
     border-top: 1px solid var(--border);
@@ -253,7 +253,7 @@
     font-family: 'Consolas', 'Cascadia Code', monospace; flex-shrink: 0;
   }
 
-  /* ΓöÇΓöÇ OVERLAYS ΓöÇΓöÇ */
+  /* ── OVERLAYS ── */
   .overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.6); z-index: 200;
@@ -333,7 +333,7 @@
 
   <!-- Empty state -->
   <div class="empty" id="empty-state">
-    <div class="empty-icon">≡ƒæñ</div>
+    <div class="empty-icon">🚀</div>
     <div>No profiles yet.</div>
     <div class="empty-sub">Create one to get started.</div>
   </div>
@@ -351,10 +351,10 @@
       </div>
       <span class="select-bar-label" id="select-label">Select all</span>
       <button class="btn-launch-sel" id="btn-launch-sel" onclick="launchSelected()" disabled style="display:none">
-        Γû╢ Launch Selected
+        ▶ Launch Selected
         <span class="badge" id="sel-badge"></span>
       </button>
-      <button class="btn-launch-all" id="btn-launch-all" onclick="launchAll()">Γû╢Γû╢ Launch All</button>
+      <button class="btn-launch-all" id="btn-launch-all" onclick="launchAll()">▶▶ Launch All</button>
     </div>
 
     <!-- Cards -->
@@ -398,7 +398,7 @@
 <!-- DELETE CONFIRM MODAL -->
 <div class="overlay" id="delete-modal" onclick="closeDeleteModal()">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">ΓÜá Delete Profile</div>
+    <div class="modal-title">⚠ Delete Profile</div>
     <div class="confirm-msg" id="delete-modal-msg"></div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
@@ -511,7 +511,7 @@ function buildCard (p) {
   const info = document.createElement('div')
   info.className = 'card-info'
   info.innerHTML = `<div class="card-name">${escHtml(p.name)}</div>
-    <div class="card-url">${escHtml(p.url || 'ΓÇö')}</div>`
+    <div class="card-url">${escHtml(p.url || '—')}</div>`
   card.appendChild(info)
 
   // Actions
@@ -528,7 +528,7 @@ function buildCard (p) {
   const launchBtn = document.createElement('button')
   launchBtn.className = p.running ? 'btn-card-focus' : 'btn-card-launch'
   if (!p.running) launchBtn.style.background = p.color
-  launchBtn.textContent = p.running ? 'Γåù Focus' : 'Γû╢ Launch'
+  launchBtn.textContent = p.running ? '● Focus' : '▶ Launch'
   launchBtn.onclick = () => cardLaunch(p)
   actions.appendChild(launchBtn)
 
@@ -538,16 +538,16 @@ function buildCard (p) {
 
   const kebabBtn = document.createElement('button')
   kebabBtn.className = 'btn-kebab'
-  kebabBtn.textContent = 'Γï«'
+  kebabBtn.textContent = '⋯'
   kebabBtn.onclick = e => { e.stopPropagation(); toggleKebab(p.id) }
 
   const menu = document.createElement('div')
   menu.className = 'kebab-menu'
   menu.id = `kebab-${p.id}`
   menu.innerHTML = `
-    <div class="kebab-item" onclick="event.stopPropagation();openEditModal('${p.id}')">Γ£Ä &nbsp;Edit Profile</div>
+    <div class="kebab-item" onclick="event.stopPropagation();openEditModal('${p.id}')">✎ &nbsp;Edit Profile</div>
     <div class="kebab-divider"></div>
-    <div class="kebab-item danger" onclick="event.stopPropagation();openDeleteModal('${p.id}')">≡ƒùæ &nbsp;Delete Profile</div>
+    <div class="kebab-item danger" onclick="event.stopPropagation();openDeleteModal('${p.id}')">🗑 &nbsp;Delete Profile</div>
   `
 
   kebabWrap.appendChild(kebabBtn)
@@ -648,7 +648,7 @@ async function cardLaunch (profile) {
     setStatus('Focused: ' + profile.name)
     return
   }
-  setStatus('Launching ' + profile.name + 'ΓÇª')
+  setStatus('Launching ' + profile.name + '…')
   const res = await window.launcher.profileLaunch(profile.id)
   if (res.ok) {
     profiles = profiles.map(p => p.id === profile.id ? { ...p, running: true } : p)
@@ -657,14 +657,14 @@ async function cardLaunch (profile) {
     updateBottomBar()
     setStatus('Launched: ' + profile.name)
   } else {
-    setStatus('Γ£ù Failed to launch: ' + (res.error || 'unknown error'))
+    setStatus('✓ Failed to launch: ' + (res.error || 'unknown error'))
   }
 }
 
 async function launchSelected () {
   const toStart = profiles.filter(p => selected.has(p.id) && !p.running)
   if (!toStart.length) return
-  setStatus('Launching ' + toStart.length + ' profile' + (toStart.length > 1 ? 's' : '') + 'ΓÇª')
+  setStatus('Launching ' + toStart.length + ' profile' + (toStart.length > 1 ? 's' : '') + '…')
   for (const p of toStart) {
     await window.launcher.profileLaunch(p.id)
     profiles = profiles.map(q => q.id === p.id ? { ...q, running: true } : q)
@@ -678,7 +678,7 @@ async function launchSelected () {
 async function launchAll () {
   const toStart = profiles.filter(p => !p.running)
   if (!toStart.length) return
-  setStatus('Launching allΓÇª')
+  setStatus('Launching all…')
   for (const p of toStart) {
     await window.launcher.profileLaunch(p.id)
     profiles = profiles.map(q => q.id === p.id ? { ...q, running: true } : q)
@@ -753,8 +753,8 @@ function openEditModal (id) {
   const p = profiles.find(x => x.id === id)
   if (!p) return
   editTarget = p
-  document.getElementById('profile-modal-title').textContent = 'Γ£Ä Edit Profile'
-  document.getElementById('profile-modal-save-btn').textContent = '≡ƒÆ╛ Save'
+  document.getElementById('profile-modal-title').textContent = '✎ Edit Profile'
+  document.getElementById('profile-modal-save-btn').textContent = '🔌 Save'
   document.getElementById('pm-name').value = p.name
   document.getElementById('pm-url').value  = p.url || ''
   selectModalColor(p.color || AVATAR_COLORS[0])
@@ -833,7 +833,7 @@ async function confirmDelete () {
 // PERSIST
 // =====================
 async function persistProfiles () {
-  // Strip running flag ΓÇö that's runtime state, not persisted
+  // Strip running flag — that's runtime state, not persisted
   const toSave = profiles.map(({ running, ...rest }) => rest)
   await window.launcher.profilesSave(toSave)
 }
