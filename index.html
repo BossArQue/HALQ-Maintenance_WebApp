@@ -1635,6 +1635,8 @@ function renderCategoryChips () {
     }
     filtersEl.appendChild(chip)
   })
+  // Re-check arrow state now that chips have been added/removed
+  updateChipArrows()
 }
 
 function selectWO(woNum) {
