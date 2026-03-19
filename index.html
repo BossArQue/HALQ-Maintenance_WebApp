@@ -246,9 +246,10 @@
   .wo-filters {
     flex: 1; display: flex; gap: 4px;
     overflow-x: auto; scroll-behavior: smooth;
-    scrollbar-width: none;
+    scrollbar-width: none; cursor: grab; user-select: none;
   }
   .wo-filters::-webkit-scrollbar { display: none; }
+  .wo-filters.dragging { cursor: grabbing; }
   .filter-chip {
     padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
     border: 1px solid var(--border2); color: var(--text3); white-space: nowrap; transition: all 0.15s;
@@ -1684,26 +1685,25 @@ function selectWO(woNum) {
       const view = document.getElementById('appfolio-view');
       if (view) {
         view.src = url
-        // Auto-click the first WO result once the search page loads
-        const autoClick = () => {
-          view.removeEventListener('did-stop-loading', autoClick)
+        // After search loads, grab the first result URL and navigate directly to WO detail
+        const autoNav = () => {
+          view.removeEventListener('did-stop-loading', autoNav)
           view.executeJavaScript(`
             (function () {
-              // Try Appfolio search result row — first link inside the results table
-              const selectors = [
-                'table.js-search-results tbody tr td a',
-                '.search-results tbody tr td a',
-                '[data-table-row] td a',
-                'tbody tr td:first-child a'
-              ]
-              for (const sel of selectors) {
-                const el = document.querySelector(sel)
-                if (el) { el.click(); break }
-              }
+              try {
+                // Find first listitem link — Appfolio search returns role=listitem with a link inside
+                const link = document.querySelector('li a[href*="work_orders"], li a[href*="service_requests"]')
+                return link ? link.href : null
+              } catch(e) { return null }
             })()
-          `).catch(() => {})
+          `).then(href => {
+            if (href) {
+              document.getElementById('af-url').value = href
+              view.src = href
+            }
+          }).catch(() => {})
         }
-        view.addEventListener('did-stop-loading', autoClick)
+        view.addEventListener('did-stop-loading', autoNav)
       }
     }
   }
@@ -2067,6 +2067,34 @@ function scrollChips (dir) {
   if (el) el.scrollLeft += dir * 80
   setTimeout(updateChipArrows, 50)
 }
+
+// Drag-to-scroll on filter chip bar
+;(function initChipDragScroll () {
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('wo-filters')
+    if (!el) return
+    let isDown = false, startX = 0, scrollStart = 0
+    el.addEventListener('mousedown', e => {
+      // Don't hijack actual chip clicks
+      if (e.target.classList.contains('filter-chip')) return
+      isDown = true
+      startX = e.pageX
+      scrollStart = el.scrollLeft
+      el.classList.add('dragging')
+    })
+    document.addEventListener('mousemove', e => {
+      if (!isDown) return
+      e.preventDefault()
+      el.scrollLeft = scrollStart - (e.pageX - startX)
+      updateChipArrows()
+    })
+    document.addEventListener('mouseup', () => {
+      if (!isDown) return
+      isDown = false
+      el.classList.remove('dragging')
+    })
+  })
+})()
 function updateChipArrows () {
   const el = document.getElementById('wo-filters')
   if (!el) return
