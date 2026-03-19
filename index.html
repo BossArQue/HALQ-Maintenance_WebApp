@@ -2108,9 +2108,7 @@ async function loadExcelData () {
   }
   wos.length = 0
   result.wos.forEach(wo => wos.push(wo))
-  // Auto-assign due date for new WOs (not yet in woTags, age <= 2 biz days)
-  autoTagNewWOs()
-  // Re-apply saved tags
+  // Re-apply saved tags FIRST so existing WOs are in woTags before autoTagNewWOs runs
   if (Object.keys(woTags).length) {
     wos.forEach(w => {
       if (woTags[w.wo]) {
@@ -2125,6 +2123,9 @@ async function loadExcelData () {
       }
     })
   }
+  // Auto-assign due date for genuinely NEW WOs only (not in woTags, age <= 2 biz days)
+  // Must run AFTER saved tags are applied — otherwise every WO looks new
+  autoTagNewWOs()
   renderWOList()
   updateBottomBar()
   showDebug('Loaded ' + wos.length + ' WOs from Active Monitoring')

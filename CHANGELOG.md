@@ -2136,3 +2136,15 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - On drop: finds `fromIdx` and `toIdx` in the `categories` array by `data-catid`, splices and re-inserts the moved item
 - After reorder: calls `renderCatMgrList()`, `renderCatDropdown()`, and `saveCategories()` — the new order is immediately reflected in the category dropdown on WO cards
 - Visual feedback: dragged row goes to 35% opacity (`.dragging`), target row gets a 2px accent outline (`.drag-over`)
+
+---
+
+### [2026-03-19] Hotfix — autoTagNewWOs Wiped Existing Tags on Load
+
+**Files changed:** `index.html`
+
+**Bug:** All existing WO follow-up dates and category assignments were erased on first load after the Session 8 update.
+
+**Root cause:** `autoTagNewWOs()` was called inside `loadExcelData()` *before* saved tags were re-applied from disk. At that point `woTags` was still an empty object `{}`, so every WO passed the `if (woTags[w.wo]) return` guard — none were skipped. Every WO was treated as "new" and overwritten with `{ _followup: today+3biz, _catIds: [] }`. `saveWOTags()` then immediately persisted this wiped state to disk.
+
+**Fix:** Swapped the order in `loadExcelData()` — saved tags are now re-applied from `woTags` first, then `autoTagNewWOs()` runs. Existing WOs are already in `woTags` by the time the new-WO check fires, so they are correctly skipped.
