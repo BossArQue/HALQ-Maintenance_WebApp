@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HALQ Launcher</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+  /* System fonts — no network block on startup */
 
   :root {
     --bg:       #1c1c1c;
@@ -54,11 +54,11 @@
     font-weight: 700; font-size: 11px; color: #fff;
   }
   .tb-halq {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
     font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
   }
   .tb-launcher {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
     font-size: 9px; color: var(--text3); margin-left: 2px;
   }
 
@@ -79,7 +79,7 @@
   .top-row-title { font-size: 13px; font-weight: 600; color: var(--text); }
   .top-row-sub {
     font-size: 10px; color: var(--text3); margin-top: 2px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
   }
   .btn-new {
     padding: 6px 14px; border-radius: 6px; border: none;
@@ -164,7 +164,7 @@
     width: 38px; height: 38px; border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 12px; flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
   }
 
   .card-info { flex: 1; min-width: 0; }
@@ -174,7 +174,7 @@
   }
   .card-url {
     font-size: 10px; color: var(--text3); margin-top: 2px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
@@ -184,7 +184,7 @@
     display: flex; align-items: center; gap: 5px;
     border-radius: 10px; padding: 3px 8px;
     font-size: 9px; font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
     background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.27); color: var(--green);
   }
   .running-dot {
@@ -245,12 +245,12 @@
   .bb-dot.running { background: var(--green); animation: blink 2s infinite; }
   .bb-msg {
     font-size: 10px; color: var(--text2);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
     flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .bb-clock {
     font-size: 10px; color: var(--text3);
-    font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+    font-family: 'Consolas', 'Cascadia Code', monospace; flex-shrink: 0;
   }
 
   /* ── OVERLAYS ── */
@@ -272,7 +272,7 @@
   .field { display: flex; flex-direction: column; gap: 5px; }
   .field-label {
     font-size: 9px; color: var(--text3); text-transform: uppercase;
-    letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+    letter-spacing: 0.1em; font-family: 'Consolas', 'Cascadia Code', monospace; font-weight: 600;
   }
   .field-input {
     background: var(--surface2); border: 1px solid var(--border2);
@@ -439,6 +439,10 @@ async function init () {
   buildColorPicker()
   updateClock()
   setInterval(updateClock, 1000)
+
+  // Show UI immediately, load profiles async
+  document.getElementById('empty-state').style.display = 'none'
+  document.getElementById('profile-list-wrap').style.display = ''
 
   // Load profiles from main process
   const result = await window.launcher.profilesLoad()
@@ -857,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function waitForLauncher (fn, tries) {
     if (window.launcher) { fn(); return }
     if (tries <= 0) return
-    setTimeout(() => waitForLauncher(fn, tries - 1), 50)
+    setTimeout(() => waitForLauncher(fn, tries - 1), 10)
   }
   waitForLauncher(init, 40)
 })
