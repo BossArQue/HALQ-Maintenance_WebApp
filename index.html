@@ -1685,7 +1685,7 @@ function selectWO(woNum) {
       const view = document.getElementById('appfolio-view');
       if (view) {
         view.src = url
-        // After search loads, poll for the first result link and navigate directly to WO detail
+        // After search loads, poll for the first WO result link then navigate to it
         const autoNav = () => {
           view.removeEventListener('did-stop-loading', autoNav)
           let attempts = 0
@@ -1694,23 +1694,36 @@ function selectWO(woNum) {
             view.executeJavaScript(`
               (function () {
                 try {
-                  const links = Array.from(document.querySelectorAll('a'))
-                  const link = links.find(a => /\/service_requests\/\d+/.test(a.href) && /\/work_orders\/\d+/.test(a.href))
-                  return link ? link.href : null
+                  // Appfolio renders results as <li> items with an <a> inside
+                  // The href contains the full absolute URL to the WO detail page
+                  const all = Array.from(document.querySelectorAll('a[href]'))
+                  const match = all.find(a => {
+                    const h = a.href || ''
+                    return h.includes('/service_requests/') && h.includes('/work_orders/')
+                  })
+                  if (match) return match.href
+                  // Fallback: any link with work_order_id in the href
+                  const fallback = all.find(a => (a.href || '').includes('work_order_id='))
+                  return fallback ? fallback.href : null
                 } catch(e) { return null }
               })()
             `).then(href => {
-              if (href) {
+              if (href && href.startsWith('http')) {
                 clearInterval(poll)
                 document.getElementById('af-url').value = href
                 view.src = href
-              } else if (attempts >= 15) {
-                clearInterval(poll) // give up after ~3 seconds
+              } else if (attempts >= 20) {
+                clearInterval(poll)
               }
             }).catch(() => clearInterval(poll))
-          }, 200)
+          }, 300)
         }
-        view.addEventListener('did-stop-loading', autoNav)
+        // Wait 500ms after stop-loading before starting poll — gives React time to render
+        const autoNavDelayed = () => {
+          view.removeEventListener('did-stop-loading', autoNavDelayed)
+          setTimeout(autoNav, 500)
+        }
+        view.addEventListener('did-stop-loading', autoNavDelayed)
       }
     }
   }
@@ -2081,25 +2094,34 @@ function initChipDragScroll () {
   const el = document.getElementById('wo-filters')
   if (!el || el._dragScrollInit) return
   el._dragScrollInit = true
-  let isDown = false, startX = 0, scrollStart = 0
+  let isDown = false, startX = 0, scrollStart = 0, moved = false
+
   el.addEventListener('mousedown', e => {
-    if (e.target.classList.contains('filter-chip')) return
     isDown = true
+    moved = false
     startX = e.pageX
     scrollStart = el.scrollLeft
-    el.classList.add('dragging')
+    e.preventDefault()
   })
   document.addEventListener('mousemove', e => {
     if (!isDown) return
-    e.preventDefault()
-    el.scrollLeft = scrollStart - (e.pageX - startX)
-    updateChipArrows()
+    const dx = e.pageX - startX
+    if (Math.abs(dx) > 3) {
+      moved = true
+      el.classList.add('dragging')
+      el.scrollLeft = scrollStart - dx
+      updateChipArrows()
+    }
   })
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('mouseup', e => {
     if (!isDown) return
+    const wasDragging = moved
     isDown = false
+    moved = false
     el.classList.remove('dragging')
-  })
+    // If we dragged, cancel the click on the chip
+    if (wasDragging) e.stopPropagation()
+  }, true)
 }
 function updateChipArrows () {
   const el = document.getElementById('wo-filters')
