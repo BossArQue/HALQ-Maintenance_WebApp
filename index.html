@@ -245,7 +245,7 @@
   .wo-filters-arrow.disabled { opacity: 0.2; pointer-events: none; }
   .wo-filters {
     flex: 1; display: flex; gap: 4px;
-    overflow-x: auto; scroll-behavior: smooth;
+    overflow-x: auto;
     scrollbar-width: none; cursor: grab; user-select: none;
   }
   .wo-filters::-webkit-scrollbar { display: none; }
@@ -1691,6 +1691,7 @@ function selectWO(woNum) {
           let attempts = 0
           const poll = setInterval(() => {
             attempts++
+            if (attempts >= 10) { clearInterval(poll); return }
             view.executeJavaScript(`
               (function () {
                 try {
@@ -1714,12 +1715,12 @@ function selectWO(woNum) {
                 clearInterval(poll)
               }
             }).catch(() => clearInterval(poll))
-          }, 300)
+          }, 150)
         }
-        // Wait 500ms after stop-loading before starting poll — gives React time to render
+        // Wait 100ms after stop-loading then start polling
         const autoNavDelayed = () => {
           view.removeEventListener('did-stop-loading', autoNavDelayed)
-          setTimeout(autoNav, 500)
+          setTimeout(autoNav, 100)
         }
         view.addEventListener('did-stop-loading', autoNavDelayed)
       }
