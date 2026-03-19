@@ -2148,3 +2148,21 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 **Root cause:** `autoTagNewWOs()` was called inside `loadExcelData()` *before* saved tags were re-applied from disk. At that point `woTags` was still an empty object `{}`, so every WO passed the `if (woTags[w.wo]) return` guard — none were skipped. Every WO was treated as "new" and overwritten with `{ _followup: today+3biz, _catIds: [] }`. `saveWOTags()` then immediately persisted this wiped state to disk.
 
 **Fix:** Swapped the order in `loadExcelData()` — saved tags are now re-applied from `woTags` first, then `autoTagNewWOs()` runs. Existing WOs are already in `woTags` by the time the new-WO check fires, so they are correctly skipped.
+
+---
+
+### [2026-03-19] Hotfix 2 — woTags Still Being Wiped on Startup
+
+**Files changed:** `index.html`
+
+**Bug:** Even after Hotfix 1, pasting a restored `wo-tags.json` had no effect — tags still showed blank on load.
+
+**Root cause:** The startup sequence in `_halqReady()` called `loadExcelData()` first, then `loadWOTags()`. Since `loadExcelData()` calls `autoTagNewWOs()` internally, and `woTags` was still `{}` at that point (file not yet read), every WO was treated as new and overwritten — then `saveWOTags()` persisted the wiped data before `loadWOTags()` ever ran.
+
+**Fix:** Swapped the startup order — `loadWOTags()` now runs before `loadExcelData()`. By the time `autoTagNewWOs()` fires, all existing tags are already in memory and correctly skipped.
+
+**Correct startup order:**
+1. `loadAppSettings()`
+2. `loadCredsToUI()`
+3. `loadWOTags()` ← moved up
+4. `loadExcelData()` (which calls `autoTagNewWOs()` internally)

@@ -3177,12 +3177,12 @@ function _halqReady (fn, attempts) {
 _halqReady(async () => {
   await loadAppSettings()
   await loadCredsToUI()
+  // Load tags BEFORE Excel so woTags is populated when autoTagNewWOs runs
+  await loadWOTags()
   await loadExcelData().catch(() => {
     renderWOList()
     updateBottomBar()
   })
-  // Load tags after Excel data is in wos[] so they apply to real rows
-  await loadWOTags()
 }, 40)
 
 // =====================
