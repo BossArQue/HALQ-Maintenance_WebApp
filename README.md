@@ -283,8 +283,8 @@ git add .
 # 3. Commit with a message
 git commit -m "Fix: urgent filter, persist theme"
 
-# 4. Push to GitHub
-git push
+# 4. Push to GitHub and patch the installed app
+git push; if ($?) { .\patch.ps1 }
 ```
 
 ### Pushing a release (with updater)

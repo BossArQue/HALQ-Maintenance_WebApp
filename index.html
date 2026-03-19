@@ -1697,14 +1697,12 @@ function selectWO(woNum) {
                   // Appfolio renders results as <li> items with an <a> inside
                   // The href contains the full absolute URL to the WO detail page
                   const all = Array.from(document.querySelectorAll('a[href]'))
+                  // Exact Appfolio pattern: /service_requests/12345?work_order_id=67890
                   const match = all.find(a => {
                     const h = a.href || ''
-                    return h.includes('/service_requests/') && h.includes('/work_orders/')
+                    return h.includes('/service_requests/') && h.includes('work_order_id=')
                   })
-                  if (match) return match.href
-                  // Fallback: any link with work_order_id in the href
-                  const fallback = all.find(a => (a.href || '').includes('work_order_id='))
-                  return fallback ? fallback.href : null
+                  return match ? match.href : null
                 } catch(e) { return null }
               })()
             `).then(href => {
@@ -2101,17 +2099,14 @@ function initChipDragScroll () {
     moved = false
     startX = e.pageX
     scrollStart = el.scrollLeft
+    el.classList.add('dragging')
     e.preventDefault()
   })
   document.addEventListener('mousemove', e => {
     if (!isDown) return
-    const dx = e.pageX - startX
-    if (Math.abs(dx) > 3) {
-      moved = true
-      el.classList.add('dragging')
-      el.scrollLeft = scrollStart - dx
-      updateChipArrows()
-    }
+    moved = true
+    el.scrollLeft = scrollStart - (e.pageX - startX)
+    updateChipArrows()
   })
   document.addEventListener('mouseup', e => {
     if (!isDown) return
@@ -2119,7 +2114,6 @@ function initChipDragScroll () {
     isDown = false
     moved = false
     el.classList.remove('dragging')
-    // If we dragged, cancel the click on the chip
     if (wasDragging) e.stopPropagation()
   }, true)
 }
