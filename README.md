@@ -372,3 +372,21 @@ On every Excel load, WOs that have no saved tag and are ≤ 2 **business** days 
 
 ### Category Drag-and-Drop Sort
 Categories can be reordered via drag-and-drop in the Category Manager modal. The `⠿` handle on the left of each row is the grab target. New order is saved immediately to `categories.json`.
+
+### WO List Section Groups
+Work orders with a follow-up date are grouped into sections in this order:
+
+| Section | Condition |
+|---------|-----------|
+| ⚠ Overdue | Follow-up date before start of current week |
+| This Week | Follow-up Mon–Fri of current week |
+| Next Week | Follow-up Mon–Fri of following week |
+| Week After | Two weeks out |
+| Later | 3+ weeks out |
+| Due / No Date | No follow-up date assigned — sorted by age descending |
+
+### Search + Filter Chip Interaction
+The search box always operates within the active chip filter. Typing `50452` while the Overdue chip is active shows only overdue WOs matching that query. Switching chips clears the search box so results are never stale.
+
+### Right-Click Context Menu on WO Cards
+Right-clicking any WO card opens a quick-action menu for instant follow-up date and category assignment — no detail drawer, no Save button required. Changes are persisted immediately to `wo-tags.json`.

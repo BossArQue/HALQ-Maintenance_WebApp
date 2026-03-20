@@ -2241,3 +2241,60 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - `launcher/index.html` — CSS block appended before `</style>`
 - `patch.ps1` — updated (see separate entry)
 - `CHANGELOG.md` — this entry
+---
+
+## Session 9 — 2026-03-20
+
+---
+
+### [2026-03-20] Fix — Overdue WOs Not Rendering in List
+
+**Root cause:** `renderWOList` had no bucket for WOs whose `_followup` date fell before the start of the current week (`thisWeekMon`). These WOs were loaded correctly (counted in the 112 total) but silently dropped from all section groups — `thisWeek`, `nextWeek`, `weekAfter`, and `later` all use `>=` comparisons that exclude past dates. A WO like `50452-1` with `_followup: 2026-03-11` was in `wos` and visible via `wos.filter()` in the console but never appeared in the rendered list.
+
+**`index.html`**
+- Added `overdue` bucket: `withDate.filter(w => d < thisWeekMon)` — captures all WOs with a follow-up date before Monday of the current week
+- Added `T00:00:00` suffix to all `new Date(w._followup)` calls in section filters — forces local time parsing instead of UTC, preventing timezone off-by-one errors (UTC+8 was at risk of misclassifying dates near midnight)
+- Added `⚠ Overdue` section header rendered at the top of the dated groups
+- Restored missing `This Week` section — a previous patch accidentally dropped the `if (thisWeek.length)` render line
+
+---
+
+### [2026-03-20] Fix — Search Ignores Active Filter Chip
+
+**Root cause:** `filterWOs()` searched the full `wos` array directly, bypassing `currentFilter`. Typing in the search box while the Overdue chip was active would show all matching WOs across every status — not just overdue ones. Switching chips also left stale search text in the input, causing the next chip's results to be pre-filtered by the old query.
+
+**`index.html`**
+- `filterWOs()` now calls `getFilteredWOs()` as its base set instead of `wos` directly — search always operates within the active chip's scope
+- Added `|| ''` null guards on `w.prop`, `w.vendor`, `w.res`, `w.job` to prevent crashes on WOs with empty fields
+- `toggleChip()` now clears the search input and calls `updateSearchClear()` on every chip switch — prevents stale search text carrying over between filters
+
+---
+
+### [2026-03-20] Feature — Right-Click Context Menu on WO Cards
+
+**Goal:** Quick-save follow-up date or category assignment directly from the WO list without opening the detail drawer or clicking Save.
+
+**`index.html`**
+
+*CSS (`.wo-ctx-menu`, `.wo-ctx-section`, `.wo-ctx-item`, `.wo-ctx-sep`):*
+- Fixed-position dark context menu panel, styled to match app surface/border variables
+- Section labels in uppercase monospace; items with hover background
+
+*HTML:*
+- Added `<div id="wo-ctx-menu">` — empty shell populated dynamically on right-click
+
+*JS:*
+- `showWOCtxMenu(e, woNum)` — builds and positions the menu on `contextmenu` event; keeps menu inside viewport bounds via `requestAnimationFrame` position clamp
+- Follow-up section: Tomorrow, Next Day, This Week, Next Week (all business-day-aware using existing `nextBizDay` / `getNextFriday` helpers), plus Custom (opens date picker via reused `nt-prompt-overlay`)
+- Category section: all saved categories listed with color dots; checkmark shown on currently assigned ones; supports multi-select toggle
+- `_ctxSave(woNum, patch)` — applies `_followup` or `_catIds` patch to the WO object, writes to `woTags`, calls `saveWOTags()`, refreshes the detail drawer if that WO is open, calls `renderWOList()`
+- `ctxSetFollowup(key)`, `ctxSetFollowupCustom()`, `ctxToggleCat(id)`, `ctxClearCats()` — action handlers
+- `closeCtxMenu()` — hides menu; wired to `document click`, `scroll`, and `Escape` key
+- `renderWOList` click-wiring block updated: each `.wo-item` now gets both `click` and `contextmenu` listeners
+
+---
+
+### [2026-03-20] Fix — "Categorize" Renamed to "Category"
+
+**`index.html`**
+- Detail drawer label changed from `Categorize` to `Category`

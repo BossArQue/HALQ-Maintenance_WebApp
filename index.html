@@ -951,6 +951,30 @@
     padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
   }
 
+  /* WO RIGHT-CLICK CONTEXT MENU */
+  .wo-ctx-menu {
+    position: fixed; z-index: 9500;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px; min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .wo-ctx-section {
+    padding: 3px 10px 2px;
+    font-size: 9px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .wo-ctx-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 5px; font-size: 11px;
+    cursor: pointer; color: var(--text2); transition: background 0.08s;
+  }
+  .wo-ctx-item:hover { background: var(--surface2); color: var(--text); }
+  .wo-ctx-item .ctx-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .wo-ctx-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+
   /* UPDATE BANNER */
   .update-banner {
     display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -1357,7 +1381,7 @@
               </div>
             </div>
             <div class="detail-row">
-              <div class="detail-label">Categorize</div>
+              <div class="detail-label">Category</div>
               <div class="cat-wrap" id="cat-wrap">
                 <div class="cat-trigger" id="cat-trigger" onclick="toggleCatDropdown()">
                   <div id="cat-trigger-strips" style="display:flex;gap:3px;align-items:center;flex-shrink:0"></div>
@@ -1764,15 +1788,17 @@ function renderWOList(data) {
     html += noDate.map(woCard).join('')
   }
   if (overdue.length)   html += sectionHeader('⚠ Overdue',  overdue.length)   + overdue.map(woCard).join('')
+  if (thisWeek.length)  html += sectionHeader('This Week',   thisWeek.length)  + thisWeek.map(woCard).join('')
   if (nextWeek.length)  html += sectionHeader('Next Week',   nextWeek.length)  + nextWeek.map(woCard).join('')
   if (weekAfter.length) html += sectionHeader('Week After',  weekAfter.length) + weekAfter.map(woCard).join('')
   if (later.length)     html += sectionHeader('Later',       later.length)     + later.map(woCard).join('')
 
   list.innerHTML = html
 
-  // Wire clicks via delegation — avoids any inline onclick string-escaping issues
+  // Wire clicks and right-click context menu via delegation
   list.querySelectorAll('.wo-item').forEach(el => {
-    el.addEventListener('click', () => selectWO(el.dataset.wo))
+    el.addEventListener('click',       () => selectWO(el.dataset.wo))
+    el.addEventListener('contextmenu', e  => showWOCtxMenu(e, el.dataset.wo))
   })
 
   // Refresh category filter chips to match currently assigned categories
@@ -1780,21 +1806,29 @@ function renderWOList(data) {
 }
 
 function filterWOs(query) {
-  const q = query.toLowerCase();
-  const filtered = wos.filter(w =>
+  const q = query.trim().toLowerCase()
+  if (!q) { renderWOList(); return }
+  const base = getFilteredWOs()
+  const filtered = base.filter(w =>
     w.wo.toLowerCase().includes(q) ||
-    w.prop.toLowerCase().includes(q) ||
-    w.vendor.toLowerCase().includes(q) ||
-    w.res.toLowerCase().includes(q) ||
-    w.job.toLowerCase().includes(q)
-  );
-  renderWOList(filtered);
+    (w.prop   || '').toLowerCase().includes(q) ||
+    (w.vendor || '').toLowerCase().includes(q) ||
+    (w.res    || '').toLowerCase().includes(q) ||
+    (w.job    || '').toLowerCase().includes(q)
+  )
+  renderWOList(filtered)
 }
 
 function toggleChip(el, filter) {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   currentFilter = filter;
+  // Clear search box when switching chips so results are not stale
+  const searchInput = document.getElementById('wo-search-input')
+  if (searchInput && searchInput.value) {
+    searchInput.value = ''
+    updateSearchClear(searchInput)
+  }
   // Apply category color to active chip
   if (filter.startsWith('cat:')) {
     const cat = getCatById(parseInt(filter.split(':')[1]))
@@ -1968,6 +2002,184 @@ function saveWODetail () {
 
   renderWOList()
 }
+
+// =====================
+// WO RIGHT-CLICK CONTEXT MENU
+// Quick-save followup date or category without opening detail drawer
+// =====================
+let _ctxWoNum = null
+
+function _ctxSave (woNum, patch) {
+  const w = wos.find(x => x.wo === woNum)
+  if (!w) return
+  if ('_followup' in patch) w._followup = patch._followup
+  if ('_catIds'   in patch) w._catIds   = patch._catIds
+  woTags[woNum] = {
+    _followup: w._followup || null,
+    _catIds:   Array.isArray(w._catIds) ? w._catIds : []
+  }
+  saveWOTags()
+  // Refresh detail drawer if this WO is currently open
+  if (selectedWO && selectedWO.wo === woNum) {
+    currentFollowup  = w._followup || null
+    selectedCatIds   = [...(w._catIds || [])]
+    const ftVal = document.getElementById('followup-val')
+    if (ftVal) ftVal.textContent = currentFollowup ? fmtDate(new Date(currentFollowup + 'T00:00:00')) : '— Not set —'
+    updateCatTrigger()
+  }
+  renderWOList()
+  showDebug('✓ Saved: ' + woNum)
+}
+
+function closeCtxMenu () {
+  const m = document.getElementById('wo-ctx-menu')
+  if (m) m.style.display = 'none'
+  _ctxWoNum = null
+}
+
+function showWOCtxMenu (e, woNum) {
+  e.preventDefault()
+  e.stopPropagation()
+  _ctxWoNum = woNum
+
+  const today = new Date(); today.setHours(0,0,0,0)
+  const tomorrow  = nextBizDay(today)
+  const nextday   = nextNextBizDay(today)
+  const thisweek  = getNextFriday(today, 0)
+  const nextweek  = getNextFriday(today, 1)
+
+  const w      = wos.find(x => x.wo === woNum)
+  const catIds = Array.isArray(w?._catIds) ? w._catIds : []
+
+  let html = ''
+
+  // Follow-up section
+  html += '<div class="wo-ctx-section">Follow-up Date</div>'
+  const followupOpts = [
+    { key: 'tomorrow', label: 'Tomorrow',  date: tomorrow },
+    { key: 'nextday',  label: 'Next Day',  date: nextday  },
+    { key: 'thisweek', label: 'This Week', date: thisweek },
+    { key: 'nextweek', label: 'Next Week', date: nextweek },
+  ]
+  followupOpts.forEach(opt => {
+    html += `<div class="wo-ctx-item" onclick="ctxSetFollowup('${opt.key}')">
+      <span style="font-size:11px">📅</span>
+      <span style="flex:1">${opt.label}</span>
+      <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
+    </div>`
+  })
+  html += `<div class="wo-ctx-item" onclick="ctxSetFollowupCustom()">
+    <span style="font-size:11px">📅</span>
+    <span>Custom…</span>
+  </div>`
+
+  // Category section
+  if (categories.length) {
+    html += '<div class="wo-ctx-sep"></div>'
+    html += '<div class="wo-ctx-section">Category</div>'
+    if (catIds.length) {
+      html += `<div class="wo-ctx-item" onclick="ctxClearCats()">
+        <span class="ctx-dot" style="background:var(--border2)"></span>
+        <span style="color:var(--text3);font-style:italic">Clear all</span>
+      </div>`
+    }
+    categories.forEach(cat => {
+      const active = catIds.includes(cat.id)
+      html += `<div class="wo-ctx-item" onclick="ctxToggleCat(${cat.id})">
+        <span class="ctx-dot" style="background:${cat.color}"></span>
+        <span style="flex:1">${cat.name}</span>
+        ${active ? '<span style="color:var(--accent);font-size:12px">✓</span>' : ''}
+      </div>`
+    })
+  }
+
+  const menu = document.getElementById('wo-ctx-menu')
+  menu.innerHTML = html
+  menu.style.display = 'block'
+
+  // Position — keep inside viewport
+  const vw = window.innerWidth, vh = window.innerHeight
+  let x = e.clientX, y = e.clientY
+  menu.style.left = '0'; menu.style.top = '0'
+  requestAnimationFrame(() => {
+    const mw = menu.offsetWidth, mh = menu.offsetHeight
+    if (x + mw > vw - 8) x = vw - mw - 8
+    if (y + mh > vh - 8) y = vh - mh - 8
+    menu.style.left = x + 'px'
+    menu.style.top  = y + 'px'
+  })
+}
+
+function ctxSetFollowup (key) {
+  if (!_ctxWoNum) return
+  const today = new Date(); today.setHours(0,0,0,0)
+  let date
+  if (key === 'tomorrow') date = nextBizDay(today)
+  else if (key === 'nextday')  date = nextNextBizDay(today)
+  else if (key === 'thisweek') date = getNextFriday(today, 0)
+  else if (key === 'nextweek') date = getNextFriday(today, 1)
+  _ctxSave(_ctxWoNum, { _followup: fmtDateISO(date) })
+  closeCtxMenu()
+}
+
+function ctxSetFollowupCustom () {
+  if (!_ctxWoNum) return
+  const woNum = _ctxWoNum
+  closeCtxMenu()
+  // Reuse the existing ntPrompt modal for a date input
+  const inp = document.createElement('input')
+  inp.type = 'date'
+  inp.style.cssText = 'width:100%;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;outline:none'
+  inp.onchange = () => {
+    if (inp.value) {
+      _ctxSave(woNum, { _followup: inp.value })
+      closeCtxMenu()
+      document.getElementById('nt-prompt-overlay').classList.remove('on')
+    }
+  }
+  // Show ntPrompt overlay with the date input instead of text input
+  document.getElementById('nt-prompt-label').textContent = 'Pick follow-up date:'
+  const promptInput = document.getElementById('nt-prompt-input')
+  promptInput.style.display = 'none'
+  const box = document.querySelector('#nt-prompt-overlay .nt-prompt-box')
+  const existing = box.querySelector('.ctx-date-inp')
+  if (existing) existing.remove()
+  inp.className = 'ctx-date-inp'
+  box.insertBefore(inp, document.querySelector('.nt-prompt-btns'))
+  document.getElementById('nt-prompt-overlay').classList.add('on')
+  // Override OK button
+  ntPromptRes = (val) => {
+    promptInput.style.display = ''
+    box.querySelector('.ctx-date-inp')?.remove()
+  }
+  setTimeout(() => { try { inp.showPicker() } catch(_) {}; inp.focus() }, 60)
+}
+
+function ctxToggleCat (catId) {
+  if (!_ctxWoNum) return
+  const w = wos.find(x => x.wo === _ctxWoNum)
+  if (!w) return
+  const ids = Array.isArray(w._catIds) ? [...w._catIds] : []
+  const idx = ids.indexOf(catId)
+  if (idx === -1) ids.push(catId)
+  else ids.splice(idx, 1)
+  _ctxSave(_ctxWoNum, { _catIds: ids })
+  // Re-render menu in place to show updated checkmarks
+  const woNum = _ctxWoNum
+  closeCtxMenu()
+  // Reopen isn't possible without event coords — just close cleanly
+}
+
+function ctxClearCats () {
+  if (!_ctxWoNum) return
+  _ctxSave(_ctxWoNum, { _catIds: [] })
+  closeCtxMenu()
+}
+
+// Close context menu on any outside click or scroll
+document.addEventListener('click',    closeCtxMenu)
+document.addEventListener('scroll',   closeCtxMenu, true)
+document.addEventListener('keydown',  e => { if (e.key === 'Escape') closeCtxMenu() })
 
 // =====================
 // BROWSER CONTROLS
@@ -4393,6 +4605,9 @@ function ntConfirmCancel () {
 }
 
 </script>
+<!-- WO RIGHT-CLICK CONTEXT MENU -->
+<div id="wo-ctx-menu" class="wo-ctx-menu" style="display:none"></div>
+
 <!-- CATEGORY MANAGER MODAL -->
 <div class="catmgr-overlay" id="catmgr-overlay" onclick="catmgrClickOutside(event)">
   <div class="catmgr-modal">
