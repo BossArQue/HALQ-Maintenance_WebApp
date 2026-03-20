@@ -86,7 +86,6 @@
   .tb-nav-item.active { background: var(--surface2); color: var(--accent); }
   /* inline refresh button inside titlebar */
   #tb-refresh { display: none; }
-  body.nav-compact #tb-refresh { display: flex; }
 
   /* APP LAYOUT */
   .app { display: flex; flex: 1; overflow: hidden; }
@@ -1209,7 +1208,6 @@
   </div>
   <div class="tb-title">HALQ — Maintenance Command</div>
   <div class="tb-controls">
-    <button class="tb-btn" id="tb-refresh" onclick="_tbRefresh()">↻ Refresh</button>
     <div class="tb-btn" onclick="openSettings()">⚙ Settings</div>
   </div>
 </div>
@@ -2028,6 +2026,7 @@ function _ctxSave (woNum, patch) {
     updateCatTrigger()
   }
   renderWOList()
+  updateBottomBar()
   showDebug('✓ Saved: ' + woNum)
 }
 
@@ -2216,6 +2215,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active) active.dataset.url = view.getURL()
       tryAutoFill(view)
     })
+    // Close right-click context menu when user clicks into the webview —
+    // webview is a separate process so clicks don't bubble to document
+    view.addEventListener('focus', closeCtxMenu)
+    view.addEventListener('did-start-loading', closeCtxMenu)
   }
 
   updateTabArrows()
@@ -2735,10 +2738,6 @@ function _applyNavToOverlays (mode) {
 }
 
 // Inline titlebar Refresh — routes to correct view's reload action
-function _tbRefresh() {
-  if (window._currentView === 'email') emRefresh()
-  else navReload()
-}
 
 function setNavOpt(mode, el) {
   el.parentElement.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
@@ -3800,9 +3799,6 @@ function switchMainView (view) {
   document.getElementById('tb-nav-wo')?.classList.toggle('active', isWO)
   document.getElementById('tb-nav-email')?.classList.toggle('active', isEmail)
   document.getElementById('tb-nav-notes')?.classList.toggle('active', isNotes)
-  // hide Refresh in Notes (no reload action); show for WO and Email
-  const tbRefresh = document.getElementById('tb-refresh')
-  if (tbRefresh) tbRefresh.style.display = isNotes ? 'none' : ''
 
   // --- view-specific init ---
   if (isNotes) {
