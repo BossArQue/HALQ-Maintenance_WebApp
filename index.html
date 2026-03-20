@@ -1697,10 +1697,11 @@ function renderWOList(data) {
   const noDate    = data.filter(w => !w._followup).sort((a,b) => b.age - a.age)
   const withDate  = data.filter(w =>  w._followup)
 
-  const thisWeek  = withDate.filter(w => { const d = new Date(w._followup); return d >= thisWeekMon  && d < nextWeekMon  }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
-  const nextWeek  = withDate.filter(w => { const d = new Date(w._followup); return d >= nextWeekMon  && d < weekAfterMon }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
-  const weekAfter = withDate.filter(w => { const d = new Date(w._followup); return d >= weekAfterMon && d < weekAfterEnd }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
-  const later     = withDate.filter(w => { const d = new Date(w._followup); return d >= weekAfterEnd                     }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const overdue   = withDate.filter(w => { const d = new Date(w._followup + 'T00:00:00'); return d < thisWeekMon                       }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const thisWeek  = withDate.filter(w => { const d = new Date(w._followup + 'T00:00:00'); return d >= thisWeekMon  && d < nextWeekMon  }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const nextWeek  = withDate.filter(w => { const d = new Date(w._followup + 'T00:00:00'); return d >= nextWeekMon  && d < weekAfterMon }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const weekAfter = withDate.filter(w => { const d = new Date(w._followup + 'T00:00:00'); return d >= weekAfterMon && d < weekAfterEnd }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
+  const later     = withDate.filter(w => { const d = new Date(w._followup + 'T00:00:00'); return d >= weekAfterEnd                     }).sort((a,b) => new Date(a._followup) - new Date(b._followup))
 
   function woCard (w) {
     const catIds  = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
@@ -1762,7 +1763,7 @@ function renderWOList(data) {
     if (hasDateGroups) html += sectionHeader('Due / No Date', noDate.length)
     html += noDate.map(woCard).join('')
   }
-  if (thisWeek.length)  html += sectionHeader('This Week',   thisWeek.length)  + thisWeek.map(woCard).join('')
+  if (overdue.length)   html += sectionHeader('⚠ Overdue',  overdue.length)   + overdue.map(woCard).join('')
   if (nextWeek.length)  html += sectionHeader('Next Week',   nextWeek.length)  + nextWeek.map(woCard).join('')
   if (weekAfter.length) html += sectionHeader('Week After',  weekAfter.length) + weekAfter.map(woCard).join('')
   if (later.length)     html += sectionHeader('Later',       later.length)     + later.map(woCard).join('')
