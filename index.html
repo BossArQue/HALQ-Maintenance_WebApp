@@ -974,6 +974,64 @@
   }
   .wo-ctx-sep { height: 1px; background: var(--border); margin: 3px 4px; }
 
+  /* FLYOUT SUBMENUS */
+  .wo-ctx-item.has-flyout { position: relative; }
+  .wo-ctx-item.has-flyout::after { content: '▶'; margin-left: auto; font-size: 9px; color: var(--text3); }
+  .wo-ctx-flyout {
+    display: none; position: fixed; z-index: 9600;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px; min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .wo-ctx-flyout.open { display: block; }
+  .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
+  .wo-ctx-flyout .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
+
+  /* MESSAGES SETTINGS */
+  .msg-template-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .msg-template-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+  }
+  .msg-template-row-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .msg-template-name {
+    flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border2);
+    color: var(--text); font-size: 12px; font-weight: 600; padding: 2px 4px; outline: none;
+  }
+  .msg-template-name:focus { border-bottom-color: var(--accent); }
+  .msg-template-body {
+    width: 100%; box-sizing: border-box; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text2); font-size: 11px; font-family: inherit;
+    padding: 6px 8px; resize: vertical; min-height: 70px; outline: none;
+  }
+  .msg-template-body:focus { border-color: var(--accent); }
+  .msg-add-btn {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+    padding: 6px; border: 1px dashed var(--border2); border-radius: 6px;
+    color: var(--text3); font-size: 11px; cursor: pointer; margin-top: 4px;
+    transition: all 0.1s;
+  }
+  .msg-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--surface2); }
+  .msg-del-btn {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 13px; padding: 2px 4px; border-radius: 4px; line-height: 1;
+  }
+  .msg-del-btn:hover { color: var(--red); background: rgba(248,113,113,0.1); }
+  .msg-save-btn {
+    width: 100%; justify-content: center; margin-top: 10px;
+  }
+  .msg-section-label {
+    font-size: 10px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 10px 0 4px; padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .msg-token-hint {
+    font-size: 10px; color: var(--text3); line-height: 1.6; margin-bottom: 6px;
+  }
+
   /* UPDATE BANNER */
   .update-banner {
     display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -1523,6 +1581,7 @@
       <div class="settings-tab active" id="stab-accounts"  onclick="switchSettingsTab('accounts')">Accounts</div>
       <div class="settings-tab"        id="stab-appearance" onclick="switchSettingsTab('appearance')">Appearance</div>
       <div class="settings-tab"        id="stab-prefs"     onclick="switchSettingsTab('prefs')">Preferences</div>
+      <div class="settings-tab"        id="stab-messages"  onclick="switchSettingsTab('messages')">Messages</div>
     </div>
 
     <div class="settings-body">
@@ -1642,9 +1701,95 @@
 
       </div>
 
-    </div>
-  </div>
-</div>
+      <!-- ── MESSAGES TAB ── -->
+      <div id="stab-content-messages" style="display:none">
+
+        <!-- TENANT -->
+        <div class="settings-section">
+          <div class="settings-section-title">Tenant</div>
+          <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{res}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+
+          <div class="msg-section-label">📧 Email Templates</div>
+          <div class="msg-template-list" id="msg-list-tenant-email"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('tenant','email')">＋ Add Email Template</div>
+
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-tenant-text"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('tenant','text')">＋ Add Text Template</div>
+
+          <button class="btn btn-primary msg-save-btn" onclick="saveMsgTemplates()">💾 Save Tenant Templates</button>
+        </div>
+
+        <!-- VENDOR -->
+        <div class="settings-section">
+          <div class="settings-section-title">Vendor</div>
+          <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+
+          <div class="msg-section-label">📧 Email Templates</div>
+          <div class="msg-template-list" id="msg-list-vendor-email"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('vendor','email')">＋ Add Email Template</div>
+
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-vendor-text"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('vendor','text')">＋ Add Text Template</div>
+
+          <button class="btn btn-primary msg-save-btn" onclick="saveMsgTemplates()">💾 Save Vendor Templates</button>
+        </div>
+
+        <!-- OWNER (prep) -->
+        <div class="settings-section">
+          <div class="settings-section-title">Owner <span style="font-size:9px;color:var(--text3);font-weight:400;margin-left:6px">— Coming Soon</span></div>
+
+          <div class="msg-section-label">📧 Email Templates <span style="color:var(--text3);font-size:9px">(sent via Outlook)</span></div>
+          <div class="msg-template-list" id="msg-list-owner-email"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('owner','email')">＋ Add Email Template</div>
+
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-owner-text"></div>
+          <div class="msg-add-btn" onclick="msgAddTemplate('owner','text')">＋ Add Text Template</div>
+
+          <button class="btn btn-primary msg-save-btn" onclick="saveMsgTemplates()">💾 Save Owner Templates</button>
+        </div>
+
+        <!-- VENDOR DIRECTORY -->
+        <div class="settings-section">
+          <div class="settings-section-title">Vendor Directory</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+            Vendor contact details used in message tokens.<br>
+            Import from Excel to seed from your Data Base Vendor sheet.
+          </div>
+
+          <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="vendorDirImportExcel()">📥 Import from Excel</button>
+            <button class="btn btn-ghost"   style="font-size:11px;padding:5px 10px" onclick="vendorDirAddManual()">＋ Add Vendor</button>
+          </div>
+
+          <!-- Search filter -->
+          <input id="vendor-dir-search" class="creds-input" type="text" placeholder="🔍 Search vendors..."
+            style="margin-bottom:8px;margin-top:0"
+            oninput="vendorDirRenderTable(this.value)">
+
+          <div id="vendor-dir-status" class="creds-status"></div>
+
+          <div id="vendor-dir-table-wrap" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+            <table id="vendor-dir-table" style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:var(--surface2);position:sticky;top:0;z-index:1">
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Name</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 1</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 2</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Email</th>
+                  <th style="padding:6px 4px;border-bottom:1px solid var(--border);width:52px"></th>
+                </tr>
+              </thead>
+              <tbody id="vendor-dir-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="vendor-dir-count" style="font-size:10px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+
+      </div>
 
 <script>
 // =====================
@@ -1793,11 +1938,20 @@ function renderWOList(data) {
 
   list.innerHTML = html
 
-  // Wire clicks and right-click context menu via delegation
+  // Wire clicks via per-element listeners (re-attached each render)
   list.querySelectorAll('.wo-item').forEach(el => {
-    el.addEventListener('click',       () => selectWO(el.dataset.wo))
-    el.addEventListener('contextmenu', e  => showWOCtxMenu(e, el.dataset.wo))
+    el.addEventListener('click', () => selectWO(el.dataset.wo))
   })
+  // Right-click via event delegation on the container — survives re-renders
+  // Only attach once; guard with a flag on the element
+  if (!list._ctxDelegated) {
+    list._ctxDelegated = true
+    list.addEventListener('contextmenu', e => {
+      const item = e.target.closest('.wo-item')
+      if (!item) return
+      showWOCtxMenu(e, item.dataset.wo)
+    })
+  }
 
   // Refresh category filter chips to match currently assigned categories
   renderCategoryChips()
@@ -2030,6 +2184,8 @@ function _ctxSave (woNum, patch) {
   showDebug('✓ Saved: ' + woNum)
 }
 
+let _ctxOpenedAt = 0   // timestamp of last menu open — guards against immediate close
+
 function closeCtxMenu () {
   const m = document.getElementById('wo-ctx-menu')
   if (m) m.style.display = 'none'
@@ -2039,57 +2195,102 @@ function closeCtxMenu () {
 function showWOCtxMenu (e, woNum) {
   e.preventDefault()
   e.stopPropagation()
-  _ctxWoNum = woNum
+  _ctxWoNum    = woNum
+  _ctxOpenedAt = Date.now()
 
-  const today = new Date(); today.setHours(0,0,0,0)
-  const tomorrow  = nextBizDay(today)
-  const nextday   = nextNextBizDay(today)
-  const thisweek  = getNextFriday(today, 0)
-  const nextweek  = getNextFriday(today, 1)
+  const today    = new Date(); today.setHours(0,0,0,0)
+  const tomorrow = nextBizDay(today)
+  const nextday  = nextNextBizDay(today)
+  const thisweek = getNextFriday(today, 0)
+  const nextweek = getNextFriday(today, 1)
 
   const w      = wos.find(x => x.wo === woNum)
   const catIds = Array.isArray(w?._catIds) ? w._catIds : []
 
-  let html = ''
+  // ── helper: build a flyout div ──
+  function flyout (id, items) {
+    return `<div class="wo-ctx-flyout" id="${id}">${items}</div>`
+  }
 
-  // Follow-up section
-  html += '<div class="wo-ctx-section">Follow-up Date</div>'
-  const followupOpts = [
-    { key: 'tomorrow', label: 'Tomorrow',  date: tomorrow },
-    { key: 'nextday',  label: 'Next Day',  date: nextday  },
-    { key: 'thisweek', label: 'This Week', date: thisweek },
-    { key: 'nextweek', label: 'Next Week', date: nextweek },
-  ]
-  followupOpts.forEach(opt => {
-    html += `<div class="wo-ctx-item" onclick="ctxSetFollowup('${opt.key}')">
-      <span style="font-size:11px">📅</span>
-      <span style="flex:1">${opt.label}</span>
-      <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
+  // ── Messages section ──
+  const tpl = _msgTemplates || { tenant: { email: [], text: [] }, vendor: { email: [], text: [] }, owner: { email: [], text: [] } }
+
+  function tplItems (group, type) {
+    let s = ''
+    const list = (tpl[group]?.[type]) || []
+    list.forEach((t, i) => {
+      s += `<div class="wo-ctx-item" onclick="ctxSendMsg('${group}','${type}',${i})">${t.name}</div>`
+    })
+    s += `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic" onclick="ctxSendMsg('${group}','${type}',-1)">✏ Free Message</div>`
+    return s
+  }
+
+  const tenantEmailFlyout = flyout('ctx-fly-tenant-email', tplItems('tenant','email'))
+  const tenantTextFlyout  = flyout('ctx-fly-tenant-text',  tplItems('tenant','text'))
+  const vendorEmailFlyout = flyout('ctx-fly-vendor-email', tplItems('vendor','email'))
+  const vendorTextFlyout  = flyout('ctx-fly-vendor-text',  tplItems('vendor','text'))
+
+  const tenantFlyout = flyout('ctx-fly-tenant',
+    `<div class="wo-ctx-item has-flyout">📧 Email${tenantEmailFlyout}</div>` +
+    `<div class="wo-ctx-item has-flyout">💬 Text${tenantTextFlyout}</div>`
+  )
+  const vendorFlyout = flyout('ctx-fly-vendor',
+    `<div class="wo-ctx-item has-flyout">📧 Email${vendorEmailFlyout}</div>` +
+    `<div class="wo-ctx-item has-flyout">💬 Text${vendorTextFlyout}</div>`
+  )
+
+  // ── Follow-up flyout ──
+  const followupFlyout = flyout('ctx-fly-followup',
+    [
+      { key: 'tomorrow', label: 'Tomorrow',  date: tomorrow },
+      { key: 'nextday',  label: 'Next Day',  date: nextday  },
+      { key: 'thisweek', label: 'This Week', date: thisweek },
+      { key: 'nextweek', label: 'Next Week', date: nextweek },
+    ].map(opt =>
+      `<div class="wo-ctx-item" onclick="ctxSetFollowup('${opt.key}')">
+        <span style="font-size:11px">📅</span>
+        <span style="flex:1">${opt.label}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
+      </div>`
+    ).join('') +
+    `<div class="wo-ctx-item" onclick="ctxSetFollowupCustom()">
+      <span style="font-size:11px">📅</span><span>Custom…</span>
+    </div>`
+  )
+
+  // ── Category flyout ──
+  let catItems = ''
+  if (catIds.length) {
+    catItems += `<div class="wo-ctx-item" onclick="ctxClearCats()">
+      <span class="ctx-dot" style="background:var(--border2)"></span>
+      <span style="color:var(--text3);font-style:italic">Clear all</span>
+    </div>`
+  }
+  categories.forEach(cat => {
+    const active = catIds.includes(cat.id)
+    catItems += `<div class="wo-ctx-item" onclick="ctxToggleCat(${cat.id})">
+      <span class="ctx-dot" style="background:${cat.color}"></span>
+      <span style="flex:1">${cat.name}</span>
+      ${active ? '<span style="color:var(--accent);font-size:12px">✓</span>' : ''}
     </div>`
   })
-  html += `<div class="wo-ctx-item" onclick="ctxSetFollowupCustom()">
-    <span style="font-size:11px">📅</span>
-    <span>Custom…</span>
-  </div>`
+  if (!catItems) catItems = `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic">No categories</div>`
+  const categoryFlyout = flyout('ctx-fly-category', catItems)
 
-  // Category section
+  // ── Assemble full menu ──
+  let html = ''
+
+  // Messages section
+  html += '<div class="wo-ctx-section">Messages</div>'
+  html += `<div class="wo-ctx-item has-flyout">👤 Tenant${tenantFlyout}</div>`
+  html += `<div class="wo-ctx-item has-flyout">🔧 Vendor${vendorFlyout}</div>`
+
+  // Tag section
+  html += '<div class="wo-ctx-sep"></div>'
+  html += '<div class="wo-ctx-section">Tag</div>'
+  html += `<div class="wo-ctx-item has-flyout">📅 Follow-up Date${followupFlyout}</div>`
   if (categories.length) {
-    html += '<div class="wo-ctx-sep"></div>'
-    html += '<div class="wo-ctx-section">Category</div>'
-    if (catIds.length) {
-      html += `<div class="wo-ctx-item" onclick="ctxClearCats()">
-        <span class="ctx-dot" style="background:var(--border2)"></span>
-        <span style="color:var(--text3);font-style:italic">Clear all</span>
-      </div>`
-    }
-    categories.forEach(cat => {
-      const active = catIds.includes(cat.id)
-      html += `<div class="wo-ctx-item" onclick="ctxToggleCat(${cat.id})">
-        <span class="ctx-dot" style="background:${cat.color}"></span>
-        <span style="flex:1">${cat.name}</span>
-        ${active ? '<span style="color:var(--accent);font-size:12px">✓</span>' : ''}
-      </div>`
-    })
+    html += `<div class="wo-ctx-item has-flyout">🏷 Category${categoryFlyout}</div>`
   }
 
   const menu = document.getElementById('wo-ctx-menu')
@@ -2106,6 +2307,27 @@ function showWOCtxMenu (e, woNum) {
     if (y + mh > vh - 8) y = vh - mh - 8
     menu.style.left = x + 'px'
     menu.style.top  = y + 'px'
+
+    // Position all flyouts dynamically on hover
+    menu.querySelectorAll('.wo-ctx-item.has-flyout').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        const fly = item.querySelector(':scope > .wo-ctx-flyout')
+        if (!fly) return
+        const r = item.getBoundingClientRect()
+        fly.style.top  = r.top + 'px'
+        fly.style.left = (r.right + 2) + 'px'
+        // Flip left if overflows right edge
+        requestAnimationFrame(() => {
+          if (r.right + fly.offsetWidth + 8 > vw) {
+            fly.style.left = (r.left - fly.offsetWidth - 2) + 'px'
+          }
+          // Flip up if overflows bottom
+          if (r.top + fly.offsetHeight + 8 > vh) {
+            fly.style.top = (vh - fly.offsetHeight - 8) + 'px'
+          }
+        })
+      })
+    })
   })
 }
 
@@ -2175,8 +2397,504 @@ function ctxClearCats () {
   closeCtxMenu()
 }
 
+// =====================
+// MESSAGE TEMPLATES
+// In-memory store — loaded from settings on startup
+// =====================
+let _msgTemplates = {
+  tenant: {
+    email: [
+      { name: 'Not heard from contractor', body: 'Hello {res},\n\nIf you have not heard from our contractor, please call them directly to schedule your repair.\n\n{vendor_details}\n\n' },
+      { name: 'Vendor trying to reach you', body: 'Hello {res},\n\nOur vendor is trying to reach you. Please call them directly to schedule your repair.\n\n{vendor_details}\n\n' },
+    ],
+    text: [
+      { name: 'Not heard from contractor', body: 'Hi {res}, if you have not heard from our contractor please call them directly: {vendor_details}' },
+      { name: 'Vendor trying to reach you', body: 'Hi {res}, our vendor is trying to reach you. Please call them: {vendor_details}' },
+    ]
+  },
+  vendor: {
+    email: [
+      { name: 'Follow up',  body: 'Hello,\n\nWhat is the update on WO #{wo} — {prop}?\n\n' },
+      { name: 'Invoice',    body: 'Hello,\n\nPlease send your invoice for WO #{wo} — {prop}.\n\n' },
+    ],
+    text: [
+      { name: 'Follow up', body: 'Hi, what is the update on WO #{wo} at {prop}?' },
+      { name: 'Invoice',   body: 'Hi, please send your invoice for WO #{wo} at {prop}.' },
+    ]
+  },
+  owner: { email: [], text: [] }
+}
+
+// Vendor directory — loaded from vendors.json on startup
+let _vendorDir = []   // [{ name, phone1, phone2, email }, ...]
+
+// Look up vendor in directory by name (case-insensitive, trimmed)
+function vendorDirLookup (name) {
+  if (!name) return null
+  const key = name.trim().toLowerCase()
+  return _vendorDir.find(v => v.name.trim().toLowerCase() === key) || null
+}
+
+// Build a {vendor_details} string from a vendor record
+function vendorDetailsStr (v) {
+  if (!v) return ''
+  const lines = [v.name]
+  if (v.phone1) lines.push(v.phone1)
+  if (v.phone2) lines.push(v.phone2)
+  if (v.email)  lines.push(v.email)
+  return lines.join('\n')
+}
+
+function msgResolveTokens (body, wo, vendorOverride) {
+  const v       = vendorOverride || vendorDirLookup(wo?.vendor)
+  const details = vendorDetailsStr(v)
+  return body
+    .replace(/{wo}/g,             wo?.wo     || '')
+    .replace(/{prop}/g,           wo?.prop   || '')
+    .replace(/{res}/g,            wo?.res    || '')
+    .replace(/{vendor}/g,         wo?.vendor || '')
+    .replace(/{vendor_phone}/g,   v?.phone1  || '')
+    .replace(/{vendor_email}/g,   v?.email   || '')
+    .replace(/{vendor_details}/g, details)
+}
+
+// ── Render template lists in Settings ──
+function renderMsgTemplates () {
+  ;['tenant','vendor','owner'].forEach(group => {
+    ;['email','text'].forEach(type => {
+      const container = document.getElementById(`msg-list-${group}-${type}`)
+      if (!container) return
+      const list = _msgTemplates[group]?.[type] || []
+      container.innerHTML = ''
+      list.forEach((tpl, i) => {
+        const row = document.createElement('div')
+        row.className = 'msg-template-row'
+        row.innerHTML = `
+          <div class="msg-template-row-header">
+            <input class="msg-template-name" data-group="${group}" data-type="${type}" data-idx="${i}"
+              value="${tpl.name.replace(/"/g,'&quot;')}" placeholder="Template name">
+            <button class="msg-del-btn" onclick="msgDeleteTemplate('${group}','${type}',${i})" title="Delete">🗑</button>
+          </div>
+          <textarea class="msg-template-body" data-group="${group}" data-type="${type}" data-idx="${i}"
+            rows="4" placeholder="Message body... use {wo} {prop} {res} {vendor} {vendor_phone} {vendor_email} {vendor_details}">${tpl.body}</textarea>
+        `
+        container.appendChild(row)
+      })
+    })
+  })
+}
+
+function msgAddTemplate (group, type) {
+  if (!_msgTemplates[group]) _msgTemplates[group] = { email: [], text: [] }
+  if (!_msgTemplates[group][type]) _msgTemplates[group][type] = []
+  _msgTemplates[group][type].push({ name: 'New Template', body: '' })
+  renderMsgTemplates()
+}
+
+function msgDeleteTemplate (group, type, idx) {
+  _msgTemplates[group][type].splice(idx, 1)
+  renderMsgTemplates()
+}
+
+function msgReadFromUI () {
+  ;['tenant','vendor','owner'].forEach(group => {
+    ;['email','text'].forEach(type => {
+      const names = document.querySelectorAll(`.msg-template-name[data-group="${group}"][data-type="${type}"]`)
+      const bodies = document.querySelectorAll(`.msg-template-body[data-group="${group}"][data-type="${type}"]`)
+      const list = []
+      names.forEach((nameEl, i) => {
+        list.push({ name: nameEl.value.trim() || 'Template', body: bodies[i]?.value || '' })
+      })
+      if (!_msgTemplates[group]) _msgTemplates[group] = {}
+      _msgTemplates[group][type] = list
+    })
+  })
+}
+
+async function saveMsgTemplates () {
+  msgReadFromUI()
+  await window.halq.settingsSave({ msgTemplates: _msgTemplates })
+  showDebug('[MSG] Templates saved ✓')
+}
+
+async function loadMsgSettings (s) {
+  if (s.msgTemplates) {
+    ;['tenant','vendor','owner'].forEach(g => {
+      ;['email','text'].forEach(t => {
+        if (s.msgTemplates[g]?.[t]) _msgTemplates[g][t] = s.msgTemplates[g][t]
+      })
+    })
+  }
+}
+
+// =====================
+// VENDOR DIRECTORY — Settings UI + storage
+// =====================
+
+async function vendorDirLoad () {
+  try {
+    const r = await window.halq.vendorsLoad()
+    if (r.ok) _vendorDir = r.vendors || []
+  } catch (e) { console.error('[VENDOR DIR] load error:', e) }
+}
+
+async function vendorDirSave () {
+  try { await window.halq.vendorsSave(_vendorDir) } catch (e) { console.error('[VENDOR DIR] save error:', e) }
+}
+
+// Render the vendor directory table in Settings
+function vendorDirRenderTable (filter) {
+  const tbody     = document.getElementById('vendor-dir-tbody')
+  const countEl   = document.getElementById('vendor-dir-count')
+  if (!tbody) return
+  const q         = (filter || '').trim().toLowerCase()
+  const list      = q ? _vendorDir.filter(v =>
+    v.name.toLowerCase().includes(q) ||
+    (v.phone1||'').includes(q) ||
+    (v.email||'').toLowerCase().includes(q)
+  ) : _vendorDir
+
+  tbody.innerHTML = list.map((v, visIdx) => {
+    const realIdx = _vendorDir.indexOf(v)
+    const esc = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 8px;color:var(--text)">${esc(v.name)}</td>
+      <td style="padding:5px 8px;color:var(--text2)">${esc(v.phone1)}</td>
+      <td style="padding:5px 8px;color:var(--text2)">${esc(v.phone2)}</td>
+      <td style="padding:5px 8px;color:var(--text2)">${esc(v.email)}</td>
+      <td style="padding:5px 4px;text-align:center">
+        <button style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 4px"
+          onclick="vendorDirEdit(${realIdx})" title="Edit">✎</button>
+        <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:2px 4px"
+          onclick="vendorDirDelete(${realIdx})" title="Delete">🗑</button>
+      </td>
+    </tr>`
+  }).join('')
+
+  if (countEl) countEl.textContent = q
+    ? `${list.length} of ${_vendorDir.length} vendors`
+    : `${_vendorDir.length} vendors`
+}
+
+// Import from Excel — confirms before overwriting
+async function vendorDirImportExcel () {
+  const statusEl = document.getElementById('vendor-dir-status')
+  if (statusEl) { statusEl.textContent = 'Importing from Excel…'; statusEl.className = 'creds-status' }
+  try {
+    const r = await window.halq.vendorsImportExcel()
+    if (!r.ok) {
+      if (statusEl) { statusEl.textContent = '✗ ' + r.error; statusEl.className = 'creds-status err' }
+      return
+    }
+    const count = r.vendors.length
+    // Merge: keep existing entries that aren't in the import, add/update from import
+    const importMap = {}
+    r.vendors.forEach(v => { importMap[v.name.trim().toLowerCase()] = v })
+    // Remove ones that were already in dir (will be replaced by import version)
+    const kept = _vendorDir.filter(v => !importMap[v.name.trim().toLowerCase()])
+    _vendorDir = [...kept, ...r.vendors].sort((a,b) => a.name.localeCompare(b.name))
+    await vendorDirSave()
+    vendorDirRenderTable(document.getElementById('vendor-dir-search')?.value)
+    if (statusEl) { statusEl.textContent = `✓ Imported ${count} vendors`; statusEl.className = 'creds-status ok' }
+    setTimeout(() => { if (statusEl) statusEl.textContent = '' }, 3000)
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.className = 'creds-status err' }
+  }
+}
+
+// Add a blank vendor row and open edit modal
+function vendorDirAddManual () {
+  const newV = { name: '', phone1: '', phone2: '', email: '' }
+  _vendorDir.push(newV)
+  const idx = _vendorDir.length - 1
+  vendorDirRenderTable(document.getElementById('vendor-dir-search')?.value)
+  vendorDirEdit(idx)
+}
+
+// Edit vendor via inline modal
+function vendorDirEdit (idx) {
+  const v = _vendorDir[idx]
+  if (!v) return
+  showVendorModal(v, false, async (updated) => {
+    _vendorDir[idx] = updated
+    _vendorDir.sort((a,b) => a.name.localeCompare(b.name))
+    await vendorDirSave()
+    vendorDirRenderTable(document.getElementById('vendor-dir-search')?.value)
+  })
+}
+
+async function vendorDirDelete (idx) {
+  _vendorDir.splice(idx, 1)
+  await vendorDirSave()
+  vendorDirRenderTable(document.getElementById('vendor-dir-search')?.value)
+}
+
+// ── Vendor modal (used for both edit-in-settings and missing-vendor prompt) ──
+// onSave(updatedVendor) called on confirm.  isPrompt=true shows different title.
+function showVendorModal (vendor, isPrompt, onSave) {
+  // Remove any existing
+  document.getElementById('vendor-modal-overlay')?.remove()
+
+  const esc = s => (s||'').replace(/"/g,'&quot;')
+  const overlay = document.createElement('div')
+  overlay.id = 'vendor-modal-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;display:flex;align-items:center;justify-content:center'
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;
+                padding:20px 22px;width:420px;max-width:92vw;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;font-size:13px;color:var(--text)">
+          ${isPrompt ? '⚠ Vendor details missing' : '✎ Edit Vendor'}
+        </span>
+        <span id="vendor-modal-close" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
+      </div>
+      ${isPrompt ? `<div style="font-size:11px;color:var(--text3);margin-bottom:2px">No details found for <strong style="color:var(--text)">${vendor.name || 'this vendor'}</strong>. Add them to continue.</div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em">Vendor Name</div>
+          <input id="vmod-name"   class="creds-input" style="margin:0" value="${esc(vendor.name)}"   placeholder="Company or person name">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em">Phone 1</div>
+          <input id="vmod-phone1" class="creds-input" style="margin:0" value="${esc(vendor.phone1)}" placeholder="(xxx) xxx-xxxx">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em">Phone 2</div>
+          <input id="vmod-phone2" class="creds-input" style="margin:0" value="${esc(vendor.phone2)}" placeholder="Optional">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em">Email</div>
+          <input id="vmod-email"  class="creds-input" style="margin:0" value="${esc(vendor.email)}"  placeholder="vendor@example.com">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button id="vmod-save" class="btn btn-primary" style="flex:1;justify-content:center">
+          ${isPrompt ? '💾 Save & Continue' : '💾 Save'}
+        </button>
+        <button id="vmod-cancel" class="btn btn-ghost" style="flex:1;justify-content:center">
+          ${isPrompt ? 'Skip' : 'Cancel'}
+        </button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(overlay)
+
+  const close = () => overlay.remove()
+  overlay.querySelector('#vendor-modal-close').addEventListener('click', close)
+  overlay.querySelector('#vmod-cancel').addEventListener('click', () => { close(); if (isPrompt && onSave) onSave(null) })
+  overlay.querySelector('#vmod-save').addEventListener('click', async () => {
+    const updated = {
+      name:   document.getElementById('vmod-name').value.trim(),
+      phone1: document.getElementById('vmod-phone1').value.trim(),
+      phone2: document.getElementById('vmod-phone2').value.trim(),
+      email:  document.getElementById('vmod-email').value.trim()
+    }
+    close()
+    if (onSave) onSave(updated)
+  })
+  // Focus name field
+  setTimeout(() => document.getElementById('vmod-name')?.focus(), 60)
+}
+
+// =====================
+// SEND MESSAGE — injection chain
+// =====================
+function ctxSendMsg (group, type, tplIdx) {
+  if (!_ctxWoNum) return
+  closeCtxMenu()
+
+  const wo = wos.find(x => x.wo === _ctxWoNum)
+
+  // For tenant messages that include vendor details, or any vendor message,
+  // we need vendor info. Check directory; if missing → prompt first, then proceed.
+  const needsVendor = (group === 'tenant' && (
+    (_msgTemplates[group]?.[type]?.[tplIdx]?.body || '').includes('{vendor')
+  )) || group === 'vendor'
+
+  const vendorName = wo?.vendor || ''
+  const existingV  = vendorDirLookup(vendorName)
+
+  if (needsVendor && vendorName && !existingV) {
+    // Prompt user to fill in vendor details before continuing
+    showVendorModal({ name: vendorName, phone1: '', phone2: '', email: '' }, true, async (saved) => {
+      let vendorOverride = null
+      if (saved && saved.name) {
+        // Add to directory and save
+        const existing = vendorDirLookup(saved.name)
+        if (!existing) {
+          _vendorDir.push(saved)
+          _vendorDir.sort((a,b) => a.name.localeCompare(b.name))
+        } else {
+          Object.assign(existing, saved)
+        }
+        await vendorDirSave()
+        vendorOverride = saved
+      }
+      _doSendMsg(group, type, tplIdx, wo, vendorOverride)
+    })
+    return
+  }
+
+  _doSendMsg(group, type, tplIdx, wo, existingV)
+}
+
+function _doSendMsg (group, type, tplIdx, wo, vendorOverride) {
+  const body = tplIdx >= 0
+    ? msgResolveTokens(_msgTemplates[group]?.[type]?.[tplIdx]?.body || '', wo, vendorOverride)
+    : msgResolveTokens('', wo, vendorOverride)
+
+  showDebug(`[MSG] Starting: ${group} / ${type} / ${tplIdx >= 0 ? _msgTemplates[group]?.[type]?.[tplIdx]?.name : 'Free Message'}`)
+
+  // Step 1 — navigate to WO (same pattern as selectWO auto-search)
+  const woNum    = wo?.wo || ''
+  const woSearch = woNum.split('-')[0]
+  const searchUrl = afBaseUrl
+    ? `${afBaseUrl}/search/advanced_search?full_text_search=${woSearch}&section_keys=work_orders`
+    : ''
+  if (!searchUrl) { showDebug('[MSG] ✗ No AppFolio URL configured'); return }
+
+  const view = document.getElementById('appfolio-view')
+  if (!view) { showDebug('[MSG] ✗ No webview found'); return }
+
+  // Switch to WO / AppFolio panel so user can see
+  switchMainView('wo')
+
+  document.getElementById('af-url').value = searchUrl
+  view.src = searchUrl
+  showDebug('[MSG] Navigating to WO search...')
+
+  // Step 2 — after search loads, find & navigate to WO detail (same poll as selectWO)
+  const onSearchLoad = () => {
+    view.removeEventListener('did-stop-loading', onSearchLoad)
+    showDebug('[MSG] Search loaded — polling for WO detail link...')
+    let attempts = 0
+    const poll = setInterval(() => {
+      attempts++
+      if (attempts > 20) { clearInterval(poll); showDebug('[MSG] ✗ WO detail link not found'); return }
+      view.executeJavaScript(`
+        (function () {
+          try {
+            const all = Array.from(document.querySelectorAll('a[href]'))
+            const match = all.find(a => a.href.includes('/service_requests/') && a.href.includes('work_order_id='))
+            return match ? match.href : null
+          } catch(e) { return null }
+        })()
+      `).then(href => {
+        if (href && href.startsWith('http')) {
+          clearInterval(poll)
+          showDebug('[MSG] WO detail found — navigating...')
+          document.getElementById('af-url').value = href
+          view.src = href
+
+          // Step 3 — after detail loads, inject action
+          const onDetailLoad = () => {
+            view.removeEventListener('did-stop-loading', onDetailLoad)
+            setTimeout(() => msgInjectAction(view, group, type, body), 400)
+          }
+          view.addEventListener('did-stop-loading', onDetailLoad)
+        }
+      }).catch(() => {})
+    }, 200)
+  }
+  view.addEventListener('did-stop-loading', onSearchLoad)
+}
+
+function msgInjectAction (view, group, type, body) {
+  showDebug(`[MSG] Injecting action: ${group} / ${type}`)
+  const safeBody = JSON.stringify(body)
+
+  if (group === 'tenant' && type === 'email') {
+    // Click Actions dropdown → Notify Tenant → fill textarea
+    view.executeJavaScript(`
+      (function () {
+        try {
+          // Open the Actions dropdown
+          const actBtn = document.querySelector('.js-options-dropdown-toggle')
+          if (!actBtn) return 'no-actions-btn'
+          actBtn.click()
+
+          // Wait for dropdown to open then click Notify Tenant
+          let tries = 0
+          const poll = setInterval(() => {
+            tries++
+            if (tries > 15) { clearInterval(poll); return }
+            const notifyBtn = document.querySelector('.js-work-order-action-notify_tenant')
+            if (notifyBtn) {
+              clearInterval(poll)
+              notifyBtn.click()
+              // Wait for modal then fill
+              let mTries = 0
+              const mPoll = setInterval(() => {
+                mTries++
+                if (mTries > 20) { clearInterval(mPoll); return }
+                const ta = document.getElementById('email_options_body')
+                if (ta) {
+                  clearInterval(mPoll)
+                  ta.value = ${safeBody}
+                  ta.dispatchEvent(new Event('input', { bubbles: true }))
+                }
+              }, 200)
+            }
+          }, 200)
+          return 'triggered'
+        } catch(e) { return 'error: ' + e.message }
+      })()
+    `).then(r => showDebug('[MSG] Inject result: ' + r))
+     .catch(e => showDebug('[MSG] ✗ Inject error: ' + e.message))
+
+  } else if (group === 'vendor' && type === 'email') {
+    // Click Email button → fill textarea
+    view.executeJavaScript(`
+      (function () {
+        try {
+          const emailBtn = document.querySelector('.js-work-order-action-notify_vendor')
+          if (!emailBtn) return 'no-vendor-email-btn'
+          emailBtn.click()
+          let tries = 0
+          const poll = setInterval(() => {
+            tries++
+            if (tries > 20) { clearInterval(poll); return }
+            const ta = document.getElementById('email_options_body')
+            if (ta) {
+              clearInterval(poll)
+              ta.value = ${safeBody}
+              ta.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+          }, 200)
+          return 'triggered'
+        } catch(e) { return 'error: ' + e.message }
+      })()
+    `).then(r => showDebug('[MSG] Inject result: ' + r))
+     .catch(e => showDebug('[MSG] ✗ Inject error: ' + e.message))
+
+  } else if (type === 'text') {
+    // Click Message button (SMS launcher)
+    view.executeJavaScript(`
+      (function () {
+        try {
+          const msgBtn = document.querySelector('[data-messaging-launcher-trigger="true"]')
+          if (!msgBtn) return 'no-msg-btn'
+          msgBtn.click()
+          return 'triggered'
+        } catch(e) { return 'error: ' + e.message }
+      })()
+    `).then(r => showDebug('[MSG] SMS launcher: ' + r))
+     .catch(e => showDebug('[MSG] ✗ SMS error: ' + e.message))
+
+  } else {
+    showDebug('[MSG] ✗ Unknown action type: ' + group + '/' + type)
+  }
+}
+
 // Close context menu on any outside click or scroll
-document.addEventListener('click',    closeCtxMenu)
+// Guard: ignore clicks that are inside the menu itself, or within 80ms of opening (same event cycle)
+document.addEventListener('click', e => {
+  const menu = document.getElementById('wo-ctx-menu')
+  if (!menu || menu.style.display === 'none') return
+  if (Date.now() - _ctxOpenedAt < 80) return   // same event cycle as right-click — ignore
+  if (menu.contains(e.target)) return           // click was inside the menu — don't close
+  closeCtxMenu()
+})
 document.addEventListener('scroll',   closeCtxMenu, true)
 document.addEventListener('keydown',  e => { if (e.key === 'Escape') closeCtxMenu() })
 
@@ -2769,10 +3487,11 @@ function setTheme(theme, el) {
 // SETTINGS TABS
 // =====================
 function switchSettingsTab (tab) {
-  ['accounts','appearance','prefs'].forEach(t => {
+  ['accounts','appearance','prefs','messages'].forEach(t => {
     document.getElementById('stab-' + t).classList.toggle('active', t === tab)
     document.getElementById('stab-content-' + t).style.display = t === tab ? '' : 'none'
   })
+  if (tab === 'messages') { renderMsgTemplates(); vendorDirRenderTable() }
 }
 
 // =====================
@@ -2812,6 +3531,9 @@ async function loadAppSettings () {
     if (!result.ok) return
     const s = result.settings || {}
     if (s.excelPath) document.getElementById('excel-path-input').value = s.excelPath
+
+    // Load message templates + globals
+    await loadMsgSettings(s)
 
     // Restore nav style — apply to WO nav surfaces and mark the correct Settings option active
     if (s.navStyle) {
@@ -3730,6 +4452,7 @@ function _halqReady (fn, attempts) {
 _halqReady(async () => {
   await loadAppSettings()
   await loadCredsToUI()
+  await vendorDirLoad()
   // Load tags BEFORE Excel so woTags is populated when autoTagNewWOs runs
   await loadWOTags()
   await loadExcelData().catch(() => {

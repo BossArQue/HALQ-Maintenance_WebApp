@@ -57,6 +57,11 @@ contextBridge.exposeInMainWorld('halq', {
   // --- Profile info (which profile this window is running as) ---
   profileInfo: () => ipcRenderer.invoke('profile-info'),
 
+  // --- Vendor Directory ---
+  vendorsLoad:         ()          => ipcRenderer.invoke('vendors-load'),
+  vendorsSave:         (vendors)   => ipcRenderer.invoke('vendors-save', vendors),
+  vendorsImportExcel:  ()          => ipcRenderer.invoke('vendors-import-excel'),
+
   // --- Auto-updater ---
   updateCheck:    ()         => ipcRenderer.invoke('update-check'),
   updateDownload: (asarUrl)  => ipcRenderer.invoke('update-download', asarUrl),

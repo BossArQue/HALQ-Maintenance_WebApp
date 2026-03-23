@@ -420,6 +420,56 @@ ipcMain.handle('categories-load', async () => {
 })
 
 // =====================
+// VENDOR DIRECTORY
+// Local JSON store — seeded from Excel "Data Base Vendor" sheet
+// Schema per entry: { name, phone1, phone2, email }
+// =====================
+const VENDOR_DIR_PATH = path.join(USER_DATA_DIR, 'vendors.json')
+const VENDOR_SHEET    = 'Data Base Vendor'
+
+ipcMain.handle('vendors-load', async () => {
+  try {
+    if (!fs.existsSync(VENDOR_DIR_PATH)) return { ok: true, vendors: [] }
+    const data = JSON.parse(fs.readFileSync(VENDOR_DIR_PATH, 'utf8'))
+    return { ok: true, vendors: data }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+ipcMain.handle('vendors-save', async (_event, vendors) => {
+  try {
+    fs.mkdirSync(path.dirname(VENDOR_DIR_PATH), { recursive: true })
+    fs.writeFileSync(VENDOR_DIR_PATH, JSON.stringify(vendors, null, 2), 'utf8')
+    return { ok: true }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+// Parse vendor sheet from Excel and return parsed list (does NOT auto-save)
+ipcMain.handle('vendors-import-excel', async () => {
+  try {
+    const settings   = loadSettings()
+    const excelPath  = settings.excelPath || ''
+    if (!excelPath)               return { ok: false, error: 'Excel path not configured.' }
+    if (!fs.existsSync(excelPath)) return { ok: false, error: 'Excel file not found: ' + excelPath }
+
+    const workbook  = XLSX.readFile(excelPath, { cellDates: false, sheetStubs: true })
+    const worksheet = workbook.Sheets[VENDOR_SHEET]
+    if (!worksheet) return { ok: false, error: `Sheet "${VENDOR_SHEET}" not found in workbook.` }
+
+    const rows    = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+    const vendors = rows.slice(1)
+      .map(row => ({
+        name:   String(row[0] || '').trim(),
+        phone1: String(row[1] || '').trim(),
+        phone2: String(row[2] || '').trim(),
+        email:  String(row[3] || '').trim()
+      }))
+      .filter(v => v.name)
+
+    return { ok: true, vendors }
+  } catch (err) { return { ok: false, error: err.message } }
+})
+
+// =====================
 // EXCEL IMPORT
 // =====================
 ipcMain.handle('excel-import', async (_event, exportFilePath) => {
