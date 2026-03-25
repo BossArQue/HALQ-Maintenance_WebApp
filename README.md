@@ -28,7 +28,7 @@ HALQ uses a 3-part version number: `1.MAJOR.MINOR`
 | `MAJOR` | Major update | New feature set, significant UI overhaul, architecture change |
 | `MINOR` | Minor update | Bug fix, small UI change, single-feature addition (1–99, then rolls MAJOR) |
 
-**Current version: `1.1.5`**
+**Current version: `1.2.0`**
 
 | Version | Change |
 |---|---|
@@ -37,6 +37,7 @@ HALQ uses a 3-part version number: `1.MAJOR.MINOR`
 | `1.1.3` | Fix: context menu Send Message dead URL (capturedWoNum before closeCtxMenu) |
 | `1.1.4` | UI: context menu redesigned — two-panel slide layout replaces hover flyouts |
 | `1.1.5` | Feature: SMS self-learning selector discovery |
+| `1.2.0` | Fix+UI: tab counter scoped fix; context menu two-panel redesign (no hover flyouts, no disappear bug); category manager arrow-sort replaces drag; version shown in bottom bar |
 
 ---
 
@@ -392,8 +393,8 @@ Results are scoped to Work Orders only via `section_keys=work_orders`.
 ### Auto Due Date on New WOs
 On every Excel load, WOs that have no saved tag and are ≤ 2 **business** days old get a follow-up date of `today + 3 business days` assigned silently. Business-day age is used (not calendar age) so weekend-created WOs are correctly detected on Monday.
 
-### Category Drag-and-Drop Sort
-Categories can be reordered via drag-and-drop in the Category Manager modal. The `⠿` handle on the left of each row is the grab target. New order is saved immediately to `categories.json`.
+### Category Sort Order
+Categories in the Category Manager modal can be reordered using the **▲ / ▼** arrow buttons on the right of each row. New order is saved immediately to `categories.json`.
 
 ### WO List Section Groups
 Work orders with a follow-up date are grouped into sections in this order:
@@ -411,7 +412,10 @@ Work orders with a follow-up date are grouped into sections in this order:
 The search box always operates within the active chip filter. Typing `50452` while the Overdue chip is active shows only overdue WOs matching that query. Switching chips clears the search box so results are never stale.
 
 ### Right-Click Context Menu on WO Cards
-Right-clicking any WO card opens a two-panel context menu. The left rail lists all actions (Tenant Email, Tenant Text, Vendor Email, Vendor Text, Follow-up Date, Category). Clicking a rail item slides in the right panel with the relevant options. Changes are persisted immediately to `wo-tags.json`.
+Right-clicking any WO card opens a two-panel context menu. The **left rail** lists all actions (Tenant Email, Tenant Text, Vendor Email, Vendor Text, Follow-up, Category). Clicking a rail item slides in the right panel with the relevant options. The menu stays open while toggling categories. Changes are persisted immediately to `wo-tags.json`.
+
+### Category Manager — Reorder
+Categories in the Category Manager modal can be reordered using the **▲ / ▼** buttons on the right side of each row. Order is persisted immediately to `categories.json`.
 
 ### Filter Bar — Category Dropdown
 The filter bar shows three fixed chips: **All**, **Overdue**, **Due Today**. When at least one category has WOs assigned, a **Categories ▾** button appears on the right. Clicking it opens a dropdown flyout listing active categories with color dot and count. Selecting a category filters the list and highlights the button in that category's color.

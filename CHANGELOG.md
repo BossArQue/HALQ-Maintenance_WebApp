@@ -2300,7 +2300,84 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - Detail drawer label changed from `Categorize` to `Category`
 ---
 
-## Session 13 — 2026-03-25
+## Session 13 — 2026-03-25 (continued)
+
+---
+
+### [2026-03-25] Fix — Web Tab Counter Scoped to Appfolio Tabs Only (v1.2.0 patch)
+
+**File:** `index.html`
+
+**Bug:** After closing all Appfolio tabs and reopening, counter resumed from last number (e.g. New Tab 3, 4) instead of resetting to 1.
+
+**Root cause:** `_nextTabNum()` queried `document.querySelectorAll('.af-tab')` — this matched both `#af-tabs` (Appfolio) and `#em-tabs` (Outlook) since both use the `.af-tab` class. If Outlook tabs had been numbered, they inflated the max. More importantly, the permanent `🏠 Appfolio` home tab in `#af-tabs` prevented the array from ever being empty, but the real issue was cross-panel contamination.
+
+**Fix:** Scoped the query to `document.getElementById('af-tabs').querySelectorAll('.af-tab')` — only counts tabs in the Appfolio panel.
+
+---
+
+### [2026-03-25] Fix + UI — Context Menu: Two-Panel Rail Design, No Hover Flyouts (v1.2.0)
+
+**File:** `index.html`
+
+**Bugs fixed:**
+1. Context menu disappeared when moving mouse from a WO card to the menu — `document.addEventListener('scroll', closeCtxMenu, true)` fired on any scroll including inside the menu panel itself.
+2. Nested hover-flyout submenus (Tenant → Email/Text → templates) disappeared on the microsecond gap between leaving the parent item and entering the child flyout.
+3. Tenant/Vendor Email & Text actions were buried 3 levels deep.
+
+**Redesign:**
+- **Left rail** (148px fixed): flat list — Tenant Email, Tenant Text, Vendor Email, Vendor Text, Follow-up, Category — always visible, no hover.
+- **Right panel**: populated on click of a rail item. Category panel stays open and refreshes in place while toggling (no close/reopen on each toggle).
+- `_ctxBuildPanel(key)` — renders right panel content for the selected rail key.
+- `ctxSetFollowupByDate(isoDate)` — new direct-date setter used by follow-up panel items.
+- `ctxToggleCat(catId)` — now calls `_ctxBuildPanel('category')` to refresh checkmarks in place instead of closing.
+- Removed `document.addEventListener('scroll', closeCtxMenu, true)` — replaced with click-outside + Escape only. Scroll inside the right panel works normally.
+- Removed all `.wo-ctx-flyout`, `.wo-ctx-item.has-flyout`, and hover-flyout CSS.
+
+---
+
+### [2026-03-25] UI — Category Manager: Arrow-Button Sort Replaces Drag-and-Drop (v1.2.0)
+
+**File:** `index.html`
+
+**Problem:** As category count grew, drag-and-drop reordering required scrolling to find the target position, dragging, then scrolling back — tedious at 10+ categories.
+
+**Change:** Replaced `⠿` drag handle + drag event listeners with **▲ / ▼** arrow buttons inline on each category row. Top item's ▲ and bottom item's ▼ are disabled.
+
+- `catmgrMoveUp(catId)` / `catmgrMoveDown(catId)` — swap adjacent entries in `categories[]`, re-render list, save.
+- Removed `initCatDrag()`, `_catDragSrc`, `dragstart/dragend/dragover/dragleave/drop` listeners.
+- Removed `.catmgr-drag-handle`, `.catmgr-item.dragging`, `.catmgr-item.drag-over` CSS.
+- Added `.catmgr-sort-btns`, `.catmgr-sort-btn` CSS.
+
+---
+
+### [2026-03-25] UI — Version Number in Bottom Bar (v1.2.0)
+
+**File:** `index.html`
+
+**Change:** Added `#bb-version` display element to the bottom bar between Overdue and the clock. Shows `v—` on startup, populated with the live version from `window.halq.updateVersion()` alongside the sidebar label in `checkForUpdate()`.
+
+**Bottom bar now shows:** `📋 N Active WOs · ⚠️ N Overdue · vX.X.X · [clock]`
+
+---
+
+### [2026-03-25] Docs — README + CHANGELOG Updated (v1.2.0)
+
+**README.md**
+- Version table updated: added `1.2.0` row.
+- Context menu behavior updated to describe two-panel rail design.
+- Category sort updated to describe arrow-button reorder (removed drag-and-drop reference).
+- Added Category Manager — Reorder section.
+
+**CHANGELOG.md**
+- Session 13 continued entries added.
+
+---
+
+**Git commit message:**
+```
+v1.2.0 — ctx menu two-panel redesign, tab counter fix, cat arrow-sort, version in bottom bar
+```
 
 ---
 
