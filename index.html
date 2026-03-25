@@ -233,22 +233,48 @@
   .wo-search-clear:hover { color: var(--text); }
   .wo-filters-wrap {
     display: flex; align-items: center; border-bottom: 1px solid var(--border);
-    padding: 6px 4px; gap: 2px;
+    padding: 5px 8px; gap: 4px; flex-shrink: 0;
   }
-  .wo-filters-arrow {
-    background: none; border: none; color: var(--text3); cursor: pointer;
-    font-size: 10px; padding: 2px 4px; flex-shrink: 0; line-height: 1;
-    border-radius: 3px; transition: all 0.15s;
+  .wo-filters { display: flex; gap: 4px; flex-shrink: 0; }
+  /* Category dropdown */
+  .wo-filter-more-wrap { position: relative; margin-left: auto; flex-shrink: 0; }
+  .wo-filter-more-btn {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text2); font-size: 10px; padding: 2px 8px;
+    border-radius: 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
   }
-  .wo-filters-arrow:hover { color: var(--text); background: var(--surface2); }
-  .wo-filters-arrow.disabled { opacity: 0.2; pointer-events: none; }
-  .wo-filters {
-    flex: 1; display: flex; gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none; cursor: grab; user-select: none;
+  .wo-filter-more-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .wo-filter-more-btn.cat-active { border-color: var(--accent); color: #fff; }
+  .wo-filter-dropdown {
+    position: fixed; z-index: 600;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px; min-width: 175px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    display: none; flex-direction: column;
+    max-height: 260px; overflow-y: auto;
   }
-  .wo-filters::-webkit-scrollbar { display: none; }
-  .wo-filters.dragging { cursor: grabbing; }
+  .wo-filter-dropdown::-webkit-scrollbar { width: 4px; }
+  .wo-filter-dropdown::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .wo-filter-dropdown.open { display: flex; }
+  .wo-filter-dd-hd {
+    font-size: 9px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 5px 10px 3px; font-family: 'JetBrains Mono', monospace;
+  }
+  .wo-filter-dd-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 5px; cursor: pointer;
+    font-size: 11px; color: var(--text2); transition: background 0.1s;
+  }
+  .wo-filter-dd-item:hover { background: var(--surface2); color: var(--text); }
+  .wo-filter-dd-item.active { background: rgba(91,156,246,0.08); color: var(--text); }
+  .wo-filter-dd-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .wo-filter-dd-count {
+    margin-left: auto; font-size: 9px; color: var(--text3);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 8px;
+  }
+  .wo-filter-dd-empty { font-size: 11px; color: var(--text3); padding: 8px 10px; font-style: italic; }
   .filter-chip {
     padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
     border: 1px solid var(--border2); color: var(--text3); white-space: nowrap; transition: all 0.15s;
@@ -1337,13 +1363,18 @@
             <button class="btn btn-ghost" style="padding:4px 8px" onclick="toggleDetail()">⊞</button>
           </div>
           <div class="wo-filters-wrap">
-            <button class="wo-filters-arrow disabled" id="chips-arrow-left" onclick="scrollChips(-1)">◀</button>
             <div class="wo-filters" id="wo-filters">
-              <div class="filter-chip active" onclick="toggleChip(this,'all')">All</div>
-              <div class="filter-chip" id="chip-overdue" onclick="toggleChip(this,'overdue')">Overdue</div>
-              <div class="filter-chip" id="chip-today" onclick="toggleChip(this,'today')">Due Today</div>
+              <div class="filter-chip active" id="chip-all"     onclick="toggleChip(this,'all')">All</div>
+              <div class="filter-chip"        id="chip-overdue" onclick="toggleChip(this,'overdue')">Overdue</div>
+              <div class="filter-chip"        id="chip-today"   onclick="toggleChip(this,'today')">Due Today</div>
             </div>
-            <button class="wo-filters-arrow" id="chips-arrow-right" onclick="scrollChips(1)">▶</button>
+            <div class="wo-filter-more-wrap" id="wo-filter-more-wrap" style="display:none">
+              <button class="wo-filter-more-btn" id="wo-filter-more-btn" onclick="toggleCatDropdown(event)">Categories ▾</button>
+              <div class="wo-filter-dropdown" id="wo-filter-dropdown">
+                <div class="wo-filter-dd-hd">Categories</div>
+                <div id="wo-filter-dd-list"><div class="wo-filter-dd-empty">None assigned</div></div>
+              </div>
+            </div>
           </div>
           <div class="wo-list" id="wo-list"></div>
         </div>
@@ -1791,6 +1822,10 @@
 
       </div>
 
+    </div>
+  </div>
+</div>
+
 <script>
 // =====================
 // ELECTRON IPC — exposed via preload.js as window.halq
@@ -1971,62 +2006,106 @@ function filterWOs(query) {
   renderWOList(filtered)
 }
 
-function toggleChip(el, filter) {
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  currentFilter = filter;
-  // Clear search box when switching chips so results are not stale
+function toggleChip (el, filter) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
+  document.querySelectorAll('.wo-filter-dd-item').forEach(d => d.classList.remove('active'))
+  el.classList.add('active')
+  currentFilter = filter
   const searchInput = document.getElementById('wo-search-input')
-  if (searchInput && searchInput.value) {
-    searchInput.value = ''
-    updateSearchClear(searchInput)
-  }
-  // Apply category color to active chip
-  if (filter.startsWith('cat:')) {
-    const cat = getCatById(parseInt(filter.split(':')[1]))
-    if (cat && el) {
-      el.style.background = cat.color
-      el.style.borderColor = cat.color
-      el.style.color = '#fff'
-    }
-  }
+  if (searchInput && searchInput.value) { searchInput.value = ''; updateSearchClear(searchInput) }
+  _updateCatBtn()
   renderWOList()
 }
 
-// Render dynamic category chips based on categories that have at least one WO assigned
+// Render category list inside the dropdown flyout
 function renderCategoryChips () {
-  const filtersEl = document.getElementById('wo-filters')
-  if (!filtersEl) return
-  // Remove existing category chips
-  filtersEl.querySelectorAll('.chip-cat').forEach(c => c.remove())
-  // Find categories that are actually used in current wos
-  const usedCatIds = new Set()
+  const ddList = document.getElementById('wo-filter-dd-list')
+  const moreWrap = document.getElementById('wo-filter-more-wrap')
+  if (!ddList) return
+
+  // Collect used category IDs
+  const usedIds = new Set()
   wos.forEach(w => {
     const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
-    ids.forEach(id => usedCatIds.add(id))
+    ids.forEach(id => usedIds.add(id))
   })
-  // Add a chip for each used category, styled with its color
-  categories.forEach(cat => {
-    if (!usedCatIds.has(cat.id)) return
-    const chip = document.createElement('div')
-    chip.className = 'filter-chip chip-cat'
-    chip.textContent = cat.name
-    chip.dataset.catid = cat.id
-    chip.style.borderColor = cat.color
-    chip.style.color = cat.color
-    chip.onclick = function () { toggleChip(this, 'cat:' + cat.id) }
-    // If this chip is currently active, restore active style
-    if (currentFilter === 'cat:' + cat.id) {
-      chip.classList.add('active')
-      chip.style.background = cat.color
-      chip.style.color = '#fff'
-      chip.style.borderColor = cat.color
-    }
-    filtersEl.appendChild(chip)
-  })
-  // Re-check arrow state now that chips have been added/removed
-  updateChipArrows()
+  const usedCats = categories.filter(c => usedIds.has(c.id))
+
+  // Show/hide the More button
+  if (moreWrap) moreWrap.style.display = usedCats.length ? '' : 'none'
+
+  if (!usedCats.length) {
+    ddList.innerHTML = '<div class="wo-filter-dd-empty">No categories assigned</div>'
+    return
+  }
+
+  ddList.innerHTML = usedCats.map(cat => {
+    const count = wos.filter(w => {
+      const ids = Array.isArray(w._catIds) ? w._catIds : (w._catId ? [w._catId] : [])
+      return ids.includes(cat.id)
+    }).length
+    const isActive = currentFilter === 'cat:' + cat.id
+    return `<div class="wo-filter-dd-item${isActive ? ' active' : ''}"
+      onclick="selectCatFilter(${cat.id})">
+      <span class="wo-filter-dd-dot" style="background:${cat.color}"></span>
+      <span style="flex:1">${cat.name}</span>
+      <span class="wo-filter-dd-count">${count}</span>
+    </div>`
+  }).join('')
+
+  _updateCatBtn()
 }
+
+function selectCatFilter (catId) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
+  currentFilter = 'cat:' + catId
+  closeCatDropdown()
+  const searchInput = document.getElementById('wo-search-input')
+  if (searchInput && searchInput.value) { searchInput.value = ''; updateSearchClear(searchInput) }
+  renderCategoryChips()
+  renderWOList()
+}
+
+function _updateCatBtn () {
+  const btn = document.getElementById('wo-filter-more-btn')
+  if (!btn) return
+  if (currentFilter.startsWith('cat:')) {
+    const cat = getCatById(parseInt(currentFilter.split(':')[1]))
+    btn.classList.add('cat-active')
+    btn.style.background = cat ? cat.color : 'var(--accent)'
+    btn.style.borderColor = cat ? cat.color : 'var(--accent)'
+    btn.textContent = (cat ? cat.name : 'Category') + ' ▾'
+  } else {
+    btn.classList.remove('cat-active')
+    btn.style.background = ''
+    btn.style.borderColor = ''
+    btn.textContent = 'Categories ▾'
+  }
+}
+
+function toggleCatDropdown (e) {
+  e.stopPropagation()
+  const dd  = document.getElementById('wo-filter-dropdown')
+  const btn = document.getElementById('wo-filter-more-btn')
+  if (!dd) return
+  if (dd.classList.contains('open')) { closeCatDropdown(); return }
+  const r = btn.getBoundingClientRect()
+  dd.style.top   = (r.bottom + 4) + 'px'
+  dd.style.right = (window.innerWidth - r.right) + 'px'
+  dd.style.left  = 'auto'
+  dd.classList.add('open')
+}
+
+function closeCatDropdown () {
+  document.getElementById('wo-filter-dropdown')?.classList.remove('open')
+}
+
+document.addEventListener('click', e => {
+  const dd  = document.getElementById('wo-filter-dropdown')
+  const btn = document.getElementById('wo-filter-more-btn')
+  if (!dd || !dd.classList.contains('open')) return
+  if (!dd.contains(e.target) && !btn?.contains(e.target)) closeCatDropdown()
+})
 
 function selectWO(woNum) {
   selectedWO = wos.find(w => w.wo === woNum);
@@ -2184,7 +2263,7 @@ function _ctxSave (woNum, patch) {
   showDebug('✓ Saved: ' + woNum)
 }
 
-let _ctxOpenedAt = 0   // timestamp of last menu open — guards against immediate close
+
 
 function closeCtxMenu () {
   const m = document.getElementById('wo-ctx-menu')
@@ -2195,8 +2274,7 @@ function closeCtxMenu () {
 function showWOCtxMenu (e, woNum) {
   e.preventDefault()
   e.stopPropagation()
-  _ctxWoNum    = woNum
-  _ctxOpenedAt = Date.now()
+  _ctxWoNum = woNum
 
   const today    = new Date(); today.setHours(0,0,0,0)
   const tomorrow = nextBizDay(today)
@@ -2701,9 +2779,10 @@ function showVendorModal (vendor, isPrompt, onSave) {
 // =====================
 function ctxSendMsg (group, type, tplIdx) {
   if (!_ctxWoNum) return
+  const capturedWoNum = _ctxWoNum   // capture before closeCtxMenu() nulls it
   closeCtxMenu()
 
-  const wo = wos.find(x => x.wo === _ctxWoNum)
+  const wo = wos.find(x => x.wo === capturedWoNum)
 
   // For tenant messages that include vendor details, or any vendor message,
   // we need vendor info. Check directory; if missing → prompt first, then proceed.
@@ -2868,7 +2947,7 @@ function msgInjectAction (view, group, type, body) {
      .catch(e => showDebug('[MSG] ✗ Inject error: ' + e.message))
 
   } else if (type === 'text') {
-    // Click Message button (SMS launcher)
+    // Click SMS launcher, then poll for the message composer textarea and fill it
     view.executeJavaScript(`
       (function () {
         try {
@@ -2878,8 +2957,49 @@ function msgInjectAction (view, group, type, body) {
           return 'triggered'
         } catch(e) { return 'error: ' + e.message }
       })()
-    `).then(r => showDebug('[MSG] SMS launcher: ' + r))
-     .catch(e => showDebug('[MSG] ✗ SMS error: ' + e.message))
+    `).then(r => {
+      showDebug('[MSG] SMS launcher: ' + r)
+      if (r !== 'triggered') return
+      if (!safeBody || safeBody === '""') return  // empty body — free message, user types manually
+
+      // Poll for the SMS composer textarea after the modal opens
+      let tries = 0
+      const poll = setInterval(() => {
+        tries++
+        if (tries > 30) { clearInterval(poll); showDebug('[MSG] SMS textarea not found after 6s'); return }
+        view.executeJavaScript(`
+          (function () {
+            try {
+              const ta = document.querySelector(
+                '[data-testid="message-input"], ' +
+                '[data-qa="message-input"], ' +
+                '.js-messaging-input, ' +
+                '.messaging-composer textarea, ' +
+                '.message-composer textarea, ' +
+                '[placeholder*="message" i], ' +
+                '[placeholder*="text" i], ' +
+                '.sms-composer textarea, ' +
+                'form[class*="message"] textarea, ' +
+                'form[class*="sms"] textarea'
+              )
+              if (!ta) return null
+              const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+              nativeSetter.call(ta, ${safeBody})
+              ta.dispatchEvent(new Event('input', { bubbles: true }))
+              ta.dispatchEvent(new Event('change', { bubbles: true }))
+              ta.focus()
+              return 'filled'
+            } catch(e) { return 'error: ' + e.message }
+          })()
+        `).then(res => {
+          if (res === 'filled') {
+            clearInterval(poll)
+            showDebug('[MSG] SMS body filled')
+          }
+        }).catch(() => {})
+      }, 200)
+    })
+    .catch(e => showDebug('[MSG] SMS error: ' + e.message))
 
   } else {
     showDebug('[MSG] ✗ Unknown action type: ' + group + '/' + type)
@@ -2887,11 +3007,9 @@ function msgInjectAction (view, group, type, body) {
 }
 
 // Close context menu on any outside click or scroll
-// Guard: ignore clicks that are inside the menu itself, or within 80ms of opening (same event cycle)
 document.addEventListener('click', e => {
   const menu = document.getElementById('wo-ctx-menu')
   if (!menu || menu.style.display === 'none') return
-  if (Date.now() - _ctxOpenedAt < 80) return   // same event cycle as right-click — ignore
   if (menu.contains(e.target)) return           // click was inside the menu — don't close
   closeCtxMenu()
 })
@@ -2940,8 +3058,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   updateTabArrows()
-  updateChipArrows()
-  initChipDragScroll()
 
   // Resizable dividers
   const woPanel = document.querySelector('.wo-panel')
@@ -3025,6 +3141,7 @@ function showErrorDialog (title, message) {
 }
 
 function showDebug (msg) {
+  console.log('[HALQ]', msg)
   let bar = document.getElementById('autofill-debug')
   if (!bar) {
     bar = document.createElement('div')
@@ -3133,7 +3250,12 @@ async function tryAutoFill (view) {
 // All tabs share the single webview — same persist:appfolio session/cookies throughout.
 // Each tab stores its URL in dataset.url. Clicking switches the webview to that URL.
 // =====================
-let tabCount = 1
+// Track tab numbering — always scan existing tabs so closing all resets to 1
+function _nextTabNum () {
+  const nums = Array.from(document.querySelectorAll('.af-tab'))
+    .map(t => { const m = (t.querySelector('span:first-child')?.textContent || '').match(/^New Tab (\d+)$/); return m ? parseInt(m[1]) : 0 })
+  return Math.max(0, ...nums) + 1
+}
 
 function switchToTab (tab) {
   document.querySelectorAll('.af-tab').forEach(t => t.classList.remove('active'))
@@ -3144,8 +3266,7 @@ function switchToTab (tab) {
 }
 
 function addTab (url) {
-  tabCount++
-  let label = 'New Tab ' + tabCount
+  let label = 'New Tab ' + _nextTabNum()
   try { if (url) label = new URL(url).hostname.replace('www.', '') } catch (_) {}
 
   const tabsEl = document.getElementById('af-tabs')
@@ -3214,53 +3335,7 @@ function clearSearch () {
   if (input) { input.value = ''; filterWOs(''); updateSearchClear(input); input.focus() }
 }
 
-// =====================
-// FILTER CHIP ARROWS
-// =====================
-function scrollChips (dir) {
-  const el = document.getElementById('wo-filters')
-  if (el) el.scrollLeft += dir * 80
-  setTimeout(updateChipArrows, 50)
-}
-
-// Drag-to-scroll on filter chip bar
-function initChipDragScroll () {
-  const el = document.getElementById('wo-filters')
-  if (!el || el._dragScrollInit) return
-  el._dragScrollInit = true
-  let isDown = false, startX = 0, scrollStart = 0, moved = false
-
-  el.addEventListener('mousedown', e => {
-    isDown = true
-    moved = false
-    startX = e.pageX
-    scrollStart = el.scrollLeft
-    el.classList.add('dragging')
-    e.preventDefault()
-  })
-  document.addEventListener('mousemove', e => {
-    if (!isDown) return
-    moved = true
-    el.scrollLeft = scrollStart - (e.pageX - startX)
-    updateChipArrows()
-  })
-  document.addEventListener('mouseup', e => {
-    if (!isDown) return
-    const wasDragging = moved
-    isDown = false
-    moved = false
-    el.classList.remove('dragging')
-    if (wasDragging) e.stopPropagation()
-  }, true)
-}
-function updateChipArrows () {
-  const el = document.getElementById('wo-filters')
-  if (!el) return
-  const left  = document.getElementById('chips-arrow-left')
-  const right = document.getElementById('chips-arrow-right')
-  if (left)  left.classList.toggle('disabled',  el.scrollLeft <= 0)
-  if (right) right.classList.toggle('disabled', el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)
-}
+// Filter chip scroll/drag removed — categories now use dropdown flyout
 
 // =====================
 // RESIZABLE DIVIDERS

@@ -2298,3 +2298,83 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 
 **`index.html`**
 - Detail drawer label changed from `Categorize` to `Category`
+---
+
+## Session 13 — 2026-03-25
+
+---
+
+### [2026-03-25] Fix — Web Tab Counter Not Resetting (v1.1.1)
+
+**File:** `index.html`
+
+**Bug:** Opening "New Tab 1", "New Tab 2", closing both, then opening again produced "New Tab 3", "New Tab 4" — counter never reset.
+
+**Root cause:** `tabCount` was a plain incrementing integer declared at module scope. Closing tabs decremented no counter, so the number only went up for the lifetime of the session.
+
+**Fix:** Removed `let tabCount`. Replaced with `_nextTabNum()` — scans all currently open `.af-tab` elements, extracts the highest "New Tab N" number from their labels, returns `max + 1`. If no user tabs exist (only the home tab), returns 1. Counter always reflects reality.
+
+---
+
+### [2026-03-25] UI — Filter Bar Overhaul: Dropdown Flyout for Categories (v1.1.2)
+
+**File:** `index.html`
+
+**Change:** Replaced the scrollable arrow/drag filter chip bar with a cleaner two-zone layout.
+
+**Before:** All chips (All, Overdue, Due Today + dynamic category chips) lived in a horizontally scrollable row with ◀ ▶ arrows and drag-to-scroll. As category count grew, navigating to the last chip and back became tedious.
+
+**After:**
+- **Fixed chips** — `All`, `Overdue`, `Due Today` always visible, no scroll
+- **Categories ▾ button** — appears to the right only when at least one category has WOs assigned; clicking opens a positioned dropdown flyout listing all active categories with color dot and WO count badge
+- Selecting a category closes the flyout, highlights the button in the category's color, filters the list
+- Switching back to All/Overdue/Due Today resets the button to default
+- Closes on outside click
+
+**Removed:** `scrollChips()`, `initChipDragScroll()`, `updateChipArrows()` — no longer needed.
+
+---
+
+### [2026-03-25] Fix — Context Menu Send Message Going to Dead URL (v1.1.3)
+
+**File:** `index.html`
+
+**Bug:** All four message actions (Tenant Email, Tenant Text, Vendor Email, Vendor Text) navigated to `https://talley.appfolio.com/search/advanced_search?section_keys=work_orders` — the `full_text_search=` parameter was always missing, producing a dead/empty search.
+
+**Root cause:** `closeCtxMenu()` sets `_ctxWoNum = null` as cleanup. `ctxSendMsg()` called `closeCtxMenu()` first, then tried to look up the WO using the now-null `_ctxWoNum` — so `wo` was always `undefined`, `woNum` was `''`, and the search URL had no query.
+
+**Fix:** Capture `_ctxWoNum` into `capturedWoNum` before calling `closeCtxMenu()`.
+
+---
+
+### [2026-03-25] Feature — Context Menu Redesigned: Two-Panel Layout (v1.1.4)
+
+**File:** `index.html`
+
+**Change:** Replaced the 3-level hover-flyout context menu with a two-panel slide-in design.
+
+**Before:** Right-click → Tenant → hover → Email/Text → hover → template list. Nested CSS hover flyouts with JS position math were fragile and hard to target precisely.
+
+**After:**
+- **Left rail** — flat list of all actions: Tenant Email, Tenant Text, Vendor Email, Vendor Text, Follow-up, Category — always visible, no hover required
+- **Right panel** — slides in (CSS transition) when a rail item is clicked, showing the relevant content (template list, date options, category list)
+- Active rail item highlighted in accent blue
+- No hover-dependent positioning, no nested flyouts
+
+---
+
+### [2026-03-25] Feature — SMS Self-Learning Selector Discovery (v1.1.5)
+
+**File:** `index.html`
+
+**Change:** Replaced guessed CSS selector list for SMS body fill with a one-time self-learning discovery flow.
+
+**How it works:**
+1. First SMS send: launcher button fires, then a blue banner appears inside the AppFolio webview: *"Click inside the message text box to teach HALQ"*
+2. User clicks the textarea — HALQ captures a unique CSS selector for that element, saves it to `settings.json` via `settingsSave({ smsInputSelector })`
+3. Banner dismisses, message body fills immediately
+4. All subsequent SMS sends use the saved selector directly — no prompts
+
+**Reset:** Settings → Accounts → SMS Composer → **Reset SMS Selector** clears the saved selector and triggers re-learning on the next send.
+
+**Status display:** Settings panel shows the currently learned selector in green, or "No selector saved yet" in muted text.
