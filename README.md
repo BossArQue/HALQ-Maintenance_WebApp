@@ -28,7 +28,7 @@ HALQ uses a 3-part version number: `1.MAJOR.MINOR`
 | `MAJOR` | Major update | New feature set, significant UI overhaul, architecture change |
 | `MINOR` | Minor update | Bug fix, small UI change, single-feature addition (1–99, then rolls MAJOR) |
 
-**Current version: `1.2.0`**
+**Current version: `1.2.1`**
 
 | Version | Change |
 |---|---|
@@ -38,6 +38,7 @@ HALQ uses a 3-part version number: `1.MAJOR.MINOR`
 | `1.1.4` | UI: context menu redesigned — two-panel slide layout replaces hover flyouts |
 | `1.1.5` | Feature: SMS self-learning selector discovery |
 | `1.2.0` | Fix+UI: tab counter scoped fix; context menu two-panel redesign (no hover flyouts, no disappear bug); category manager arrow-sort replaces drag; version shown in bottom bar |
+| `1.2.1` | UI: context menu enlarged — bigger text, padding, and flyout widths for desktop usability |
 
 ---
 

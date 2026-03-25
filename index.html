@@ -977,41 +977,50 @@
   }
 
   /* WO RIGHT-CLICK CONTEXT MENU */
+  /* ── CONTEXT MENU — hover flyout style ── */
   .wo-ctx-menu {
     position: fixed; z-index: 9500;
     background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 8px; padding: 4px; min-width: 200px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    border-radius: 10px; padding: 6px;
+    min-width: 260px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
   }
   .wo-ctx-section {
-    padding: 3px 10px 2px;
-    font-size: 9px; font-weight: 700; color: var(--text3);
+    padding: 6px 14px 4px;
+    font-size: 10px; font-weight: 700; color: var(--text3);
     text-transform: uppercase; letter-spacing: 0.1em;
     font-family: 'JetBrains Mono', monospace;
   }
   .wo-ctx-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px; border-radius: 5px; font-size: 11px;
-    cursor: pointer; color: var(--text2); transition: background 0.08s;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; border-radius: 7px; font-size: 13px;
+    cursor: pointer; color: var(--text2); transition: background 0.1s;
   }
   .wo-ctx-item:hover { background: var(--surface2); color: var(--text); }
   .wo-ctx-item .ctx-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
   }
-  .wo-ctx-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+  .wo-ctx-sep { height: 1px; background: var(--border); margin: 5px 6px; }
 
   /* FLYOUT SUBMENUS */
   .wo-ctx-item.has-flyout { position: relative; }
-  .wo-ctx-item.has-flyout::after { content: '▶'; margin-left: auto; font-size: 9px; color: var(--text3); }
+  .wo-ctx-item.has-flyout::after { content: '▶'; margin-left: auto; font-size: 10px; color: var(--text3); }
   .wo-ctx-flyout {
     display: none; position: fixed; z-index: 9600;
     background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 8px; padding: 4px; min-width: 180px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    border-radius: 10px; padding: 6px; min-width: 240px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
   }
   .wo-ctx-flyout.open { display: block; }
   .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
   .wo-ctx-flyout .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
+  /* date input inside flyout */
+  .ctx-date-inp {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border2);
+    border-radius: 7px; background: var(--surface2); color: var(--text);
+    font-size: 13px; outline: none; margin: 4px 0;
+  }
+  .ctx-date-inp:focus { border-color: var(--accent); }
 
   /* MESSAGES SETTINGS */
   .msg-template-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
@@ -2328,13 +2337,13 @@ function showWOCtxMenu (e, woNum) {
       { key: 'nextweek', label: 'Next Week', date: nextweek },
     ].map(opt =>
       `<div class="wo-ctx-item" onclick="ctxSetFollowup('${opt.key}')">
-        <span style="font-size:11px">📅</span>
+        <span style="font-size:14px">📅</span>
         <span style="flex:1">${opt.label}</span>
-        <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
+        <span style="font-size:12px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
       </div>`
     ).join('') +
     `<div class="wo-ctx-item" onclick="ctxSetFollowupCustom()">
-      <span style="font-size:11px">📅</span><span>Custom…</span>
+      <span style="font-size:14px">📅</span><span>Custom…</span>
     </div>`
   )
 
@@ -2351,7 +2360,7 @@ function showWOCtxMenu (e, woNum) {
     catItems += `<div class="wo-ctx-item" onclick="ctxToggleCat(${cat.id})">
       <span class="ctx-dot" style="background:${cat.color}"></span>
       <span style="flex:1">${cat.name}</span>
-      ${active ? '<span style="color:var(--accent);font-size:12px">✓</span>' : ''}
+      ${active ? '<span style="color:var(--accent);font-size:14px">✓</span>' : ''}
     </div>`
   })
   if (!catItems) catItems = `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic">No categories</div>`

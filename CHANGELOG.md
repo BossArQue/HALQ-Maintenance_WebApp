@@ -2300,7 +2300,26 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 - Detail drawer label changed from `Categorize` to `Category`
 ---
 
-## Session 13 — 2026-03-25 (continued)
+## Session 14 — 2026-03-25
+
+---
+
+### [2026-03-25] UI — Context Menu Enlarged (v1.2.1)
+
+**File:** `index.html`
+
+**Change:** Increased size of the right-click context menu and all flyout submenus for better usability on desktop screen real estate.
+
+- `.wo-ctx-menu` / `.wo-ctx-flyout`: `min-width` increased from 200px → 260px / 180px → 240px; `padding` 4px → 6px; `border-radius` 8px → 10px; shadow deepened
+- `.wo-ctx-section`: font-size 9px → 10px; padding increased
+- `.wo-ctx-item`: font-size 11px → 13px; padding 6px → 9px; gap 8px → 10px; border-radius 5px → 7px
+- `.wo-ctx-item.has-flyout::after` chevron: font-size 9px → 10px
+- Follow-up flyout emoji icons: 11px → 14px; date label: 10px → 12px
+- Category flyout checkmark: 12px → 14px
+
+---
+
+
 
 ---
 
