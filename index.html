@@ -658,15 +658,13 @@
   .catmgr-item.selected { background: var(--surface2); color: var(--accent); }
   .catmgr-item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .catmgr-item { user-select: none; }
-  .catmgr-sort-btns { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; margin-left: auto; }
-  .catmgr-sort-btn {
-    width: 18px; height: 14px; border-radius: 3px; border: 1px solid var(--border2);
-    background: var(--surface2); color: var(--text3); font-size: 9px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: background 0.1s, color 0.1s; line-height: 1;
+  .catmgr-item.drag-over { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface2); }
+  .catmgr-item.dragging  { opacity: 0.35; }
+  .catmgr-drag-handle {
+    color: var(--text3); font-size: 12px; cursor: grab; flex-shrink: 0;
+    padding: 0 2px; line-height: 1; letter-spacing: -2px;
   }
-  .catmgr-sort-btn:hover { background: var(--border2); color: var(--text); }
-  .catmgr-sort-btn:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  .catmgr-drag-handle:active { cursor: grabbing; }
   .catmgr-actions { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
   .catmgr-field-label {
     font-size: 9px; color: var(--text3); text-transform: uppercase;
@@ -978,70 +976,42 @@
     padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
   }
 
-  /* WO RIGHT-CLICK CONTEXT MENU — two-panel rail design */
+  /* WO RIGHT-CLICK CONTEXT MENU */
   .wo-ctx-menu {
     position: fixed; z-index: 9500;
     background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 10px; overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-    display: flex; flex-direction: row;
-    min-width: 340px; max-width: 460px;
+    border-radius: 8px; padding: 4px; min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
-  /* LEFT RAIL */
-  .ctx-rail {
-    width: 148px; flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    padding: 6px 4px; display: flex; flex-direction: column; gap: 1px;
-    background: var(--surface);
-  }
-  .ctx-rail-section {
-    padding: 4px 10px 2px;
+  .wo-ctx-section {
+    padding: 3px 10px 2px;
     font-size: 9px; font-weight: 700; color: var(--text3);
     text-transform: uppercase; letter-spacing: 0.1em;
     font-family: 'JetBrains Mono', monospace;
   }
-  .ctx-rail-item {
+  .wo-ctx-item {
     display: flex; align-items: center; gap: 8px;
-    padding: 7px 10px; border-radius: 6px; font-size: 11px;
-    cursor: pointer; color: var(--text2); transition: background 0.1s, color 0.1s;
-    user-select: none;
+    padding: 6px 10px; border-radius: 5px; font-size: 11px;
+    cursor: pointer; color: var(--text2); transition: background 0.08s;
   }
-  .ctx-rail-item:hover { background: var(--surface2); color: var(--text); }
-  .ctx-rail-item.active {
-    background: rgba(91,156,246,0.12);
-    color: var(--accent); border: 1px solid rgba(91,156,246,0.2);
-  }
-  .ctx-rail-sep { height: 1px; background: var(--border); margin: 3px 6px; }
-  /* RIGHT PANEL */
-  .ctx-panel {
-    flex: 1; padding: 6px 4px; overflow-y: auto;
-    max-height: 320px; min-width: 180px;
-    background: var(--surface);
-  }
-  .ctx-panel::-webkit-scrollbar { width: 4px; }
-  .ctx-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  .ctx-panel-placeholder {
-    padding: 16px 12px; font-size: 11px; color: var(--text3);
-    font-style: italic; text-align: center;
-  }
-  .ctx-panel-section {
-    padding: 4px 10px 2px;
-    font-size: 9px; font-weight: 700; color: var(--text3);
-    text-transform: uppercase; letter-spacing: 0.1em;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .ctx-panel-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 10px; border-radius: 6px; font-size: 11px;
-    cursor: pointer; color: var(--text2); transition: background 0.08s, color 0.08s;
-    user-select: none;
-  }
-  .ctx-panel-item:hover { background: var(--surface2); color: var(--text); }
-  .ctx-panel-item.selected { color: var(--accent); }
-  .ctx-panel-item .ctx-dot {
+  .wo-ctx-item:hover { background: var(--surface2); color: var(--text); }
+  .wo-ctx-item .ctx-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
   }
-  .ctx-panel-sep { height: 1px; background: var(--border); margin: 3px 6px; }
+  .wo-ctx-sep { height: 1px; background: var(--border); margin: 3px 4px; }
+
+  /* FLYOUT SUBMENUS */
+  .wo-ctx-item.has-flyout { position: relative; }
+  .wo-ctx-item.has-flyout::after { content: '▶'; margin-left: auto; font-size: 9px; color: var(--text3); }
+  .wo-ctx-flyout {
+    display: none; position: fixed; z-index: 9600;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px; min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .wo-ctx-flyout.open { display: block; }
+  .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
+  .wo-ctx-flyout .wo-ctx-item.has-flyout:hover > .wo-ctx-flyout { display: block; }
 
   /* MESSAGES SETTINGS */
   .msg-template-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
@@ -1399,7 +1369,7 @@
               <div class="filter-chip"        id="chip-today"   onclick="toggleChip(this,'today')">Due Today</div>
             </div>
             <div class="wo-filter-more-wrap" id="wo-filter-more-wrap" style="display:none">
-              <button class="wo-filter-more-btn" id="wo-filter-more-btn" onclick="toggleCatDropdown(event)">Categories ▾</button>
+              <button class="wo-filter-more-btn" id="wo-filter-more-btn" onclick="toggleFilterCatDropdown(event)">Categories ▾</button>
               <div class="wo-filter-dropdown" id="wo-filter-dropdown">
                 <div class="wo-filter-dd-hd">Categories</div>
                 <div id="wo-filter-dd-list"><div class="wo-filter-dd-empty">None assigned</div></div>
@@ -2114,7 +2084,8 @@ function _updateCatBtn () {
   }
 }
 
-function toggleCatDropdown (e) {
+// Filter-bar category dropdown — renamed to avoid collision with detail-drawer toggleCatDropdown
+function toggleFilterCatDropdown (e) {
   e.stopPropagation()
   const dd  = document.getElementById('wo-filter-dropdown')
   const btn = document.getElementById('wo-filter-more-btn')
@@ -2270,7 +2241,6 @@ function saveWODetail () {
 // Quick-save followup date or category without opening detail drawer
 // =====================
 let _ctxWoNum = null
-let _ctxRailActive = null  // currently selected rail key
 
 function _ctxSave (woNum, patch) {
   const w = wos.find(x => x.wo === woNum)
@@ -2295,88 +2265,12 @@ function _ctxSave (woNum, patch) {
   showDebug('✓ Saved: ' + woNum)
 }
 
+
+
 function closeCtxMenu () {
   const m = document.getElementById('wo-ctx-menu')
   if (m) m.style.display = 'none'
   _ctxWoNum = null
-  _ctxRailActive = null
-}
-
-// ── Build right panel content for a given rail key ──
-function _ctxBuildPanel (key) {
-  const panel = document.getElementById('ctx-right-panel')
-  if (!panel) return
-  const w      = wos.find(x => x.wo === _ctxWoNum)
-  const catIds = Array.isArray(w?._catIds) ? w._catIds : []
-  const tpl    = _msgTemplates || { tenant: { email: [], text: [] }, vendor: { email: [], text: [] }, owner: { email: [], text: [] } }
-  const today    = new Date(); today.setHours(0,0,0,0)
-  const tomorrow = nextBizDay(today)
-  const nextday  = nextNextBizDay(today)
-  const thisweek = getNextFriday(today, 0)
-  const nextweek = getNextFriday(today, 1)
-
-  // Mark active rail
-  document.querySelectorAll('.ctx-rail-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.rail === key)
-  })
-  _ctxRailActive = key
-
-  let html = ''
-
-  if (key === 'tenant-email' || key === 'tenant-text' || key === 'vendor-email' || key === 'vendor-text') {
-    const [group, type] = key === 'tenant-email' ? ['tenant','email']
-                        : key === 'tenant-text'  ? ['tenant','text']
-                        : key === 'vendor-email' ? ['vendor','email']
-                        : ['vendor','text']
-    const list = (tpl[group]?.[type]) || []
-    if (list.length) {
-      html += `<div class="ctx-panel-section">Templates</div>`
-      list.forEach((t, i) => {
-        html += `<div class="ctx-panel-item" onclick="ctxSendMsg('${group}','${type}',${i})">${t.name}</div>`
-      })
-      html += `<div class="ctx-panel-sep"></div>`
-    }
-    html += `<div class="ctx-panel-item" style="color:var(--text3);font-style:italic" onclick="ctxSendMsg('${group}','${type}',-1)">✏ Free Message</div>`
-
-  } else if (key === 'followup') {
-    html += `<div class="ctx-panel-section">Quick Set</div>`
-    ;[
-      { label: 'Tomorrow',  date: tomorrow },
-      { label: 'Next Day',  date: nextday  },
-      { label: 'This Week', date: thisweek },
-      { label: 'Next Week', date: nextweek },
-    ].forEach(opt => {
-      html += `<div class="ctx-panel-item" onclick="ctxSetFollowupByDate('${fmtDateISO(opt.date)}')">
-        <span style="flex:1">${opt.label}</span>
-        <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
-      </div>`
-    })
-    html += `<div class="ctx-panel-sep"></div>`
-    html += `<div class="ctx-panel-item" onclick="ctxSetFollowupCustom()">📅 Custom…</div>`
-
-  } else if (key === 'category') {
-    if (catIds.length) {
-      html += `<div class="ctx-panel-item" onclick="ctxClearCats()">
-        <span class="ctx-dot" style="background:var(--border2)"></span>
-        <span style="color:var(--text3);font-style:italic">Clear all</span>
-      </div>`
-      html += `<div class="ctx-panel-sep"></div>`
-    }
-    if (categories.length) {
-      categories.forEach(cat => {
-        const active = catIds.includes(cat.id)
-        html += `<div class="ctx-panel-item${active ? ' selected' : ''}" onclick="ctxToggleCat(${cat.id})">
-          <span class="ctx-dot" style="background:${cat.color}"></span>
-          <span style="flex:1">${cat.name}</span>
-          ${active ? '<span style="font-size:12px">✓</span>' : ''}
-        </div>`
-      })
-    } else {
-      html += `<div class="ctx-panel-placeholder">No categories yet</div>`
-    }
-  }
-
-  panel.innerHTML = html || `<div class="ctx-panel-placeholder">Select an action</div>`
 }
 
 function showWOCtxMenu (e, woNum) {
@@ -2384,28 +2278,104 @@ function showWOCtxMenu (e, woNum) {
   e.stopPropagation()
   _ctxWoNum = woNum
 
-  const menu = document.getElementById('wo-ctx-menu')
-  menu.style.display = 'flex'
+  const today    = new Date(); today.setHours(0,0,0,0)
+  const tomorrow = nextBizDay(today)
+  const nextday  = nextNextBizDay(today)
+  const thisweek = getNextFriday(today, 0)
+  const nextweek = getNextFriday(today, 1)
 
-  // Build rail
-  const hasCats = categories.length > 0
-  menu.innerHTML = `
-    <div class="ctx-rail" id="ctx-left-rail">
-      <div class="ctx-rail-section">Messages</div>
-      <div class="ctx-rail-item" data-rail="tenant-email" onclick="_ctxBuildPanel('tenant-email')">👤 Tenant Email</div>
-      <div class="ctx-rail-item" data-rail="tenant-text"  onclick="_ctxBuildPanel('tenant-text')">👤 Tenant Text</div>
-      <div class="ctx-rail-sep"></div>
-      <div class="ctx-rail-item" data-rail="vendor-email" onclick="_ctxBuildPanel('vendor-email')">🔧 Vendor Email</div>
-      <div class="ctx-rail-item" data-rail="vendor-text"  onclick="_ctxBuildPanel('vendor-text')">🔧 Vendor Text</div>
-      <div class="ctx-rail-sep"></div>
-      <div class="ctx-rail-section">Tag</div>
-      <div class="ctx-rail-item" data-rail="followup"  onclick="_ctxBuildPanel('followup')">📅 Follow-up</div>
-      ${hasCats ? `<div class="ctx-rail-item" data-rail="category" onclick="_ctxBuildPanel('category')">🏷 Category</div>` : ''}
-    </div>
-    <div class="ctx-panel" id="ctx-right-panel">
-      <div class="ctx-panel-placeholder">Select an action from the left</div>
-    </div>
-  `
+  const w      = wos.find(x => x.wo === woNum)
+  const catIds = Array.isArray(w?._catIds) ? w._catIds : []
+
+  // ── helper: build a flyout div ──
+  function flyout (id, items) {
+    return `<div class="wo-ctx-flyout" id="${id}">${items}</div>`
+  }
+
+  // ── Messages section ──
+  const tpl = _msgTemplates || { tenant: { email: [], text: [] }, vendor: { email: [], text: [] }, owner: { email: [], text: [] } }
+
+  function tplItems (group, type) {
+    let s = ''
+    const list = (tpl[group]?.[type]) || []
+    list.forEach((t, i) => {
+      s += `<div class="wo-ctx-item" onclick="ctxSendMsg('${group}','${type}',${i})">${t.name}</div>`
+    })
+    s += `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic" onclick="ctxSendMsg('${group}','${type}',-1)">✏ Free Message</div>`
+    return s
+  }
+
+  const tenantEmailFlyout = flyout('ctx-fly-tenant-email', tplItems('tenant','email'))
+  const tenantTextFlyout  = flyout('ctx-fly-tenant-text',  tplItems('tenant','text'))
+  const vendorEmailFlyout = flyout('ctx-fly-vendor-email', tplItems('vendor','email'))
+  const vendorTextFlyout  = flyout('ctx-fly-vendor-text',  tplItems('vendor','text'))
+
+  const tenantFlyout = flyout('ctx-fly-tenant',
+    `<div class="wo-ctx-item has-flyout">📧 Email${tenantEmailFlyout}</div>` +
+    `<div class="wo-ctx-item has-flyout">💬 Text${tenantTextFlyout}</div>`
+  )
+  const vendorFlyout = flyout('ctx-fly-vendor',
+    `<div class="wo-ctx-item has-flyout">📧 Email${vendorEmailFlyout}</div>` +
+    `<div class="wo-ctx-item has-flyout">💬 Text${vendorTextFlyout}</div>`
+  )
+
+  // ── Follow-up flyout ──
+  const followupFlyout = flyout('ctx-fly-followup',
+    [
+      { key: 'tomorrow', label: 'Tomorrow',  date: tomorrow },
+      { key: 'nextday',  label: 'Next Day',  date: nextday  },
+      { key: 'thisweek', label: 'This Week', date: thisweek },
+      { key: 'nextweek', label: 'Next Week', date: nextweek },
+    ].map(opt =>
+      `<div class="wo-ctx-item" onclick="ctxSetFollowup('${opt.key}')">
+        <span style="font-size:11px">📅</span>
+        <span style="flex:1">${opt.label}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:monospace">${fmtDate(opt.date)}</span>
+      </div>`
+    ).join('') +
+    `<div class="wo-ctx-item" onclick="ctxSetFollowupCustom()">
+      <span style="font-size:11px">📅</span><span>Custom…</span>
+    </div>`
+  )
+
+  // ── Category flyout ──
+  let catItems = ''
+  if (catIds.length) {
+    catItems += `<div class="wo-ctx-item" onclick="ctxClearCats()">
+      <span class="ctx-dot" style="background:var(--border2)"></span>
+      <span style="color:var(--text3);font-style:italic">Clear all</span>
+    </div>`
+  }
+  categories.forEach(cat => {
+    const active = catIds.includes(cat.id)
+    catItems += `<div class="wo-ctx-item" onclick="ctxToggleCat(${cat.id})">
+      <span class="ctx-dot" style="background:${cat.color}"></span>
+      <span style="flex:1">${cat.name}</span>
+      ${active ? '<span style="color:var(--accent);font-size:12px">✓</span>' : ''}
+    </div>`
+  })
+  if (!catItems) catItems = `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic">No categories</div>`
+  const categoryFlyout = flyout('ctx-fly-category', catItems)
+
+  // ── Assemble full menu ──
+  let html = ''
+
+  // Messages section
+  html += '<div class="wo-ctx-section">Messages</div>'
+  html += `<div class="wo-ctx-item has-flyout">👤 Tenant${tenantFlyout}</div>`
+  html += `<div class="wo-ctx-item has-flyout">🔧 Vendor${vendorFlyout}</div>`
+
+  // Tag section
+  html += '<div class="wo-ctx-sep"></div>'
+  html += '<div class="wo-ctx-section">Tag</div>'
+  html += `<div class="wo-ctx-item has-flyout">📅 Follow-up Date${followupFlyout}</div>`
+  if (categories.length) {
+    html += `<div class="wo-ctx-item has-flyout">🏷 Category${categoryFlyout}</div>`
+  }
+
+  const menu = document.getElementById('wo-ctx-menu')
+  menu.innerHTML = html
+  menu.style.display = 'block'
 
   // Position — keep inside viewport
   const vw = window.innerWidth, vh = window.innerHeight
@@ -2415,18 +2385,30 @@ function showWOCtxMenu (e, woNum) {
     const mw = menu.offsetWidth, mh = menu.offsetHeight
     if (x + mw > vw - 8) x = vw - mw - 8
     if (y + mh > vh - 8) y = vh - mh - 8
-    if (x < 8) x = 8
-    if (y < 8) y = 8
     menu.style.left = x + 'px'
     menu.style.top  = y + 'px'
-  })
-}
 
-// Direct ISO date setter (used by new two-panel menu)
-function ctxSetFollowupByDate (isoDate) {
-  if (!_ctxWoNum) return
-  _ctxSave(_ctxWoNum, { _followup: isoDate })
-  closeCtxMenu()
+    // Position all flyouts dynamically on hover
+    menu.querySelectorAll('.wo-ctx-item.has-flyout').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        const fly = item.querySelector(':scope > .wo-ctx-flyout')
+        if (!fly) return
+        const r = item.getBoundingClientRect()
+        fly.style.top  = r.top + 'px'
+        fly.style.left = (r.right + 2) + 'px'
+        // Flip left if overflows right edge
+        requestAnimationFrame(() => {
+          if (r.right + fly.offsetWidth + 8 > vw) {
+            fly.style.left = (r.left - fly.offsetWidth - 2) + 'px'
+          }
+          // Flip up if overflows bottom
+          if (r.top + fly.offsetHeight + 8 > vh) {
+            fly.style.top = (vh - fly.offsetHeight - 8) + 'px'
+          }
+        })
+      })
+    })
+  })
 }
 
 function ctxSetFollowup (key) {
@@ -2483,8 +2465,10 @@ function ctxToggleCat (catId) {
   if (idx === -1) ids.push(catId)
   else ids.splice(idx, 1)
   _ctxSave(_ctxWoNum, { _catIds: ids })
-  // Refresh the right panel in place so user can keep toggling
-  _ctxBuildPanel('category')
+  // Re-render menu in place to show updated checkmarks
+  const woNum = _ctxWoNum
+  closeCtxMenu()
+  // Reopen isn't possible without event coords — just close cleanly
 }
 
 function ctxClearCats () {
@@ -3024,14 +3008,14 @@ function msgInjectAction (view, group, type, body) {
   }
 }
 
-// Close context menu on any outside click or Escape — NOT on scroll
-// (scroll inside the right panel should work normally)
+// Close context menu on any outside click or scroll
 document.addEventListener('click', e => {
   const menu = document.getElementById('wo-ctx-menu')
   if (!menu || menu.style.display === 'none') return
   if (menu.contains(e.target)) return           // click was inside the menu — don't close
   closeCtxMenu()
 })
+document.addEventListener('scroll',   closeCtxMenu, true)
 document.addEventListener('keydown',  e => { if (e.key === 'Escape') closeCtxMenu() })
 
 // =====================
@@ -3268,11 +3252,9 @@ async function tryAutoFill (view) {
 // All tabs share the single webview — same persist:appfolio session/cookies throughout.
 // Each tab stores its URL in dataset.url. Clicking switches the webview to that URL.
 // =====================
-// Track tab numbering — scan only #af-tabs (not #em-tabs) so closing all resets to 1
+// Track tab numbering — always scan existing tabs so closing all resets to 1
 function _nextTabNum () {
-  const tabsEl = document.getElementById('af-tabs')
-  if (!tabsEl) return 1
-  const nums = Array.from(tabsEl.querySelectorAll('.af-tab'))
+  const nums = Array.from(document.querySelectorAll('.af-tab'))
     .map(t => { const m = (t.querySelector('span:first-child')?.textContent || '').match(/^New Tab (\d+)$/); return m ? parseInt(m[1]) : 0 })
   return Math.max(0, ...nums) + 1
 }
@@ -3758,8 +3740,8 @@ async function checkForUpdate () {
   try {
     // Show live version in sidebar and bottom bar
     const ver = await window.halq.updateVersion()
-    const verEl  = document.getElementById('app-version-label')
-    const verBb  = document.getElementById('bb-version')
+    const verEl = document.getElementById('app-version-label')
+    const verBb = document.getElementById('bb-version')
     if (verEl) verEl.textContent = 'v' + ver
     if (verBb) verBb.textContent = 'v' + ver
 
@@ -4397,40 +4379,59 @@ function catmgrClickOutside (e) {
 
 function renderCatMgrList () {
   const list = document.getElementById('catmgr-list')
-  list.innerHTML = categories.map((c, idx) => `
+  list.innerHTML = categories.map(c => `
     <div class="catmgr-item ${catMgrEditId === c.id ? 'selected' : ''}"
+         draggable="true"
          data-catid="${c.id}"
          onclick="catmgrSelect(${c.id})">
+      <span class="catmgr-drag-handle" title="Drag to reorder">⠿</span>
       <div class="catmgr-item-dot" style="background:${c.color}"></div>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
-      <div class="catmgr-sort-btns" onclick="event.stopPropagation()">
-        <button class="catmgr-sort-btn" title="Move up"
-          ${idx === 0 ? 'disabled' : ''}
-          onclick="catmgrMoveUp(${c.id})">▲</button>
-        <button class="catmgr-sort-btn" title="Move down"
-          ${idx === categories.length - 1 ? 'disabled' : ''}
-          onclick="catmgrMoveDown(${c.id})">▼</button>
-      </div>
+      <span>${c.name}</span>
     </div>
   `).join('') || '<div style="padding:10px;font-size:11px;color:var(--text3)">No categories yet</div>'
+  initCatDrag()
 }
 
-function catmgrMoveUp (catId) {
-  const idx = categories.findIndex(c => c.id === catId)
-  if (idx <= 0) return
-  ;[categories[idx - 1], categories[idx]] = [categories[idx], categories[idx - 1]]
-  renderCatMgrList()
-  renderCatDropdown()
-  saveCategories()
-}
+let _catDragSrc = null
 
-function catmgrMoveDown (catId) {
-  const idx = categories.findIndex(c => c.id === catId)
-  if (idx === -1 || idx >= categories.length - 1) return
-  ;[categories[idx], categories[idx + 1]] = [categories[idx + 1], categories[idx]]
-  renderCatMgrList()
-  renderCatDropdown()
-  saveCategories()
+function initCatDrag () {
+  const items = document.querySelectorAll('#catmgr-list .catmgr-item[draggable]')
+  items.forEach(el => {
+    el.addEventListener('dragstart', e => {
+      _catDragSrc = el
+      el.classList.add('dragging')
+      e.dataTransfer.effectAllowed = 'move'
+    })
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging')
+      document.querySelectorAll('#catmgr-list .catmgr-item').forEach(i => i.classList.remove('drag-over'))
+      _catDragSrc = null
+    })
+    el.addEventListener('dragover', e => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      if (el !== _catDragSrc) {
+        document.querySelectorAll('#catmgr-list .catmgr-item').forEach(i => i.classList.remove('drag-over'))
+        el.classList.add('drag-over')
+      }
+    })
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'))
+    el.addEventListener('drop', e => {
+      e.preventDefault()
+      el.classList.remove('drag-over')
+      if (!_catDragSrc || _catDragSrc === el) return
+      const fromId = parseInt(_catDragSrc.dataset.catid)
+      const toId   = parseInt(el.dataset.catid)
+      const fromIdx = categories.findIndex(c => c.id === fromId)
+      const toIdx   = categories.findIndex(c => c.id === toId)
+      if (fromIdx === -1 || toIdx === -1) return
+      const [moved] = categories.splice(fromIdx, 1)
+      categories.splice(toIdx, 0, moved)
+      renderCatMgrList()
+      renderCatDropdown()
+      saveCategories()
+    })
+  })
 }
 
 function catmgrSelect (id) {

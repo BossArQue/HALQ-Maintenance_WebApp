@@ -17,7 +17,7 @@ const PROFILE_ID   = _profileArg ? _profileArg.split('=')[1] : null
 // =====================
 // UPDATER CONFIG
 // =====================
-const APP_VERSION = '1.0.0'
+const APP_VERSION = '1.2.0'
 const UPDATE_URL  = 'https://raw.githubusercontent.com/BossArQue/HALQ-Maintenance/main/releases'
 
 // =====================
@@ -664,6 +664,8 @@ function setupOutlookSession () {
 // =====================
 app.on('web-contents-created', (_e, contents) => {
   if (contents.getType() !== 'webview') return
+  // TEMP: open DevTools on webview so we can inspect Appfolio DOM for correct selectors
+  contents.openDevTools()
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('mailto:')) { shell.openExternal(url); return { action: 'deny' } }
     if (win && !win.isDestroyed()) win.webContents.send('open-new-tab', url)
