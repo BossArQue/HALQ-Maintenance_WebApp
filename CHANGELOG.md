@@ -2304,7 +2304,27 @@ Three new files: `launcher/main.js`, `launcher/preload.js`, `launcher/index.html
 
 ---
 
-### [2026-03-25] UI — Context Menu Enlarged (v1.2.1)
+### [2026-03-25] Feature — Font & Font Size in Appearance Settings (v1.2.2)
+
+**File:** `index.html`
+
+**Change:** Added Font section to Settings → Appearance tab.
+
+**Font picker:** 6 options — Inter, Roboto, Segoe UI, System UI, Georgia, Courier New. Each row previews the font live with "AaBbCc 123". Selected font shown with accent highlight.
+
+**Font size slider:** Range 11–18px (default 13px). Value displayed live in monospace next to the slider. Updates the whole UI immediately via CSS variable.
+
+**Implementation:**
+- `--app-font` and `--app-font-size` CSS variables added to `:root`; `body` uses both via `font-family: var(--app-font)` and `font-size: var(--app-font-size)`
+- `_applyFont(fontName, size)` — sets both CSS variables on `document.documentElement`
+- `setAppFont(fontName, el)` — updates picker highlight, applies font, saves `{ appFont }` via `settingsSave`
+- `setAppFontSize(size)` — applies size, updates display label, saves `{ appFontSize }` via `settingsSave`
+- Both restored on startup in `loadSettings()` — persisted per-profile in `settings.json`; survives unit changes
+- Roboto added to Google Fonts import
+
+---
+
+
 
 **File:** `index.html`
 

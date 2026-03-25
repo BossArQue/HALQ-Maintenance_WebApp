@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HALQ</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
     --bg: #1c1c1c;
@@ -23,6 +23,8 @@
     --text2: #a0a0a0;
     --text3: #666666;
     --sidebar-w: 220px;
+    --app-font: 'Inter', sans-serif;
+    --app-font-size: 13px;
   }
   [data-theme="light"] {
     --bg: #f0f2f8; --surface: #ffffff; --surface2: #e8ecf5;
@@ -41,7 +43,8 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--app-font);
+    font-size: var(--app-font-size);
     height: 100vh; overflow: hidden;
     display: flex; flex-direction: column;
     transition: background 0.3s, color 0.3s;
@@ -1256,6 +1259,36 @@
   .settings-close { transition: color 0.15s; }
   .settings-close:hover { color: var(--red); }
   .theme-option { transition: all 0.15s; }
+
+  /* FONT PICKER */
+  .font-options { display: flex; flex-direction: column; gap: 5px; }
+  .font-option {
+    padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border2);
+    cursor: pointer; font-size: 12px; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--text2);
+  }
+  .font-option:hover { border-color: var(--accent); color: var(--text); }
+  .font-option.active { border-color: var(--accent); background: rgba(91,156,246,0.1); color: var(--accent); }
+  .font-option-preview { font-size: 11px; color: var(--text3); }
+
+  /* FONT SIZE SLIDER */
+  .font-size-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 8px;
+  }
+  .font-size-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 4px; border-radius: 2px; background: var(--border2); outline: none; cursor: pointer;
+  }
+  .font-size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; transition: transform 0.1s;
+  }
+  .font-size-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .font-size-val {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--accent); min-width: 28px; text-align: right;
+  }
   .layout-option { transition: all 0.15s; }
   .toggle { transition: background 0.2s; cursor: pointer; }
 
@@ -1708,6 +1741,37 @@
             <div class="layout-option" onclick="setNavOpt('topnav',this)">↕ Top Bar</div>
             <div class="layout-option" onclick="setNavOpt('tabs',this)">⊟ Tabs</div>
             <div class="layout-option" onclick="setNavOpt('none',this)">✕ Hidden</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Font</div>
+          <div class="font-options" id="font-options">
+            <div class="font-option active" data-font="Inter" onclick="setAppFont('Inter',this)" style="font-family:'Inter',sans-serif">
+              Inter <span class="font-option-preview" style="font-family:'Inter',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Roboto" onclick="setAppFont('Roboto',this)" style="font-family:'Roboto',sans-serif">
+              Roboto <span class="font-option-preview" style="font-family:'Roboto',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Segoe UI" onclick="setAppFont('Segoe UI',this)" style="font-family:'Segoe UI',sans-serif">
+              Segoe UI <span class="font-option-preview" style="font-family:'Segoe UI',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="system-ui" onclick="setAppFont('system-ui',this)" style="font-family:system-ui,sans-serif">
+              System UI <span class="font-option-preview" style="font-family:system-ui,sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Georgia" onclick="setAppFont('Georgia',this)" style="font-family:Georgia,serif">
+              Georgia <span class="font-option-preview" style="font-family:Georgia,serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Courier New" onclick="setAppFont('Courier New',this)" style="font-family:'Courier New',monospace">
+              Courier New <span class="font-option-preview" style="font-family:'Courier New',monospace">AaBbCc 123</span>
+            </div>
+          </div>
+          <div class="font-size-row">
+            <span style="font-size:11px;color:var(--text3)">Size</span>
+            <input type="range" class="font-size-slider" id="font-size-slider"
+              min="11" max="18" step="1" value="13"
+              oninput="setAppFontSize(this.value)">
+            <span class="font-size-val" id="font-size-val">13px</span>
           </div>
         </div>
 
@@ -3570,6 +3634,33 @@ function setTheme(theme, el) {
 }
 
 // =====================
+// FONT & FONT SIZE
+// =====================
+function _applyFont (fontName, size) {
+  const stack = fontName === 'system-ui'   ? 'system-ui, sans-serif'
+              : fontName === 'Georgia'      ? 'Georgia, serif'
+              : fontName === 'Courier New'  ? "'Courier New', monospace"
+              : `'${fontName}', sans-serif`
+  document.documentElement.style.setProperty('--app-font', stack)
+  if (size) document.documentElement.style.setProperty('--app-font-size', size + 'px')
+}
+
+function setAppFont (fontName, el) {
+  document.querySelectorAll('.font-option').forEach(o => o.classList.remove('active'))
+  el.classList.add('active')
+  _applyFont(fontName)
+  window.halq.settingsSave({ appFont: fontName }).catch(() => {})
+}
+
+function setAppFontSize (size) {
+  size = parseInt(size)
+  document.documentElement.style.setProperty('--app-font-size', size + 'px')
+  const valEl = document.getElementById('font-size-val')
+  if (valEl) valEl.textContent = size + 'px'
+  window.halq.settingsSave({ appFontSize: size }).catch(() => {})
+}
+
+// =====================
 // SETTINGS TABS
 // =====================
 function switchSettingsTab (tab) {
@@ -3645,6 +3736,21 @@ async function loadAppSettings () {
       document.querySelectorAll('.theme-option').forEach(el => {
         el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${s.theme}'`))
       })
+    }
+
+    // Restore font
+    if (s.appFont) {
+      _applyFont(s.appFont, s.appFontSize || 13)
+      document.querySelectorAll('.font-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-font') === s.appFont)
+      })
+    }
+    if (s.appFontSize) {
+      const slider = document.getElementById('font-size-slider')
+      const valEl  = document.getElementById('font-size-val')
+      if (slider) slider.value = s.appFontSize
+      if (valEl)  valEl.textContent = s.appFontSize + 'px'
+      document.documentElement.style.setProperty('--app-font-size', s.appFontSize + 'px')
     }
 
     // Restore layout mode
