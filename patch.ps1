@@ -1,39 +1,44 @@
-# HALQ Patch Script
-# Run this from your project folder:
-#   D:\OneDrive\DEEH\Project\HALQ - Maintenance\
-# It will update the installed app.asar with your latest source files
+# HALQ Quick Patch — repacks app.asar without full rebuild
+# Usage: .\patch.ps1 -InstallPath "D:\OneDrive\DEEH\Project\HALQ\resources"
 
-$installDir  = "D:\OneDrive\DEEH\Project\HALQ\resources"
-$projectDir  = "D:\OneDrive\DEEH\Project\HALQ - Maintenance"
-$asarPath    = "$installDir\app.asar"
-$srcDir      = "$installDir\app_src"
+param(
+    [string]$InstallPath = "D:\OneDrive\DEEH\Project\HALQ\resources"
+)
 
-Write-Host "=== HALQ Patcher ===" -ForegroundColor Cyan
+$SourcePath = "$PSScriptRoot\src"
+$appAsar    = Join-Path $InstallPath "app.asar"
+$tempDir    = Join-Path $InstallPath "app_src"
 
-# Step 1 — clean up any previous failed attempt
-if (Test-Path $srcDir) {
-    Write-Host "Cleaning up previous app_src..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force $srcDir
+# Verify asar CLI
+$asar = Get-Command asar -ErrorAction SilentlyContinue
+if (-not $asar) {
+    Write-Host "asar not found. Install: npm install -g @electron/asar" -ForegroundColor Red
+    exit 1
 }
 
-# Step 2 — extract
-Write-Host "Extracting app.asar..." -ForegroundColor Yellow
-asar extract $asarPath $srcDir
+if (-not (Test-Path $appAsar)) {
+    Write-Host "app.asar not found at: $appAsar" -ForegroundColor Red
+    exit 1
+}
 
-# Step 3 — copy updated files
-Write-Host "Copying updated files..." -ForegroundColor Yellow
-Copy-Item "$projectDir\main.js"             -Destination "$srcDir\main.js"             -Force
-Copy-Item "$projectDir\preload.js"          -Destination "$srcDir\preload.js"          -Force
-Copy-Item "$projectDir\index.html"          -Destination "$srcDir\index.html"          -Force
-Copy-Item "$projectDir\launcher\index.html" -Destination "$srcDir\launcher\index.html" -Force
-Copy-Item "$projectDir\launcher\preload.js" -Destination "$srcDir\launcher\preload.js" -Force
+try {
+    Write-Host "Extracting app.asar..." -ForegroundColor Cyan
+    asar extract $appAsar $tempDir
 
-# Step 4 — repack
-Write-Host "Repacking app.asar..." -ForegroundColor Yellow
-asar pack $srcDir $asarPath
+    Write-Host "Copying updated source files..." -ForegroundColor Cyan
+    Copy-Item "$SourcePath\index.html"          "$tempDir\index.html"          -Force
+    Copy-Item "$SourcePath\main.js"             "$tempDir\main.js"             -Force
+    Copy-Item "$SourcePath\preload.js"          "$tempDir\preload.js"          -Force
+    Copy-Item "$SourcePath\launcher\index.html"  "$tempDir\launcher\index.html"  -Force
+    Copy-Item "$SourcePath\launcher\preload.js" "$tempDir\launcher\preload.js" -Force
 
-# Step 5 — cleanup
-Write-Host "Cleaning up..." -ForegroundColor Yellow
-Remove-Item -Recurse -Force $srcDir
+    Write-Host "Repacking app.asar..." -ForegroundColor Cyan
+    asar pack $tempDir $appAsar
 
-Write-Host "=== Done! Launch HALQ to verify. ===" -ForegroundColor Green
+    Write-Host "`nPatch complete!" -ForegroundColor Green
+} finally {
+    if (Test-Path $tempDir) {
+        Remove-Item -Recurse -Force $tempDir
+        Write-Host "Cleaned up temp files." -ForegroundColor DarkGray
+    }
+}

@@ -1,60 +1,51 @@
 {
   "name": "halq",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "description": "HALQ Maintenance Command Center",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
-    "start":     "electron .",
-    "build":     "electron-builder --win",
+    "start": "electron .",
+    "build": "electron-builder --win",
     "build:dir": "electron-builder --win --dir"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "electron":         "^29.0.0",
+    "electron": "^29.0.0",
     "electron-builder": "^24.0.0"
   },
   "build": {
-    "appId":       "com.bossarque.halq",
+    "appId": "com.bossarque.halq",
     "productName": "HALQ",
-
     "directories": {
       "output": "dist"
     },
-
     "files": [
-      "main.js",
-      "preload.js",
-      "index.html",
-      "launcher/index.html",
-      "launcher/preload.js",
+      "src/**/*",
+      "assets/**/*",
       "releases/**/*",
       "node_modules/**/*",
       "!node_modules/.cache/**/*"
     ],
-
     "asar": true,
-
     "win": {
       "target": [
         { "target": "nsis", "arch": ["x64"] }
       ],
       "icon": "assets/icon.ico"
     },
-
     "nsis": {
-      "oneClick":                          false,
+      "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon":                     "assets/icon.ico",
-      "uninstallerIcon":                   "assets/icon.ico",
-      "createDesktopShortcut":             true,
-      "createStartMenuShortcut":           true,
-      "shortcutName":                      "HALQ"
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HALQ"
     },
-
     "extraMetadata": {
-      "main": "main.js"
+      "main": "src/main.js"
     }
   }
 }
