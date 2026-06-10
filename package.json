@@ -49,3 +49,13 @@
     }
   }
 }
+
+"files": [
+  "main.js",
+  "preload.js",
+  "index.html",
+  "css/**/*",
+  "js/**/*",
+  "launcher/**/*",
+  "node_modules/**/*"
+]

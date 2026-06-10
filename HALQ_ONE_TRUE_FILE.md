@@ -288,3 +288,123 @@ document.addEventListener('DOMContentLoaded', () => {
 ---
 
 *End of One True File. Append below this line only.*
+
+
+---
+
+## 2026-06-10 — GitHub Repository Review: CRITICAL DISCOVERY
+
+**Repository:** https://github.com/BossArQue/HALQ-Maintenance.git
+
+### ⚠️ ARCHITECTURE MISMATCH DETECTED
+
+The GitHub repository does **NOT** contain the 16-file refactor. It contains the **original monolith architecture**.
+
+### What is actually on GitHub
+
+| File | Status | Notes |
+|------|--------|-------|
+| `main.js` | ✅ Present | Electron main process, IPC, updater, multi-profile launcher |
+| `preload.js` | ✅ Present | Bridge API (`window.halq`) |
+| `index.html` | ✅ Present | **MONOLITH** — all UI, styles, JS in one file |
+| `package.json` | ✅ Present | Electron-builder config, dependencies |
+| `patch.ps1` | ✅ Present | Quick asar patch script |
+| `launcher/` | ✅ Present | `index.html` + `preload.js` for profile picker |
+| `releases/` | ✅ Present | `version.json` + `app.asar` for auto-updater |
+| `css/*.css` | ❌ **MISSING** | Not in repo — styles are inline in `index.html` |
+| `js/*.js` | ❌ **MISSING** | Not in repo — scripts are inline in `index.html` |
+
+### Current GitHub Version: `1.2.2`
+
+| Version | Change |
+|---------|--------|
+| `1.1.1` | Fix: web tab counter resets correctly when all tabs closed |
+| `1.1.2` | UI: filter bar — categories moved to dropdown flyout |
+| `1.1.3` | Fix: context menu Send Message dead URL |
+| `1.1.4` | UI: context menu redesigned — two-panel slide layout |
+| `1.1.5` | Feature: SMS self-learning selector discovery |
+| `1.2.0` | Fix+UI: tab counter scoped fix; context menu two-panel redesign; category manager arrow-sort; version in bottom bar |
+| `1.2.1` | UI: context menu enlarged — bigger text, padding, flyout widths |
+| `1.2.2` | Feature: font family + font size picker in Settings → Appearance; persisted per-profile via `settings.json` |
+
+### GitHub Architecture (Actual)
+
+```
+HALQ - Maintenance/          ← Source / raw project
+├── main.js                  ← Electron main process
+├── preload.js               ← Bridge: window.halq API
+├── index.html               ← MONOLITH: All UI + styles + JS in one file
+├── package.json             ← Dependencies + electron-builder config
+├── patch.ps1                ← Quick asar patch script
+├── .gitignore
+├── launcher/
+│   ├── index.html           ← Launcher UI (profile picker)
+│   └── preload.js           ← window.launcher API
+├── releases/
+│   ├── version.json         ← Update manifest
+│   └── app.asar             ← Built archive for auto-updater
+└── userdata/                ← Created at runtime — NEVER committed
+    ├── profiles-db.json
+    ├── launcher/
+    └── profiles/<id>/
+        ├── creds.enc
+        ├── pin.enc
+        ├── settings.json
+        ├── wo-tags.json
+        ├── categories.json
+        ├── session/
+        └── notes/
+```
+
+### Key Behaviors Documented on GitHub (index.html monolith)
+
+| Feature | Behavior |
+|---------|----------|
+| **Appfolio Advanced Search** | `{{afBaseUrl}}/search/advanced_search?full_text_search={WO#}&section_keys=work_orders` |
+| **Follow-up Weekend Skipping** | "Tomorrow" and "Next Day" are business-day-aware (skips Sat/Sun) |
+| **Auto Due Date on New WOs** | WOs ≤ 2 business days old with no tag get `today + 3 business days` silently |
+| **Category Sort Order** | Arrow buttons (▲/▼) in Category Manager, saved to `categories.json` |
+| **WO List Section Groups** | Overdue → This Week → Next Week → Week After → Later → Due/No Date |
+| **Search + Filter Chips** | Search operates within active chip; switching chips clears search |
+| **Right-Click Context Menu** | Two-panel slide layout; left rail = actions, right panel = options; persists to `wo-tags.json` |
+| **SMS Self-Learning** | Discovery mode on first SMS send; saves CSS selector permanently; reset via Settings → Accounts → SMS Composer |
+
+### Data Storage (Per-Profile)
+
+| File | Purpose |
+|------|---------|
+| `creds.enc` | Encrypted AppFolio credentials (via `safeStorage`) |
+| `pin.enc` | Encrypted PIN |
+| `settings.json` | Theme, font, layout, preferences |
+| `wo-tags.json` | Follow-up dates, categories per WO |
+| `categories.json` | Category definitions + sort order |
+| `session/` | Electron session partitions (`persist:appfolio-<id>`, `persist:outlook-<id>`) |
+| `notes/` | Notes data |
+
+### Version Scheme (GitHub)
+
+`1.MAJOR.MINOR` — `1` is fixed (Electron desktop), `MAJOR` = feature set, `MINOR` = bugfix/small change (1–99, then rolls MAJOR).
+
+### What needs to happen
+
+The 16-file refactor we just created is **local only** (or in our chat history). It has **NOT** been pushed to GitHub. The GitHub repo still has the monolith `index.html`.
+
+**Options:**
+1. **Replace** the monolith on GitHub with the 16-file refactor + keep `main.js`/`preload.js`/`launcher/`/`releases/` structure
+2. **Keep both** — maintain the monolith on GitHub as "stable" while developing the refactor locally
+3. **Merge** — extract the monolith's `index.html` inline CSS/JS into the 16-file structure, preserving all `1.2.2` features
+
+### Recommendation
+
+**Option 3: Merge.** The monolith `index.html` at `v1.2.2` contains working features (SMS self-learning, two-panel context menu, arrow-sort categories, font picker) that the refactor may not have captured. We need to:
+
+1. Compare the monolith `index.html` against our refactored files
+2. Port any missing `v1.2.2` features into the 16-file structure
+3. Update `main.js`/`preload.js` to work with the new file structure
+4. Update `package.json` `files` array to include `css/` and `js/` folders
+5. Test the full Electron build
+6. Push as `v1.3.0` (major bump for architecture change)
+
+---
+
+*End of One True File. Append below this line only.*
