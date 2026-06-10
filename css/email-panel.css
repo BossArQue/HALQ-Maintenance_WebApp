@@ -1,0 +1,4 @@
+/* EMAIL PANEL — mirrors AF panel structure */
+#email-panel .af-panel { flex: 1; }
+#email-panel .af-tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); }
+#email-panel .af-tab[data-url*="outlook"] span:first-child::before { content: '✉ '; }

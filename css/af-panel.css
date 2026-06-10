@@ -1,0 +1,64 @@
+/* APPFOLIO PANEL */
+.af-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Tabs */
+.af-tabs-wrap {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; flex-shrink: 0; height: 36px;
+}
+.af-tabs-arrow {
+  width: 24px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); cursor: pointer; font-size: 12px;
+  background: var(--surface); transition: color 0.15s; user-select: none;
+}
+.af-tabs-arrow:hover { color: var(--accent); }
+.af-tabs-arrow.disabled { opacity: 0.2; pointer-events: none; }
+.af-tabs {
+  flex: 1; display: flex; align-items: center; gap: 2px;
+  overflow: hidden; height: 36px; padding: 0 4px;
+}
+.af-tab {
+  padding: 4px 10px; border-radius: 5px 5px 0 0; font-size: 11px;
+  cursor: pointer; color: var(--text3); display: flex; align-items: center; gap: 6px;
+  white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+  border: 1px solid transparent; border-bottom: none; max-width: 160px;
+}
+.af-tab span:first-child { overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.af-tab:hover { color: var(--text); background: var(--surface2); }
+.af-tab.active { color: var(--text); background: var(--bg); border-color: var(--border); }
+.af-tab.loading { color: var(--accent); }
+.af-tab-close { font-size: 10px; color: var(--text3); margin-left: 2px; flex-shrink: 0; }
+.af-tab-close:hover { color: var(--red); }
+.af-new-tab { padding: 4px 8px; color: var(--text3); cursor: pointer; font-size: 16px; flex-shrink: 0; }
+.af-new-tab:hover { color: var(--accent); }
+
+/* Toolbar */
+.af-toolbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 6px 10px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.af-nav-btn {
+  width: 26px; height: 26px; border-radius: 5px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  transition: all 0.15s;
+}
+.af-nav-btn:hover { background: var(--border2); color: var(--text); }
+.af-url {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px 10px; font-size: 11px;
+  color: var(--text2); font-family: 'JetBrains Mono', monospace; outline: none;
+}
+.af-url:focus { border-color: var(--accent); color: var(--text); }
+.af-go-btn {
+  padding: 4px 12px; border-radius: 6px; background: var(--accent);
+  color: #fff; font-size: 11px; cursor: pointer; border: none; font-weight: 500;
+  transition: filter 0.15s;
+}
+.af-go-btn:hover { filter: brightness(1.14); }
+
+/* Content */
+.af-content { flex: 1; display: flex; overflow: hidden; position: relative; }
+webview { flex: 1; width: 100%; height: 100%; border: none; }
