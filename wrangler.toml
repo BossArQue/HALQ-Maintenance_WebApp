@@ -1,13 +1,16 @@
 # ============================================
 # FILE: wrangler.toml
 # PATH: wrangler.toml
-# VERSION: 2.0.0
-# DESCRIPTION: Cloudflare project config for HALQ v2 webapp.
+# VERSION: 2.0.1
+# DESCRIPTION: Cloudflare Pages + Workers config for HALQ v2 webapp.
 # ============================================
 
 name = "halq-maintenance"
 compatibility_date = "2026-06-13"
 compatibility_flags = ["nodejs_compat"]
+
+# Pages build output
+pages_build_output_dir = "public"
 
 # D1 Database
 [[d1_databases]]
