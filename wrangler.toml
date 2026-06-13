@@ -1,0 +1,20 @@
+# ============================================
+# FILE: wrangler.toml
+# PATH: wrangler.toml
+# VERSION: 2.0.0
+# DESCRIPTION: Cloudflare project config for HALQ v2 webapp.
+# ============================================
+
+name = "halq-maintenance"
+compatibility_date = "2026-06-13"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "halq-prod"
+database_id = "0e505cbe-1641-4017-9377-21ce6d4befa9"
+
+[vars]
+APP_ENV = "production"
+APP_VERSION = "2.0.0"

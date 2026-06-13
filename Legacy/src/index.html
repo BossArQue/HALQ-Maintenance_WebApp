@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#1c1c1c">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALQ</title>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ========== CSS FILES (8) ========== -->
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/wo-panel.css">
+<link rel="stylesheet" href="css/af-panel.css">
+<link rel="stylesheet" href="css/email-panel.css">
+<link rel="stylesheet" href="css/notes-panel.css">
+<link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/context-menu.css">
+<link rel="stylesheet" href="css/category-manager.css">
+
+<base target="_blank">
+</head>
+<body data-theme="dark">
+
+<!-- ===================== TITLEBAR ===================== -->
+<div class="titlebar">
+  <div class="tb-inline-nav">
+    <div class="tb-nav-item active" id="tb-nav-wo"    onclick="HALQ.app.switchView('wo')">📋 Work Orders</div>
+    <div class="tb-nav-item"        id="tb-nav-email" onclick="HALQ.app.switchView('email')">✉ Email</div>
+    <div class="tb-nav-item"        id="tb-nav-notes" onclick="HALQ.app.switchView('notes')">📝 Notes</div>
+  </div>
+  <div class="tb-title">HALQ — Maintenance Command</div>
+  <div class="tb-controls">
+    <div class="tb-btn" onclick="HALQ.settings.openSettings()">⚙ Settings</div>
+  </div>
+</div>
+
+<!-- ===================== TOP NAV (alt mode) ===================== -->
+<div class="top-nav" id="top-nav">
+  <div class="top-nav-item active" id="topnav-wo"    onclick="HALQ.app.switchView('wo')">📋 Work Orders</div>
+  <div class="top-nav-item"        id="topnav-email" onclick="HALQ.app.switchView('email')">✉ Email</div>
+  <div class="top-nav-item"        id="topnav-notes" onclick="HALQ.app.switchView('notes')">📝 Notes</div>
+</div>
+
+<!-- ===================== SECTION TABS (alt mode) ===================== -->
+<div class="section-tabs" id="section-tabs">
+  <div class="section-tab active" id="sectab-wo"    onclick="HALQ.app.switchView('wo')">Work Orders</div>
+  <div class="section-tab"        id="sectab-email" onclick="HALQ.app.switchView('email')">Email</div>
+  <div class="section-tab"        id="sectab-notes" onclick="HALQ.app.switchView('notes')">Notes</div>
+</div>
+
+<!-- ===================== APP LAYOUT ===================== -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">H</div>
+      <div>
+        <div class="logo-text">HALQ</div>
+        <div class="logo-ver" id="app-version-label">v1.0.0</div>
+      </div>
+      <div id="profile-badge" style="
+        display:none; margin-left:auto; padding: 2px 8px;
+        border-radius: 6px; font-size: 9px; font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap; max-width: 100px;
+        overflow: hidden; text-overflow: ellipsis;
+      "></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" id="nav-wo"    onclick="HALQ.app.switchView('wo')"><span class="nav-icon">📋</span><span>Work Orders</span><span class="nav-badge" id="nav-wo-badge"></span></div>
+        <div class="nav-item"        id="nav-email" onclick="HALQ.app.switchView('email')"><span class="nav-icon">✉</span><span>Email</span></div>
+        <div class="nav-item"        id="nav-notes" onclick="HALQ.app.switchView('notes')"><span class="nav-icon">📝</span><span>Notes</span></div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="status-pill" id="sidebar-status"></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Work Orders</span>
+      <div class="topbar-actions" id="topbar-actions">
+        <button class="btn btn-primary" onclick="HALQ.af.navReload()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="panel-layout" id="panel-layout">
+
+        <!-- ========== WO LIST PANEL ========== -->
+        <div class="wo-panel">
+          <div class="wo-panel-header">
+            <div class="wo-search-wrap">
+              <input class="wo-search" id="wo-search-input" placeholder="🔍  Search WO#, property, vendor..." oninput="HALQ.wo.filter(this.value);HALQ.app.updateSearchClear(this)">
+              <button class="wo-search-clear" id="wo-search-clear" onclick="HALQ.wo.clearSearch()" title="Clear">✕</button>
+            </div>
+            <button class="btn btn-ghost" style="padding:4px 8px" onclick="HALQ.wo.toggleDetail()">⊞</button>
+          </div>
+          <div class="wo-filters-wrap">
+            <div class="wo-filters" id="wo-filters">
+              <div class="filter-chip active" id="chip-all"     onclick="HALQ.wo.toggleChip(this,'all')">All</div>
+              <div class="filter-chip"        id="chip-overdue" onclick="HALQ.wo.toggleChip(this,'overdue')">Overdue</div>
+              <div class="filter-chip"        id="chip-today"   onclick="HALQ.wo.toggleChip(this,'today')">Due Today</div>
+            </div>
+            <div class="wo-filter-more-wrap" id="wo-filter-more-wrap" style="display:none">
+              <button class="wo-filter-more-btn" id="wo-filter-more-btn" onclick="HALQ.wo.toggleFilterCatDropdown(event)">Categories ▾</button>
+              <div class="wo-filter-dropdown" id="wo-filter-dropdown">
+                <div class="wo-filter-dd-hd">Categories</div>
+                <div id="wo-filter-dd-list"><div class="wo-filter-dd-empty">None assigned</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="wo-list" id="wo-list"></div>
+        </div>
+
+        <!-- RESIZABLE DIVIDER -->
+        <div class="resize-divider" id="wo-resize-divider"></div>
+
+        <!-- ========== APPFOLIO PANEL ========== -->
+        <div class="af-panel">
+          <div class="af-tabs-wrap">
+            <div class="af-tabs-arrow" id="tabs-arrow-left" onclick="HALQ.af.scrollTabs(-1)">◀</div>
+            <div class="af-tabs" id="af-tabs">
+              <div class="af-tab active" id="tab-main"
+                   data-url=""
+                   onclick="HALQ.af.switchToTab(this)">
+                <span>🏠 Appfolio</span>
+              </div>
+              <div class="af-new-tab" onclick="HALQ.af.addTab()" title="New Tab">+</div>
+            </div>
+            <div class="af-tabs-arrow" id="tabs-arrow-right" onclick="HALQ.af.scrollTabs(1)">▶</div>
+          </div>
+          <div class="af-toolbar">
+            <div class="af-nav-btn" onclick="HALQ.af.navBack()" title="Back">←</div>
+            <div class="af-nav-btn" onclick="HALQ.af.navForward()" title="Forward">→</div>
+            <div class="af-nav-btn" onclick="HALQ.af.navReload()" title="Reload">↻</div>
+            <input class="af-url" id="af-url" value=""
+              onkeydown="if(event.key==='Enter') HALQ.af.navTo(this.value)">
+            <button class="af-go-btn" onclick="HALQ.af.navTo(document.getElementById('af-url').value)">Go</button>
+          </div>
+          <div class="af-content">
+            <webview
+              id="appfolio-view"
+              src=""
+              partition="persist:appfolio"
+              allowpopups
+              webpreferences="nodeIntegration=no, contextIsolation=yes, webSecurity=no"
+              style="flex:1;width:100%;height:100%;border:none;">
+            </webview>
+          </div>
+        </div>
+
+        <!-- ========== DETAIL DRAWER ========== -->
+        <div class="wo-detail" id="wo-detail">
+          <div class="wo-detail-header">
+            <span class="wo-detail-title">WO Details</span>
+            <span class="wo-detail-close" onclick="HALQ.wo.toggleDetail()">✕</span>
+          </div>
+          <div class="wo-detail-body">
+            <div class="detail-row"><div class="detail-label">Work Order #</div><div class="detail-val" id="d-wo">—</div></div>
+            <div class="detail-row"><div class="detail-label">Property</div><div class="detail-val" id="d-prop">—</div></div>
+            <div class="detail-row"><div class="detail-label">Primary Resident</div><div class="detail-val" id="d-res">—</div></div>
+            <div class="detail-row"><div class="detail-label">Vendor</div><div class="detail-val" id="d-vendor">—</div></div>
+            <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val" id="d-status">—</div></div>
+            <div class="detail-row"><div class="detail-label">Age (Days)</div><div class="detail-val" id="d-age">—</div></div>
+            <div class="detail-row"><div class="detail-label">Job Summary</div><div class="detail-val" id="d-job" style="font-size:11px;color:var(--text2);line-height:1.5">—</div></div>
+            <div class="detail-row">
+              <div class="detail-label">Follow-up Date</div>
+              <div class="followup-wrap">
+                <div class="followup-trigger" id="followup-trigger" onclick="HALQ.wo.toggleFollowup()">
+                  <span class="ft-val" id="followup-val">— Not set —</span>
+                  <span class="ft-arrow">▼</span>
+                </div>
+                <div class="followup-dropdown" id="followup-dropdown">
+                  <div class="followup-opt" onclick="HALQ.wo.setFollowup('tomorrow')">
+                    <span>Tomorrow</span>
+                    <span class="followup-opt-date" id="fo-tomorrow"></span>
+                  </div>
+                  <div class="followup-opt" onclick="HALQ.wo.setFollowup('nextday')">
+                    <span>The Next Day</span>
+                    <span class="followup-opt-date" id="fo-nextday"></span>
+                  </div>
+                  <div class="followup-sep"></div>
+                  <div class="followup-opt" onclick="HALQ.wo.setFollowup('thisweek')">
+                    <span>This Week</span>
+                    <span class="followup-opt-date" id="fo-thisweek"></span>
+                  </div>
+                  <div class="followup-opt" onclick="HALQ.wo.setFollowup('nextweek')">
+                    <span>Next Week</span>
+                    <span class="followup-opt-date" id="fo-nextweek"></span>
+                  </div>
+                  <div class="followup-sep"></div>
+                  <div class="followup-opt" onclick="HALQ.wo.setFollowup('custom')">
+                    <span>Custom</span>
+                    <span class="followup-opt-date">📅</span>
+                  </div>
+                  <div class="followup-custom-row" id="followup-custom-row">
+                    <input type="date" class="followup-custom-input" id="followup-custom-input"
+                      onchange="HALQ.wo.setFollowupCustom(this.value)">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Category</div>
+              <div class="cat-wrap" id="cat-wrap">
+                <div class="cat-trigger" id="cat-trigger" onclick="HALQ.categories.toggleDropdown()">
+                  <div id="cat-trigger-strips" style="display:flex;gap:3px;align-items:center;flex-shrink:0"></div>
+                  <span class="cat-trigger-label" id="cat-trigger-label">— None —</span>
+                  <span class="cat-trigger-arrow">▼</span>
+                </div>
+                <div class="cat-dropdown" id="cat-dropdown"></div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="HALQ.wo.saveDetail()">💾 Save Changes</button>
+          </div>
+        </div>
+
+      </div><!-- end .panel-layout -->
+
+      <!-- ========== EMAIL PANEL ========== -->
+      <div class="view-panel" id="email-panel" style="display:none">
+        <div class="af-panel">
+          <div class="af-tabs-wrap">
+            <div class="af-tabs-arrow disabled" id="em-tabs-arrow-left" onclick="HALQ.email.scrollTabs(-1)">◀</div>
+            <div class="af-tabs" id="em-tabs">
+              <div class="af-tab active" id="em-tab-main"
+                   data-url="https://outlook.office.com/mail"
+                   onclick="HALQ.email.switchToTab(this)">
+                <span>✉ Outlook</span>
+              </div>
+              <div class="af-new-tab" onclick="HALQ.email.addTab()" title="New Tab">+</div>
+            </div>
+            <div class="af-tabs-arrow" id="em-tabs-arrow-right" onclick="HALQ.email.scrollTabs(1)">▶</div>
+          </div>
+          <div class="af-toolbar">
+            <div class="af-nav-btn" onclick="HALQ.email.navBack()"    title="Back">←</div>
+            <div class="af-nav-btn" onclick="HALQ.email.navForward()" title="Forward">→</div>
+            <div class="af-nav-btn" onclick="HALQ.email.refresh()"    title="Reload">↻</div>
+            <input class="af-url" id="em-url" value="https://outlook.office.com/mail"
+              onkeydown="if(event.key==='Enter') HALQ.email.navTo(this.value)">
+            <button class="af-go-btn" onclick="HALQ.email.navTo(document.getElementById('em-url').value)">Go</button>
+          </div>
+          <div class="af-content">
+            <webview
+              id="email-view"
+              src="https://outlook.office.com/mail"
+              partition="persist:outlook"
+              webpreferences="nodeIntegration=no, contextIsolation=yes"
+              style="flex:1;width:100%;height:100%;border:none;">
+            </webview>
+          </div>
+        </div>
+      </div><!-- end email-panel -->
+
+      <!-- ========== NOTES PANEL ========== -->
+      <div class="view-panel" id="notes-panel" style="display:none"></div>
+
+    </div><!-- end .content -->
+  </div><!-- end .main -->
+</div><!-- end .app -->
+
+<!-- ===================== UPDATE BANNER ===================== -->
+<div class="update-banner" id="update-banner">
+  <div class="update-banner-text">
+    <strong id="update-version-label">v1.0.0</strong>
+    <span id="update-banner-msg"> is available</span>
+  </div>
+  <span class="update-banner-progress" id="update-progress" style="display:none">⏳ Downloading…</span>
+  <button class="update-banner-install" id="update-install-btn" onclick="HALQ.app.updateInstall()">Install &amp; Restart</button>
+  <button class="update-banner-dismiss" onclick="HALQ.app.updateDismiss()" title="Dismiss">✕</button>
+</div>
+
+<!-- ===================== BOTTOM BAR ===================== -->
+<div class="bottombar">
+  <div class="bb-item">📋 <span id="bb-wo-count">—</span> Active WOs</div>
+  <div class="bb-item">⚠️ <span id="bb-overdue">—</span> Overdue</div>
+  <div class="bb-item" id="bb-version" style="color:var(--text3);font-size:10px;font-family:'JetBrains Mono',monospace">v—</div>
+  <div style="margin-left:auto" class="bb-item" id="clock"></div>
+</div>
+
+<!-- ===================== PIN LOCK MODAL ===================== -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-modal">
+    <div class="pin-title">🔒 Settings Locked</div>
+    <div class="pin-sub" id="pin-sub">Enter your PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error-msg" id="pin-error"></div>
+    <input
+      class="pin-keyboard-input" id="pin-keyboard-input"
+      type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+      placeholder="••••"
+      oninput="HALQ.settings.onPinKeyboardInput(this)"
+      onkeydown="if(event.key==='Escape') HALQ.settings.pinKey('cancel')"
+      autocomplete="off"
+      style="width:100%"
+    >
+    <div class="pin-keypad">
+      <div class="pin-key" onclick="HALQ.settings.pinKey('1')">1</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('2')">2</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('3')">3</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('4')">4</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('5')">5</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('6')">6</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('7')">7</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('8')">8</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('9')">9</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('back')">⌫</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('0')">0</div>
+      <div class="pin-key" onclick="HALQ.settings.pinKey('cancel')">✕</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS OVERLAY ===================== -->
+<div class="settings-overlay" id="settings-overlay" onclick="HALQ.settings.closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">⚙ HALQ Settings</span>
+      <span class="settings-close" onclick="HALQ.settings.closeSettings()">✕</span>
+    </div>
+
+    <!-- Settings tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div class="settings-tab active" id="stab-accounts"  onclick="HALQ.settings.switchSettingsTab('accounts')">Accounts</div>
+      <div class="settings-tab"        id="stab-appearance" onclick="HALQ.settings.switchSettingsTab('appearance')">Appearance</div>
+      <div class="settings-tab"        id="stab-prefs"     onclick="HALQ.settings.switchSettingsTab('prefs')">Preferences</div>
+      <div class="settings-tab"        id="stab-messages"  onclick="HALQ.settings.switchSettingsTab('messages')">Messages</div>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- ── ACCOUNTS TAB ── -->
+      <div id="stab-content-accounts">
+        <div class="settings-section">
+          <div class="settings-section-title">Appfolio Login</div>
+          <div class="detail-label" style="margin-bottom:2px">Appfolio URL</div>
+          <input class="creds-input" id="appfolio-url-input" type="url" placeholder="https://yourcompany.appfolio.com" style="margin-bottom:8px">
+          <div class="detail-label" style="margin-bottom:2px">Email</div>
+          <input class="creds-input" id="creds-email" type="email" placeholder="your@email.com" autocomplete="username">
+          <div class="detail-label" style="margin-bottom:2px;margin-top:8px">Password</div>
+          <input class="creds-input" id="creds-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+          <div class="creds-status" id="creds-status"></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="HALQ.settings.saveCreds()">💾 Save</button>
+            <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="HALQ.settings.clearCreds()">🗑 Clear</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Email</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6">
+            Email is accessed via the <strong style="color:var(--text2)">Outlook Web</strong> tab.<br>
+            Sign in directly in the Email view — your session is saved automatically.
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Excel File Location</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Set the path to your Work Order Status Update .xlsm file. HALQ will auto-detect and load it on startup.</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="creds-input" id="excel-path-input" type="text" placeholder="C:\Path\To\WorkOrders.xlsm" style="flex:1;margin-top:0">
+            <button class="btn btn-ghost" onclick="HALQ.settings.browseExcelPath()" style="flex-shrink:0;margin-top:0">📂 Browse</button>
+          </div>
+          <div class="creds-status" id="excel-path-status"></div>
+          <div style="margin-top:10px">
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="HALQ.settings.saveExcelPath()">💾 Save Path</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Settings PIN Lock</div>
+          <div class="detail-label" style="margin-bottom:2px">New PIN (4 digits)</div>
+          <input class="creds-input" id="pin-setup-input" type="password"
+                 maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*">
+          <div class="creds-status" id="pin-setup-status"></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="HALQ.settings.savePin()">💾 Set PIN</button>
+            <button class="btn btn-ghost"   style="flex:1;justify-content:center" onclick="HALQ.settings.clearPin()">🗑 Remove PIN</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── APPEARANCE TAB ── -->
+      <div id="stab-content-appearance" style="display:none">
+        <div class="settings-section">
+          <div class="settings-section-title">Theme</div>
+          <div class="theme-grid">
+            <div class="theme-option active" onclick="HALQ.app.setTheme('dark',this)"><div class="theme-dot" style="background:#3a3a3a;border:1px solid #666"></div>Gray Dark</div>
+            <div class="theme-option" onclick="HALQ.app.setTheme('light',this)"><div class="theme-dot" style="background:#e8ecf5;border:1px solid #ccc"></div>Light</div>
+            <div class="theme-option" onclick="HALQ.app.setTheme('midnight',this)"><div class="theme-dot" style="background:#6366f1"></div>Midnight</div>
+            <div class="theme-option" onclick="HALQ.app.setTheme('forest',this)"><div class="theme-dot" style="background:#3ecf8e"></div>Forest</div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Layout</div>
+          <div class="layout-options">
+            <div class="layout-option active" onclick="HALQ.app.setLayoutOpt('side',this)">◫ Side by Side</div>
+            <div class="layout-option" onclick="HALQ.app.setLayoutOpt('vertical',this)">⊟ Stacked</div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Navigation Style</div>
+          <div class="layout-options">
+            <div class="layout-option active" onclick="HALQ.app.setNavOpt('sidebar',this)">⊞ Left Sidebar</div>
+            <div class="layout-option" onclick="HALQ.app.setNavOpt('topnav',this)">↕ Top Bar</div>
+            <div class="layout-option" onclick="HALQ.app.setNavOpt('tabs',this)">⊟ Tabs</div>
+            <div class="layout-option" onclick="HALQ.app.setNavOpt('none',this)">✕ Hidden</div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Font</div>
+          <div class="font-options" id="font-options">
+            <div class="font-option active" data-font="Inter" onclick="HALQ.app.setAppFont('Inter',this)" style="font-family:'Inter',sans-serif">
+              Inter <span class="font-option-preview" style="font-family:'Inter',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Roboto" onclick="HALQ.app.setAppFont('Roboto',this)" style="font-family:'Roboto',sans-serif">
+              Roboto <span class="font-option-preview" style="font-family:'Roboto',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Segoe UI" onclick="HALQ.app.setAppFont('Segoe UI',this)" style="font-family:'Segoe UI',sans-serif">
+              Segoe UI <span class="font-option-preview" style="font-family:'Segoe UI',sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="system-ui" onclick="HALQ.app.setAppFont('system-ui',this)" style="font-family:system-ui,sans-serif">
+              System UI <span class="font-option-preview" style="font-family:system-ui,sans-serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Georgia" onclick="HALQ.app.setAppFont('Georgia',this)" style="font-family:Georgia,serif">
+              Georgia <span class="font-option-preview" style="font-family:Georgia,serif">AaBbCc 123</span>
+            </div>
+            <div class="font-option" data-font="Courier New" onclick="HALQ.app.setAppFont('Courier New',this)" style="font-family:'Courier New',monospace">
+              Courier New <span class="font-option-preview" style="font-family:'Courier New',monospace">AaBbCc 123</span>
+            </div>
+          </div>
+          <div class="font-size-row">
+            <span style="font-size:11px;color:var(--text3)">Size</span>
+            <input type="range" class="font-size-slider" id="font-size-slider"
+              min="11" max="18" step="1" value="13"
+              oninput="HALQ.app.setAppFontSize(this.value)">
+            <span class="font-size-val" id="font-size-val">13px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PREFERENCES TAB ── -->
+      <div id="stab-content-prefs" style="display:none">
+        <div class="settings-section">
+          <div class="settings-section-title">Work Orders</div>
+          <div class="toggle-row">
+            <span>Color Code WOs by Age</span>
+            <div class="toggle on" id="pref-color-code" onclick="HALQ.app.togglePref(this,'colorCodeWOs')"></div>
+          </div>
+          <div class="toggle-row">
+            <span>Auto-search on WO Click</span>
+            <div class="toggle on" id="pref-auto-search" onclick="HALQ.app.togglePref(this,'autoSearch')"></div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Interface</div>
+          <div class="toggle-row">
+            <span>Show Bottom Bar</span>
+            <div class="toggle on" id="pref-bottom-bar" onclick="HALQ.app.togglePref(this,'showBottomBar')"></div>
+          </div>
+          <div class="toggle-row">
+            <span>Show Menu Bar</span>
+            <div class="toggle" id="menubar-toggle" onclick="HALQ.app.toggleMenuBar(this)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MESSAGES TAB ── -->
+      <div id="stab-content-messages" style="display:none">
+        <div class="settings-section">
+          <div class="settings-section-title">Tenant</div>
+          <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{res}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+          <div class="msg-section-label">📧 Email Templates</div>
+          <div class="msg-template-list" id="msg-list-tenant-email"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('tenant','email')">＋ Add Email Template</div>
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-tenant-text"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('tenant','text')">＋ Add Text Template</div>
+          <button class="btn btn-primary msg-save-btn" onclick="HALQ.msg.saveTemplates()">💾 Save Tenant Templates</button>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Vendor</div>
+          <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+          <div class="msg-section-label">📧 Email Templates</div>
+          <div class="msg-template-list" id="msg-list-vendor-email"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('vendor','email')">＋ Add Email Template</div>
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-vendor-text"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('vendor','text')">＋ Add Text Template</div>
+          <button class="btn btn-primary msg-save-btn" onclick="HALQ.msg.saveTemplates()">💾 Save Vendor Templates</button>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Owner <span style="font-size:9px;color:var(--text3);font-weight:400;margin-left:6px">— Coming Soon</span></div>
+          <div class="msg-section-label">📧 Email Templates <span style="color:var(--text3);font-size:9px">(sent via Outlook)</span></div>
+          <div class="msg-template-list" id="msg-list-owner-email"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('owner','email')">＋ Add Email Template</div>
+          <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+          <div class="msg-template-list" id="msg-list-owner-text"></div>
+          <div class="msg-add-btn" onclick="HALQ.msg.addTemplate('owner','text')">＋ Add Text Template</div>
+          <button class="btn btn-primary msg-save-btn" onclick="HALQ.msg.saveTemplates()">💾 Save Owner Templates</button>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Vendor Directory</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+            Vendor contact details used in message tokens.<br>
+            Import from Excel to seed from your Data Base Vendor sheet.
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="HALQ.msg.dirImportExcel()">📥 Import from Excel</button>
+            <button class="btn btn-ghost"   style="font-size:11px;padding:5px 10px" onclick="HALQ.msg.dirAddManual()">＋ Add Vendor</button>
+          </div>
+          <input id="vendor-dir-search" class="creds-input" type="text" placeholder="🔍 Search vendors..."
+            style="margin-bottom:8px;margin-top:0"
+            oninput="HALQ.msg.dirRenderTable(this.value)">
+          <div id="vendor-dir-status" class="creds-status"></div>
+          <div id="vendor-dir-table-wrap" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+            <table id="vendor-dir-table" style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:var(--surface2);position:sticky;top:0;z-index:1">
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Name</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 1</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 2</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Email</th>
+                  <th style="padding:6px 4px;border-bottom:1px solid var(--border);width:52px"></th>
+                </tr>
+              </thead>
+              <tbody id="vendor-dir-tbody"></tbody>
+            </table>
+          </div>
+          <div id="vendor-dir-count" style="font-size:10px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== WO CONTEXT MENU ===================== -->
+<div id="wo-ctx-menu" class="wo-ctx-menu" style="display:none"></div>
+
+<!-- ===================== CATEGORY MANAGER MODAL ===================== -->
+<div class="catmgr-overlay" id="catmgr-overlay" onclick="HALQ.categories.clickOutside(event)">
+  <div class="catmgr-modal">
+    <div class="catmgr-header">
+      <span class="catmgr-title">🏷 Manage Categories</span>
+      <span class="catmgr-close" onclick="HALQ.categories.closeManager()">✕</span>
+    </div>
+    <div class="catmgr-body">
+      <div class="catmgr-list" id="catmgr-list"></div>
+      <div class="catmgr-actions" id="catmgr-actions">
+        <div id="catmgr-placeholder" style="color:var(--text3);font-size:11px;margin:auto;text-align:center">
+          Select a category<br>to rename or delete it
+        </div>
+        <div id="catmgr-edit-panel" style="display:none;flex-direction:column;gap:12px;flex:1">
+          <div>
+            <div class="catmgr-field-label">Name</div>
+            <input class="catmgr-input" id="catmgr-rename-input" type="text" placeholder="Category name">
+          </div>
+          <div>
+            <div class="catmgr-field-label">Color</div>
+            <div class="catmgr-colors" id="catmgr-colors"></div>
+          </div>
+          <div class="catmgr-status" id="catmgr-status"></div>
+          <div class="catmgr-btn-row">
+            <button class="catmgr-btn primary" onclick="HALQ.categories.mgrSaveEdit()">💾 Save</button>
+            <button class="catmgr-btn danger"  onclick="HALQ.categories.mgrDelete()">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="catmgr-footer">
+      <input class="catmgr-new-input" id="catmgr-new-input" type="text"
+        placeholder="New category name..." maxlength="40"
+        onkeydown="if(event.key==='Enter') HALQ.categories.mgrAdd()">
+      <button class="catmgr-btn primary" style="flex:none;padding:6px 14px" onclick="HALQ.categories.mgrAdd()">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== NOTES TEMPLATE (injected into #notes-panel) ===================== -->
+<div id="notes-body-wrap-template" style="display:none">
+  <div class="notes-body-wrap" id="notes-body-wrap">
+    <div class="notes-nb-panel" id="notes-nb-panel">
+      <div class="notes-nb-hd">
+        <span class="notes-nb-hd-title">Notebooks</span>
+        <button class="ntree-btn" onclick="HALQ.notes.addNotebook()" title="New Notebook" style="font-size:15px;font-weight:bold">+</button>
+      </div>
+      <div class="notes-tree" id="notes-tree"></div>
+    </div>
+    <div class="resize-divider" id="notes-divider-1"></div>
+    <div class="notes-pg-panel" id="notes-pg-panel">
+      <div class="notes-pg-hd">
+        <span class="notes-pg-hd-title" id="notes-pg-hd-title">Pages</span>
+        <button class="ntree-btn" id="notes-add-pg-btn" onclick="HALQ.notes.addPageFromPanel()" title="New Page" style="font-size:15px;font-weight:bold;display:none">+</button>
+      </div>
+      <div class="notes-pg-list" id="notes-pg-list">
+        <div class="notes-pg-empty">Select a section</div>
+      </div>
+    </div>
+    <div class="resize-divider" id="notes-divider-2"></div>
+    <div class="notes-editor">
+      <div class="notes-tb" id="notes-tb">
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('bold')"><b>B</b></button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('italic')"><i>I</i></button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('underline')"><u>U</u></button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('strikeThrough')"><s>S</s></button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.block('h1')">H1</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.block('h2')">H2</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.block('h3')">H3</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.block('p')">¶</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.list('ul')">• List</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.list('ol')">1. List</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.checklist()">☑ Check</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.table()">⊞ Table</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.image()">🖼 Image</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.file()">📎 File</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" id="nbt-draw" onclick="HALQ.notes.draw.toggle()">✏️ Draw</button>
+          <select class="nbt-sel" onchange="HALQ.notes.toolbar.fmt('foreColor',this.value)" title="Text Color">
+            <option value="#000000">Black</option>
+            <option value="#e5e7eb">Gray</option>
+            <option value="#5b9cf6">Blue</option>
+            <option value="#34c759">Green</option>
+            <option value="#ff9f0a">Orange</option>
+            <option value="#ff453a">Red</option>
+            <option value="#bf5af2">Purple</option>
+          </select>
+          <select class="nbt-sel" onchange="HALQ.notes.toolbar.fmt('hiliteColor',this.value)" title="Highlight">
+            <option value="transparent">Highlight</option>
+            <option value="#fef08a">Yellow</option>
+            <option value="#bbf7d0">Green</option>
+            <option value="#bfdbfe">Blue</option>
+            <option value="#fecaca">Red</option>
+          </select>
+          <select class="nbt-sel" onchange="HALQ.notes.toolbar.fmt('fontSize',this.value)" title="Size">
+            <option value="2">Small</option>
+            <option value="3" selected>Normal</option>
+            <option value="4">Large</option>
+            <option value="5">Larger</option>
+            <option value="6">Huge</option>
+          </select>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('justifyLeft')">⬅</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('justifyCenter')">↔</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('justifyRight')">➡</button>
+        </div>
+        <div class="notes-tb-sep"></div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('undo')">↩</button>
+          <button class="nbt" onclick="HALQ.notes.toolbar.fmt('redo')">↪</button>
+        </div>
+        <div class="notes-draw-bar" id="notes-draw-bar">
+          <input type="color" id="draw-color" value="#5b9cf6" title="Pen Color">
+          <input type="range" id="draw-size" min="1" max="20" value="3" title="Size">
+          <button class="nbt" id="draw-eraser" onclick="HALQ.notes.draw.eraser()">⌫ Eraser</button>
+          <button class="nbt" onclick="HALQ.notes.draw.clear()">🗑 Clear</button>
+          <button class="nbt" onclick="HALQ.notes.draw.save()">💾 Save</button>
+        </div>
+      </div>
+      <div class="notes-page-area" id="notes-page-area">
+        <div class="notes-empty" id="notes-empty">
+          <div style="font-size:40px">📝</div>
+          <div style="font-size:14px;color:#999">Select a page or create one</div>
+        </div>
+        <div id="notes-page-inner" class="notes-page-inner" style="display:none">
+          <input class="notes-pg-title" id="notes-pg-title"
+                 placeholder="Page title..."
+                 oninput="HALQ.notes.markDirty()"
+                 onblur="HALQ.notes.savePage()">
+          <div class="notes-canvas-wrap" id="notes-canvas-wrap">
+            <canvas id="notes-canvas"></canvas>
+          </div>
+          <div class="notes-body" id="notes-body"
+               contenteditable="true"
+               oninput="HALQ.notes.markDirty()"
+               onpaste="HALQ.notes.paste(event)"
+               ondrop="HALQ.notes.drop(event)"
+               ondragover="event.preventDefault()"
+               spellcheck="true">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== NOTES PROMPT MODAL ===================== -->
+<div class="nt-prompt-overlay" id="nt-prompt-overlay">
+  <div class="nt-prompt-box">
+    <div class="nt-prompt-label" id="nt-prompt-label"></div>
+    <input class="nt-prompt-input" id="nt-prompt-input" type="text"
+           onkeydown="if(event.key==='Enter')HALQ.notes.promptOK();if(event.key==='Escape')HALQ.notes.promptCancel()">
+    <div class="nt-prompt-btns">
+      <button class="nt-prompt-cancel" onclick="HALQ.notes.promptCancel()">Cancel</button>
+      <button class="nt-prompt-ok"     onclick="HALQ.notes.promptOK()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== NOTES CONFIRM MODAL ===================== -->
+<div class="nt-prompt-overlay" id="nt-confirm-overlay">
+  <div class="nt-prompt-box">
+    <div class="nt-prompt-label" id="nt-confirm-msg" style="white-space:pre-wrap;text-align:center"></div>
+    <div class="nt-prompt-btns" style="margin-top:4px">
+      <button class="nt-prompt-cancel" onclick="HALQ.notes.confirmCancel()">Cancel</button>
+      <button class="nt-prompt-ok" style="background:var(--red)" onclick="HALQ.notes.confirmOK()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== NOTES EXPORT MODAL ===================== -->
+<div class="nt-export-overlay" id="nt-export-overlay">
+  <div class="nt-export-box">
+    <div class="nt-export-ttl">⬇ Export Notes</div>
+    <div class="nt-export-row">
+      <div class="nt-export-lbl">What to export</div>
+      <div class="nt-export-scope">
+        <button class="nt-scope-btn on" id="exp-scope-nb"  onclick="HALQ.notes.export.setScope('notebook')">Notebook</button>
+        <button class="nt-scope-btn"    id="exp-scope-sec" onclick="HALQ.notes.export.setScope('section')">Section</button>
+        <button class="nt-scope-btn"    id="exp-scope-pg"  onclick="HALQ.notes.export.setScope('page')">Page</button>
+      </div>
+    </div>
+    <div class="nt-export-row">
+      <div class="nt-export-lbl">Notebook</div>
+      <select class="nt-export-sel" id="exp-sel-nb" onchange="HALQ.notes.export._nbChanged()"></select>
+    </div>
+    <div class="nt-export-row" id="exp-row-sec" style="display:none">
+      <div class="nt-export-lbl">Section</div>
+      <select class="nt-export-sel" id="exp-sel-sec" onchange="HALQ.notes.export._secChanged()"></select>
+    </div>
+    <div class="nt-export-row" id="exp-row-pg" style="display:none">
+      <div class="nt-export-lbl">Page</div>
+      <select class="nt-export-sel" id="exp-sel-pg"></select>
+    </div>
+    <div class="nt-export-footer">
+      <button class="nt-exp-cancel" onclick="HALQ.notes.export.close()">Cancel</button>
+      <button class="nt-exp-ok"     onclick="HALQ.notes.export.run()">Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== JS FILES (load order critical) ===================== -->
+<!-- 1. Core app (registers namespace, utilities) -->
+<script src="js/app.js"></script>
+
+<!-- 2. Feature panels (depend on HALQ.app) -->
+<script src="js/wo-panel.js"></script>
+<script src="js/af-panel.js"></script>
+<script src="js/email-panel.js"></script>
+<script src="js/notes-panel.js"></script>
+
+<!-- 3. Shared services (used by panels + settings) -->
+<script src="js/messages.js"></script>
+<script src="js/categories.js"></script>
+
+<!-- 4. Settings (depends on everything above) -->
+<script src="js/settings.js"></script>
+
+<!-- 5. Bootstrap -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  HALQ.app.init();
+  HALQ.settings.init();
+});
+</script>
+
+</body>
+</html>

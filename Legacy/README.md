@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HALQ — Maintenance Command Center
 
 A desktop app for property management work order tracking. Built with Electron.
@@ -424,3 +425,6 @@ The filter bar shows three fixed chips: **All**, **Overdue**, **Due Today**. Whe
 
 ### SMS Self-Learning
 When sending a text message for the first time, HALQ enters discovery mode — a banner appears inside the AppFolio webview asking you to click the message input. HALQ saves the CSS selector permanently. All future SMS sends fill the body automatically. Reset via Settings → Accounts → SMS Composer.
+=======
+# HALQ-Maintenance_v2
+>>>>>>> 840e67d9c640f2ce0b9388d8ff73ac7cf5bae156
