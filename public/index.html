@@ -1,8 +1,8 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.0.0
-   DESCRIPTION: SPA shell — layout containers, modals, script loading order.
+   VERSION: 2.1.0
+   DESCRIPTION: SPA shell — layout, modals, script loading order.
    ============================================ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -12,6 +12,12 @@
   <title>HALQ — Housing & Asset Logistics Queue</title>
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/wo-panel.css">
+  <link rel="stylesheet" href="css/category-manager.css">
+  <link rel="stylesheet" href="css/context-menu.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <base target="_blank">
+  <!-- SheetJS for browser-side Excel parsing -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <base target="_blank">
 </head>
 <body data-theme="dark">
@@ -19,7 +25,7 @@
   <!-- TITLEBAR -->
   <div class="titlebar">
     <div class="tb-title">HALQ</div>
-    <div class="tb-sub" id="app-version-label">v2.0.0</div>
+    <div class="tb-sub" id="app-version-label">v2.1.0</div>
     <div class="tb-controls">
       <button class="tb-btn" id="tb-nav-wo" onclick="HALQ.app.switchView('wo')">📋 WO</button>
       <button class="tb-btn" id="tb-nav-notes" onclick="HALQ.app.switchView('notes')">📝 Notes</button>
@@ -35,7 +41,7 @@
         <div class="logo-icon">H</div>
         <div>
           <div class="logo-text">HALQ</div>
-          <div class="logo-ver" id="bb-version">v2.0.0</div>
+          <div class="logo-ver" id="bb-version">v2.1.0</div>
         </div>
       </div>
       <div class="sidebar-nav">
@@ -63,7 +69,7 @@
       <div class="topbar">
         <div class="topbar-title" id="topbar-title">Work Orders</div>
         <div class="topbar-actions" id="topbar-actions">
-          <button class="btn btn-primary" onclick="HALQ.wo.uploadExcel?.()">📤 Upload Excel</button>
+          <button class="btn btn-primary" onclick="HALQ.wo.uploadExcel()">📤 Upload Excel</button>
         </div>
       </div>
 
@@ -203,7 +209,7 @@
     </div>
   </div>
 
-  <!-- SETTINGS OVERLAY (placeholder) -->
+  <!-- SETTINGS OVERLAY -->
   <div class="settings-overlay" id="settings-overlay">
     <div class="settings-panel">
       <div class="settings-header">
@@ -247,6 +253,37 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY MANAGER MODAL (placeholder structure) -->
+  <div class="catmgr-overlay" id="catmgr-overlay">
+    <div class="catmgr-modal">
+      <div class="catmgr-header">
+        <div class="catmgr-title">Categories</div>
+        <div class="catmgr-close" onclick="HALQ.catMgr.close?.()">✕</div>
+      </div>
+      <div class="catmgr-body">
+        <div class="catmgr-list" id="catmgr-list"></div>
+        <div class="catmgr-actions" id="catmgr-actions">
+          <div class="catmgr-placeholder" id="catmgr-placeholder">Select a category to edit</div>
+          <div class="catmgr-edit-panel" id="catmgr-edit-panel" style="display:none">
+            <div class="catmgr-field-label">Name</div>
+            <input class="catmgr-input" id="catmgr-rename-input">
+            <div class="catmgr-field-label" style="margin-top:10px">Color</div>
+            <div class="catmgr-colors" id="catmgr-colors"></div>
+            <div class="catmgr-btn-row">
+              <button class="catmgr-btn primary" onclick="HALQ.categories.mgrSaveEdit?.()">Save</button>
+              <button class="catmgr-btn danger" onclick="HALQ.categories.mgrDelete?.()">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="catmgr-footer">
+        <input class="catmgr-new-input" id="catmgr-new-input" placeholder="New category name...">
+        <button class="catmgr-btn primary" onclick="HALQ.categories.mgrAdd?.()">Add</button>
+      </div>
+      <div class="catmgr-status" id="catmgr-status"></div>
     </div>
   </div>
 
