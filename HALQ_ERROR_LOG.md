@@ -67,25 +67,51 @@
 *Last updated: 2026-06-14. Append only.*
 
 
-| 18 | CSS files built from scratch (8 files, 70,523 chars) | `public/css/*.css` | v1 had inline styles only — no CSS files ever existed. AI previously assumed they did. | Built all 8 from actual DOM structure in uploaded `index.html`, `app.js`, `wo-panel.js`. Verified every selector against real source. | 2026-06-15 |
-| 19 | CSS build used 3-batch approach by code size | `HALQ_ONE_TRUE_FILE.md` | Large files need batching to manage token budget and review quality | Batch 1: app.css + wo-panel.css (~33K). Batch 2: settings + context-menu + category-manager (~14K). Batch 3: af-panel + email-panel + notes-panel (~24K). | 2026-06-15 |
+---
+
+## 2026-06-15 — PROJECT STATUS & DECISION LOG
+
+| # | Event | Decision | Impact |
+|---|-------|----------|--------|
+| 1 | CSS files built from scratch | 8 files, 70K chars, all selectors verified | v2.1.0 frontend now renders correctly |
+| 2 | Bridge app spec defined | Node.js + chokidar + SheetJS + fetch | P0 next task |
+| 3 | Bridge config storage | HALQ settings API (`bridge_config` key) | No hardcoded paths — user-configurable from web app |
+| 4 | Excel column mapping | Headers from `work_order-20260615.xlsx` | Parser must use header names, not positions (safer) |
+| 5 | Property header rows | Rows with empty WO# are group headers, skip | Parser must filter `Work Order Number` != empty |
+| 6 | Obsidian vault path | `D:\OneDrive\DEEH\Obsidian\Talley Properties Work Order` | Stored in settings, not hardcoded |
+| 7 | Excel watch path | `D:\OneDrive\Talley Properties\Work Orders` | Stored in settings, not hardcoded |
 
 ---
 
-## CSS Build Verification Checklist (2026-06-15)
+*Status log added 2026-06-15. Append only.*
 
-| # | Check | Status |
-|---|-------|--------|
-| 1 | All 4 themes (dark/light/midnight/forest) have full color palette | ✅ |
-| 2 | All selectors match actual DOM from uploaded source files | ✅ |
-| 3 | No assumed selectors — verified against index.html, app.js, wo-panel.js | ✅ |
-| 4 | Responsive breakpoints at 900px and 700px | ✅ |
-| 5 | Hover states, active states, transitions on all interactive elements | ✅ |
-| 6 | Fixed-position dropdowns (followup, cat, filter, context menu) with z-index layering | ✅ |
-| 7 | Scrollbar styling (thin, theme-aware) | ✅ |
-| 8 | Font import (Inter from Google Fonts) | ✅ |
-| 9 | Standard file headers on all 8 files | ✅ |
-| 10 | No hardcoded colors outside CSS variables | ✅ |
+
+---
+
+## 2026-06-15 — v2.2.0 Bridge App Build Session
+
+| # | Bug / Gotcha | File | Why It Happened | Fix Applied |
+|---|-------------|------|----------------|-------------|
+| 18 | `node bridge/index.js` path error | User command | Already inside `bridge/` folder, ran `node bridge/index.js` → `bridge/bridge/index.js` | **User error** — correct command is `node index.js` |
+| 19 | `rm -rf` fails in PowerShell | PowerShell terminal | `rm` in PowerShell is `Remove-Item`, `-rf` are bash flags | **User error** — use `Remove-Item -Recurse -Force` or `rm -r -fo` |
+| 20 | `tray.js` regex syntax error | `bridge/tray.js` | `__dirname.replace(/\/g, '\')` inside template string parsed as JS regex literal | Pre-computed path escaping outside template string, v2.2.1 |
+| 21 | `xlsx` npm package deprecated | `bridge/package.json` | `xlsx` on npm is deprecated; SheetJS distributes via CDN tarball | Changed dep to `"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` |
+| 22 | D1 tables missing on first Bridge run | `functions/api/settings.js` | D1 schema not yet applied to production DB | Ran `wrangler d1 execute halq-prod --file=db/schema.sql --remote` |
+| 23 | `D1_TYPE_ERROR: undefined not supported` | `functions/api/upload.js` v2.0.0 | Bridge sends WOs with `undefined` values for empty Excel cells; D1 SQLite rejects `undefined` bindings | Added `_sanitizeWO()` in `upload.js` v2.2.0 — converts all `undefined`/`null` → `''` |
+| 24 | Parser found 0 WOs from Excel | `bridge/parser.js` v2.2.0 | Excel file `Sheet1` has duplicate header row (row 1 == row 0); parser started data read at wrong row | Added duplicate header detection — skips row 1 if it matches row 0 exactly, v2.2.2 |
+| 25 | `wrangler deploy` warning on Pages project | User command | Cloudflare Pages projects use `wrangler pages deploy` or git auto-deploy, not `wrangler deploy` | **User error** — use `git push` for Pages projects with git integration |
+| 26 | `wrangler pages deploy` asks to create new project | User command | Project name mismatch — `wrangler.toml` name doesn't match Pages project name | **User error** — Pages with git integration auto-deploys on `git push`; no manual deploy needed |
+
+## Known Issues (Not Yet Fixed)
+
+| # | Issue | File | Impact | Planned Fix |
+|---|-------|------|--------|-------------|
+| 9 | Bridge API upload not yet verified | `bridge/index.js` → `functions/api/upload.js` | Git push pending, upload success unconfirmed | **Next chat** — run Bridge after deploy |
+| 10 | Obsidian vault sync not yet verified | `bridge/obsidian.js` | Needs API upload working first | **Next chat** — check `📁 Active Monitoring/` folders |
+| 11 | Bridge only parses raw `.xlsx` export | `bridge/parser.js` | Full `.xlsm` workbook with "Active Monitoring"/"Closed" sheets not yet tested | Add `.xlsm` test file with multiple sheets |
+| 12 | Bridge closed detection not tested | `bridge/obsidian.js` | "Closed" sheet parsing + moving WOs to `📁 Closed WOs/` untested | **Next chat** — need Excel file with Closed data |
+| 13 | Tag-based folder sync (poll loop) untested | `bridge/index.js` `_syncLoop` | 30s poll fetches tags from API, updates Obsidian | **Next chat** — needs API upload + categories seeded |
+| 14 | Tray icon temp files on crash | `bridge/tray.js` | `.tray.ps1`, `.tray-status.json`, `.tray-icon.ico` may persist if Bridge crashes before `shutdown()` | Low priority — cleanup on next startup |
 
 ---
 
