@@ -1,0 +1,695 @@
+/* ============================================
+   FILE: notes-panel.css
+   PATH: public/css/notes-panel.css
+   VERSION: 2.1.0
+   DESCRIPTION: Notes tree, editor, canvas overlay, page list, export modal.
+   ============================================ */
+
+/* ── Notes Panel Layout ── */
+.notes-panel {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Tree Sidebar ── */
+.notes-tree {
+  width: 220px;
+  min-width: 180px;
+  max-width: 320px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.notes-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.notes-tree-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.notes-tree-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.notes-tree-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.notes-tree-btn:hover {
+  background: var(--surface2);
+  color: var(--accent);
+}
+
+/* ── Tree Scroll Area ── */
+.notes-tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+}
+
+/* ── Notebook Node ── */
+.nt-nb {
+  margin-bottom: 2px;
+}
+
+.nt-nb-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.nt-nb-header:hover {
+  background: var(--surface2);
+}
+
+.nt-nb-header.active {
+  background: rgba(91, 156, 246, 0.1);
+  color: var(--accent);
+}
+
+.nt-nb-chevron {
+  font-size: 10px;
+  color: var(--text3);
+  transition: transform 0.15s ease;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nt-nb.open .nt-nb-chevron {
+  transform: rotate(90deg);
+}
+
+.nt-nb-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.nt-nb-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-nb-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.nt-nb-header:hover .nt-nb-actions {
+  opacity: 1;
+}
+
+.nt-nb-action {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.nt-nb-action:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+/* ── Section Row ── */
+.nt-sec-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text2);
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.nt-sec-row:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.nt-sec-row.active {
+  background: rgba(91, 156, 246, 0.1);
+  color: var(--accent);
+}
+
+.nt-sec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nt-sec-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-sec-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.nt-sec-row:hover .nt-sec-actions {
+  opacity: 1;
+}
+
+/* ── Page List ── */
+.notes-pg-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.notes-pg-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.notes-pg-list-title {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.notes-pg-add {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.notes-pg-add:hover {
+  background: var(--surface2);
+  color: var(--accent);
+}
+
+/* ── Page Item ── */
+.notes-pg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text2);
+  transition: all 0.1s ease;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.notes-pg-item:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.notes-pg-item.active {
+  background: rgba(91, 156, 246, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.notes-pg-item.dragging {
+  opacity: 0.5;
+  border: 1px dashed var(--accent);
+}
+
+.notes-pg-item-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.notes-pg-item-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Editor Area ── */
+.notes-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--bg);
+}
+
+/* ── Toolbar ── */
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.notes-toolbar.enabled {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.notes-toolbar.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.notes-tb-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.notes-tb-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.notes-tb-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.notes-tb-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.notes-tb-label {
+  font-size: 10px;
+  color: var(--text3);
+  padding: 0 6px;
+  font-weight: 500;
+}
+
+/* ── Editor Content ── */
+.notes-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.7;
+  outline: none;
+}
+
+.notes-content:focus {
+  background: var(--surface);
+}
+
+.notes-content h1,
+.notes-content h2,
+.notes-content h3 {
+  color: var(--text);
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+
+.notes-content h1 { font-size: 20px; }
+.notes-content h2 { font-size: 16px; }
+.notes-content h3 { font-size: 14px; }
+
+.notes-content p {
+  margin: 8px 0;
+}
+
+.notes-content ul,
+.notes-content ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.notes-content li {
+  margin: 3px 0;
+}
+
+.notes-content blockquote {
+  margin: 10px 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface2);
+  color: var(--text2);
+  border-radius: 0 6px 6px 0;
+}
+
+.notes-content img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.notes-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 12px;
+}
+
+.notes-content th,
+.notes-content td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.notes-content th {
+  background: var(--surface2);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Canvas Overlay ── */
+#notes-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: none;
+}
+
+#notes-canvas-wrap.on {
+  display: block;
+  pointer-events: auto;
+}
+
+#notes-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* ── Draw Bar ── */
+#notes-draw-bar {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#notes-draw-bar.on {
+  display: flex;
+}
+
+.notes-draw-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.notes-draw-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.notes-draw-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent2);
+}
+
+.notes-draw-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.notes-draw-color:hover {
+  transform: scale(1.2);
+}
+
+.notes-draw-color.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
+}
+
+.notes-draw-slider {
+  width: 60px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border2);
+  outline: none;
+}
+
+.notes-draw-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Export Modal ── */
+.notes-export-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.notes-export-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-modal);
+}
+
+.notes-export-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.notes-export-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: all 0.12s ease;
+}
+
+.notes-export-option:hover {
+  border-color: var(--accent);
+  background: var(--surface3);
+}
+
+.notes-export-option.active {
+  border-color: var(--accent);
+  background: rgba(91, 156, 246, 0.1);
+}
+
+.notes-export-option input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+.notes-export-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.notes-export-desc {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.notes-export-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* ── Import Dropzone ── */
+.notes-import-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface2);
+}
+
+.notes-import-zone:hover,
+.notes-import-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(91, 156, 246, 0.05);
+}
+
+/* ── Notes Empty State ── */
+.notes-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+  gap: 12px;
+  padding: 40px;
+}
+
+.notes-empty-icon {
+  font-size: 48px;
+  opacity: 0.4;
+}
+
+.notes-empty-text {
+  font-size: 13px;
+}
+
+/* ── Notes Rename Input (inline) ── */
+.nt-rename-input {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: inherit;
+  font-family: var(--app-font);
+  outline: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .notes-tree {
+    width: 180px;
+    min-width: 160px;
+  }
+  .notes-pg-list {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 700px) {
+  .notes-panel {
+    flex-direction: column;
+  }
+  .notes-tree,
+  .notes-pg-list {
+    width: 100%;
+    max-width: none;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
