@@ -1,8 +1,8 @@
 /* ============================================
    FILE: settings.js
    PATH: public/js/settings.js
-   VERSION: 2.1.0
-   DESCRIPTION: Settings panel UI — theme, font, layout, message templates, vendor directory.
+   VERSION: 2.1.1
+   DESCRIPTION: Settings panel UI — theme, font, layout, message templates, vendor directory, bridge config.
    ============================================ */
 
 (function () {
@@ -10,24 +10,34 @@
 
   /* ---------- DOM refs ---------- */
   let _overlay = null, _panel = null;
+  let _currentTab = 'appearance';
 
   /* ---------- init ---------- */
   function init() {
     _overlay = document.getElementById('settings-overlay');
     _panel = document.querySelector('.settings-panel');
 
-    // Close on overlay click
     _overlay?.addEventListener('click', e => { if (e.target === _overlay) closeSettings(); });
+    document.querySelector('.settings-close')?.addEventListener('click', closeSettings);
 
-    // Close button
-    const closeBtn = document.querySelector('.settings-close');
-    closeBtn?.addEventListener('click', closeSettings);
+    // Tab switching
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab')));
+    });
 
-    // Load settings from API + localStorage (UI prefs only)
     loadSettingsToUI();
   }
 
-  /* ---------- open / close ---------- */
+  function switchTab(tabName) {
+    _currentTab = tabName;
+    document.querySelectorAll('.settings-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+    });
+    document.querySelectorAll('.settings-tab-panel').forEach(p => {
+      p.classList.toggle('hidden', p.getAttribute('data-panel') !== tabName);
+    });
+  }
+
   function openSettings() {
     loadSettingsToUI();
     _overlay?.classList.add('open');
@@ -65,7 +75,7 @@
     const pl = document.getElementById('panel-layout');
     if (pl) pl.className = 'panel-layout' + (layout === 'vertical' ? ' vertical' : '');
 
-    // Try to load from API for server-side persistence
+    // Bridge config from API
     try {
       const result = await HALQ.apiGet('/settings');
       if (result.ok && result.data) {
@@ -82,6 +92,15 @@
           }
           if (s.key === 'layoutMode' && s.value) {
             localStorage.setItem('halq_layout', s.value);
+          }
+          if (s.key === 'bridge_config' && s.value) {
+            const cfg = typeof s.value === 'object' ? s.value : JSON.parse(s.value);
+            const excelInput = document.getElementById('bridge-excel-path');
+            const vaultInput = document.getElementById('bridge-vault-path');
+            const apiInput = document.getElementById('bridge-api-url');
+            if (excelInput) excelInput.value = cfg.excelPath || '';
+            if (vaultInput) vaultInput.value = cfg.vaultPath || '';
+            if (apiInput) apiInput.value = cfg.apiUrl || '';
           }
         });
       }
@@ -139,6 +158,38 @@
     if (key === 'colorCodeWOs' && HALQ.wo.renderList) HALQ.wo.renderList();
   }
 
+  /* ---------- Bridge Config ---------- */
+  async function saveBridgeConfig() {
+    const excelPath = document.getElementById('bridge-excel-path')?.value?.trim();
+    const vaultPath = document.getElementById('bridge-vault-path')?.value?.trim();
+    const apiUrl = document.getElementById('bridge-api-url')?.value?.trim();
+
+    const config = {
+      excelPath: excelPath || '',
+      vaultPath: vaultPath || '',
+      apiUrl: apiUrl || window.location.origin
+    };
+
+    try {
+      const res = await HALQ.apiPost('/settings', { key: 'bridge_config', value: config });
+      if (res.ok) {
+        showBridgeStatus('Saved successfully', 'success');
+      } else {
+        showBridgeStatus('Save failed: ' + (res.error || 'Unknown'), 'error');
+      }
+    } catch (e) {
+      showBridgeStatus('Save failed: ' + e.message, 'error');
+    }
+  }
+
+  function showBridgeStatus(msg, type) {
+    const el = document.getElementById('bridge-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'bridge-status ' + type;
+    setTimeout(() => { el.textContent = ''; el.className = 'bridge-status'; }, 3000);
+  }
+
   /* ---------- Message Templates UI bridge ---------- */
   function renderMsgTemplates() {
     if (HALQ.msg.renderTemplates) HALQ.msg.renderTemplates();
@@ -158,6 +209,7 @@
     setFontSize,
     setLayout,
     togglePref,
+    saveBridgeConfig,
     renderMsgTemplates,
     renderVendorDir,
     loadSettingsToUI

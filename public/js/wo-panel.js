@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.0
+   VERSION: 2.1.1
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
    ============================================ */
 
@@ -76,6 +76,7 @@
     init,
     renderList,
     filter,
+    toggleChip,
     select,
     saveDetail,
     toggleDetail,
@@ -86,8 +87,11 @@
     saveTags,
     renderCategoryChips,
     selectCatFilter,
+    selectCat,
     closeCatDropdown,
+    toggleCatDropdown,
     toggleFilterCatDropdown,
+    updateCatTrigger,
     updateCatBtn: _updateCatBtn,
 
     // Follow-up
@@ -358,7 +362,7 @@
     _updateCatBtn();
     renderList();
   }
-  HALQ.toggleChip = toggleChip;
+
 
   // =====================
   // CATEGORY FILTER CHIPS
@@ -530,7 +534,7 @@
 
   function toggleFollowup() {
     const isOpen = $.followupDD.classList.contains('open');
-    HALQ.closeAllDropdowns();
+    HALQ.app.closeAllDropdowns();
     if (!isOpen) {
       $.followupDD.classList.add('open');
       initFollowupDates();
@@ -567,7 +571,7 @@
     $.followupVal.textContent = HALQ.fmtDate(date);
     document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'));
     if (event && event.currentTarget) event.currentTarget.classList.add('active');
-    HALQ.closeAllDropdowns();
+    HALQ.app.closeAllDropdowns();
   }
 
   function setFollowupCustom(isoVal) {
@@ -576,7 +580,7 @@
     S.currentFollowup = isoVal;
     $.followupVal.textContent = HALQ.fmtDate(d);
     document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'));
-    HALQ.closeAllDropdowns();
+    HALQ.app.closeAllDropdowns();
   }
 
   // =====================
@@ -600,7 +604,7 @@
         </div>
       `).join('')}
       <div class="cat-sep"></div>
-      <div class="cat-opt cat-opt-manage" onclick="HALQ.catMgr.open()">
+      <div class="cat-opt cat-opt-manage" onclick="HALQ.categories.openManager()">
         <span>⚙ All Categories...</span>
       </div>
     `;
@@ -608,7 +612,7 @@
 
   function toggleCatDropdown() {
     const isOpen = $.catDropdown.classList.contains('open');
-    HALQ.closeAllDropdowns();
+    HALQ.app.closeAllDropdowns();
     if (!isOpen) {
       renderCatDropdown();
       $.catDropdown.classList.add('open');

@@ -1,7 +1,7 @@
 /* ============================================
    FILE: config.js
    PATH: bridge/config.js
-   VERSION: 2.2.1
+   VERSION: 2.2.2
    DESCRIPTION: Config manager — loads from HALQ API, validates, CLI setup dialog.
    ============================================ */
 
@@ -28,7 +28,7 @@ async function load(apiBaseUrl) {
       if (typeof val === 'string') val = JSON.parse(val);
       _config = { 
         ...val, 
-        apiBaseUrl: targetUrl  // Always use the provided/target URL
+        apiBaseUrl: apiBaseUrl || val.apiBaseUrl || val.apiUrl || targetUrl
       };
       _saveLocal();
       return _config;
@@ -42,7 +42,7 @@ async function load(apiBaseUrl) {
     try {
       const raw = fs.readFileSync(LOCAL_CONFIG_PATH, 'utf8');
       _config = JSON.parse(raw);
-      _config.apiBaseUrl = targetUrl;  // Override with current target
+      _config.apiBaseUrl = apiBaseUrl || _config.apiBaseUrl || _config.apiUrl || targetUrl;
       setBaseUrl(_config.apiBaseUrl);
       return _config;
     } catch (e) {

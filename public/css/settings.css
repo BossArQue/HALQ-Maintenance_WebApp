@@ -1,7 +1,7 @@
 /* ============================================
    FILE: settings.css
    PATH: public/css/settings.css
-   VERSION: 2.1.0
+   VERSION: 2.1.1
    DESCRIPTION: Settings overlay tabs, toggles, theme/font picker styling extensions.
    ============================================ */
 
@@ -222,4 +222,155 @@
   height: 1px;
   background: var(--border);
   margin: 12px 0;
+}
+
+/* ════════════════════════════════════════════
+   BRIDGE CONFIG SECTION (v2.2.0)
+   Added to support Bridge Config UI in settings.js
+   ════════════════════════════════════════════ */
+
+/* ── Bridge Section Container ── */
+.bridge-section {
+  padding: 14px 0;
+}
+
+.bridge-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bridge-section-title::before {
+  content: '⧉';
+  color: var(--accent);
+  font-size: 14px;
+}
+
+/* ── Bridge Inputs ──
+   These target the IDs used in settings.js.
+   If the HTML adds .settings-input class, those styles apply too.
+   These provide fallback styling for bare ID references. */
+#bridge-excel-path,
+#bridge-vault-path,
+#bridge-api-url {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--app-font);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+#bridge-excel-path:focus,
+#bridge-vault-path:focus,
+#bridge-api-url:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91, 156, 246, 0.12);
+}
+
+#bridge-excel-path::placeholder,
+#bridge-vault-path::placeholder,
+#bridge-api-url::placeholder {
+  color: var(--text3);
+}
+
+/* ── Bridge Status Message ──
+   Used by showBridgeStatus(msg, type) in settings.js.
+   type can be: 'success', 'error', 'info' */
+#bridge-status {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 18px;
+  transition: all 0.3s ease;
+}
+
+#bridge-status:empty {
+  opacity: 0;
+  padding: 0;
+  min-height: 0;
+  margin-top: 0;
+}
+
+#bridge-status.success {
+  background: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+  border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+#bridge-status.error {
+  background: rgba(255, 69, 58, 0.1);
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.2);
+}
+
+#bridge-status.info {
+  background: rgba(91, 156, 246, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(91, 156, 246, 0.2);
+}
+
+/* ── Bridge Save Button ── */
+#bridge-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--app-font);
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+
+#bridge-save-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+#bridge-save-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Bridge Info / Hint Text ── */
+.bridge-hint {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* ── Bridge Input Row (if used in HTML) ── */
+.bridge-row {
+  margin-bottom: 12px;
+}
+
+.bridge-row:last-child {
+  margin-bottom: 0;
+}
+
+.bridge-row label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
 }
