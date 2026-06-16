@@ -59,6 +59,7 @@
 | 34 | wos.js v2.0.0 never updated | functions/api/wos.js | File dated 6/13, not updated during v2.1.0 API layer build | wos.js v2.1.0: rebuilt with null-safe category_ids, filter/search/cat params, audit logging |
 | 35 | Python string escaping broke JS | bridge/index.js v2.2.1 | backslash-n in Python string was interpreted as newline instead of literal backslash-n | Used raw string r for JS generation; verified no broken string literals |
 | 36 | wo-panel.js dropdown functions not exported | public/js/wo-panel.js v2.1.0 | `toggleCatDropdown` not in `HALQ.wo` API; `HALQ.closeAllDropdowns()` should be `HALQ.app.closeAllDropdowns()` | wo-panel.js v2.1.1: exported `toggleCatDropdown`, `toggleFollowup`, `setFollowup`, `setFollowupCustom`, `closeCatDropdown`, `setCatDropdown`; fixed `closeAllDropdowns` refs to `HALQ.app.closeAllDropdowns()` |
+| 37 | Detail panel dropdowns clipped invisible | public/css/wo-panel.css v2.1.0 | `.wo-detail` has `overflow:hidden` + `transform:translateX(0)` which creates a containing block. `position:fixed` dropdowns (Follow-up, Categories) are clipped by parent's overflow even with `.open` class | wo-panel.css v2.1.1: removed `overflow:hidden` from `.wo-detail`. `.wo-detail-body` already has `overflow-y:auto` for scrolling |
 
 ---
 
@@ -92,6 +93,19 @@
 | HALQ.apiPost("/tags", {wo_number, category_id}) | {wo_number: "WO-123", category_id: 1} | wo-panel.js <-> tags.js | Verified |
 | HALQ.apiGet("/wos?filter=overdue&search=&cat=1") | filter: "overdue"|"today"|"all", search: string, cat: string | wo-panel.js <-> wos.js | Verified |
 | HALQ.apiPost("/upload", {wos, closedWos}) | {wos: [WO], closedWos: [WO]} | bridge/index.js <-> upload.js | Verified v2.2.3 |
+
+---
+
+*Last updated: 2026-06-16. Append only.*
+
+## 2026-06-16 — v2.1.3 addEventListener Fix Session
+
+| # | Bug / Gotcha | File | Why It Happened | Fix Applied |
+|---|-------------|------|----------------|-------------|
+| 38 | Inline onclick handlers not firing inside transformed parent | public/index.html, public/js/wo-panel.js | `.wo-detail` has `transform: translateX()` which creates containing block; inline `onclick` silently fails in some browser conditions | Replaced ALL inline onclick with `addEventListener()` in JS init(). Portal dropdowns at body level. |
+| 39 | `HALQ.categories` is undefined — should be `HALQ.cat` | public/js/wo-panel.js | Namespace mismatch: `app.js` registers `HALQ.cat`, but `wo-panel.js` calls `HALQ.categories.openManager()` | PENDING FIX: Change to `HALQ.catMgr.open?.()` or unify namespace |
+| 40 | PUT /api/wos/:id returns 405 Method Not Allowed | functions/api/wos.js | Cloudflare Pages Functions only auto-routes GET/POST/OPTIONS by default. PUT requires explicit `onRequestPut` export OR `export default` handler that checks request.method | PENDING FIX: Verify wos.js exports onRequestPut; check _middleware.js CORS allows PUT |
+| 41 | `apiPut` crashes on empty 405 response body | public/js/app.js | `res.json()` called on empty body throws "Unexpected end of JSON input" | PENDING FIX: Add response.ok check and content-type guard before res.json() |
 
 ---
 

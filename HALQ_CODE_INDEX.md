@@ -14,7 +14,7 @@
 
 ## INDEX BY FILE
 
-### public/js/app.js (v2.1.1)
+### public/js/app.js (v2.1.3)
 | Export | Type | Signature | Used By |
 |--------|------|-----------|---------|
 | HALQ.app.init | function | () | index.html bootstrap |
@@ -36,7 +36,7 @@
 | HALQ.escapeHtml | function | (string) | app.js internal |
 | APP_VERSION | const | "2.1.1" | — |
 
-### public/js/wo-panel.js (v2.1.1)
+### public/js/wo-panel.js (v2.1.3)
 | Export | Type | Signature | Calls API |
 |--------|------|-----------|-----------|
 | HALQ.wo.renderList | function | () | GET /api/wos |
@@ -46,6 +46,12 @@
 | HALQ.wo.loadWOs | function | () | GET /api/wos |
 | HALQ.wo.updateBottomBar | function | () | — |
 | HALQ.wo.uploadExcel | function | () | — (opens upload modal) |
+
+
+**Note (v2.1.3):** All inline `onclick`/`onchange`/`oninput` attributes removed from HTML.
+Events attached via `addEventListener()` in JS `init()` to bypass transform-containing-block
+issues and CSP restrictions. Portal dropdown pattern: `#followup-dropdown` and `#cat-dropdown`
+live at `<body>` level, positioned via `getBoundingClientRect()` + `position: fixed`.
 
 ### public/js/notes-panel.js (v2.1.0)
 | Export | Type | Signature | Calls API |

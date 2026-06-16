@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.1.3
+   VERSION: 2.1.4
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.1.3';
+const APP_VERSION = '2.1.4';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -61,8 +61,8 @@ async function apiPut(endpoint, body) {
   });
   const contentType = res.headers.get('content-type');
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+    const text = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText || 'Unknown error'}`);
   }
   if (!contentType || !contentType.includes('application/json')) {
     const text = await res.text();

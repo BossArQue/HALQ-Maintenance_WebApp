@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wos.js
    PATH: functions/api/wos.js
-   VERSION: 2.1.0
+   VERSION: 2.1.4
    DESCRIPTION: Work Orders API — GET list (filter/search/cat), GET single, POST bulk upsert, PUT update, DELETE soft-delete.
    ============================================ */
 
@@ -12,7 +12,7 @@ export async function onRequest(context) {
 
   try {
     if (request.method === 'GET') {
-      const id = url.pathname.match(/\/api\/wos\/(\d+)/)?.[1];
+      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (id) {
         return await getOne(db, id);
       }
@@ -25,14 +25,14 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'PUT') {
-      const id = url.pathname.match(/\/api\/wos\/(\d+)/)?.[1];
+      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (!id) return jsonResponse({ ok: false, error: 'Missing WO ID' }, 400);
       const body = await request.json();
       return await update(db, id, body);
     }
 
     if (request.method === 'DELETE') {
-      const id = url.pathname.match(/\/api\/wos\/(\d+)/)?.[1];
+      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (!id) return jsonResponse({ ok: false, error: 'Missing WO ID' }, 400);
       return await remove(db, id);
     }
