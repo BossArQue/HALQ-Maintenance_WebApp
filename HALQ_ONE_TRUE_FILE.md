@@ -155,6 +155,18 @@ HTML files use `<!-- -->`, CSS/JS use `/* */`, SQL/TOML use `--` or `#` accordin
 - **Don't use webview injection** — AppFolio/Outlook open in new tabs only.
 - **Don't store WO data in localStorage** — D1 only.
 - **Don't provide splice info/code** — complete files only.
+### 7. Troubleshooting Before Coding Rule (Added 2026-06-16)
+
+**Always do proper troubleshooting before coding to make sure we do not hit miss.**
+
+- **Verify root cause with diagnostics first.** Use browser console, Network tab, and file inspection.
+- **Never assume file contents match descriptions.** The OTF and CODE_INDEX are architectural references, not guarantees of implementation.
+- **Ask for actual files before generating fixes.** Descriptions are not build artifacts.
+- **Test hypotheses with minimal reproductions** before writing complete file replacements.
+- **Penalty for violation:** Wasted tokens, wrong fixes, and user frustration.
+
+**Why this exists:** On 2026-06-16, the AI assumed `categories.js` was loaded in `index.html` because the OTF described the init order. The actual `index.html` only had 2 of 8 scripts. The AI then generated a reconstructed `wos.js` from memory instead of asking for the file, wasting tokens on a wrong fix. Proper troubleshooting (browser console diagnostics, file inspection) would have revealed the real issues immediately.
+
 
 ---
 
@@ -263,7 +275,7 @@ the user must correct the AI immediately and append the incident to HALQ_ERROR_L
 | **Namespace** | `window.HALQ` |
 | **Total Files** | 17 (8 CSS + 8 JS + 1 HTML shell) |
 | **Status** | v2.1.3 in production — follow-up dropdown fixed, categories rendering, save pending |
-| **Last Updated** | 2026-06-16 |
+| **Last Updated** | 2026-06-16 (v2.1.4) |
 | **Auth** | Cloudflare Access SSO (Google) |
 | **Storage** | D1 (structured), KV (sessions), R2 (files) |
 | **Build Tool** | Wrangler (Cloudflare CLI) |

@@ -14,7 +14,7 @@
 
 ## INDEX BY FILE
 
-### public/js/app.js (v2.1.3)
+### public/js/app.js (v2.1.4)
 | Export | Type | Signature | Used By |
 |--------|------|-----------|---------|
 | HALQ.app.init | function | () | index.html bootstrap |
@@ -36,7 +36,7 @@
 | HALQ.escapeHtml | function | (string) | app.js internal |
 | APP_VERSION | const | "2.1.1" | — |
 
-### public/js/wo-panel.js (v2.1.3)
+### public/js/wo-panel.js (v2.1.4)
 | Export | Type | Signature | Calls API |
 |--------|------|-----------|-----------|
 | HALQ.wo.renderList | function | () | GET /api/wos |
@@ -117,11 +117,11 @@ live at `<body>` level, positioned via `getBoundingClientRect()` + `position: fi
 
 | Endpoint | Method | Request | Response | Handler File |
 |----------|--------|---------|----------|--------------|
-| /api/wos | GET | ?filter=&search=&cat= | {ok, data: [WO]} | wos.js:getAll |
-| /api/wos/:id | GET | — | {ok, data: WO} | wos.js:getOne |
-| /api/wos | POST | [{wo_number, ...}] or {...} | {ok, inserted, updated} | wos.js:upsert |
-| /api/wos/:id | PUT | {follow_up_date, category_ids, ...} | {ok} | wos.js:update |
-| /api/wos/:id | DELETE | — | {ok} | wos.js:remove |
+| /api/wos | GET | ?filter=&search=&cat= | {ok, data: [WO]} | wos/[[id]].js:getAll |
+| /api/wos/:id | GET | — | {ok, data: WO} | wos/[[id]].js:getOne |
+| /api/wos | POST | [{wo_number, ...}] or {...} | {ok, inserted, updated} | wos/[[id]].js:upsert |
+| /api/wos/:id | PUT | {follow_up_date, category_ids, ...} | {ok} | wos/[[id]].js:update |
+| /api/wos/:id | DELETE | — | {ok} | wos/[[id]].js:remove |
 | /api/upload | POST | {wos: [...], closedWos: [...]} | {ok, counts} | upload.js |
 | /api/tags | GET | ?wo=&cat= | {ok, data: [tag]} | tags.js:getTags |
 | /api/tags | POST | {wo_number, category_id} | {ok} | tags.js:addTag |
@@ -151,6 +151,23 @@ live at `<body>` level, positioned via `getBoundingClientRect()` + `position: fi
 
 ---
 
+
+---
+
+## CLOUDFLARE PAGES ROUTING NOTES
+
+| File Pattern | Matches URL | params Behavior |
+|-------------|-------------|-----------------|
+| `functions/api/wos.js` | `/api/wos` ONLY | No params |
+| `functions/api/wos/[id].js` | `/api/wos/:id` | `params.id` = string |
+| `functions/api/wos/[[id]].js` | `/api/wos` + `/api/wos/:id` + `/api/wos/a/b/c` | `params.id` = array or undefined |
+
+**HALQ uses `[[id]].js` (double brackets)** for `/api/wos` catchall routing.
+- `/api/wos` → `params.id` is `undefined`
+- `/api/wos/49638-1` → `params.id` = `["49638-1"]`
+- `/api/wos/anything/deeper` → `params.id` = `["anything", "deeper"]`
+
+---
 ## D1 SCHEMA QUICK REF
 
 | Table | Key Columns | Relationships |
@@ -212,7 +229,7 @@ window.HALQ
 │   ├── .draw    -> toggle(), eraser(), clear(), save()
 │   └── .export  -> modal(), close(), setScope(), run()
 ├── .msg        -> ctxSend(), resolveTokens(), showCopyModal()
-├── .categories -> renderManager(), save(), delete()
+├── .categories -> renderManager(), save(), delete(), openManager()
 ├── .settings   -> init(), save()
 └── .showDebug / .showErrorDialog
 ```
@@ -234,7 +251,7 @@ window.HALQ
 
 ---
 
-*Generated: 2026-06-16. Version: 2.2.3. Update after every code change.*
+*Generated: 2026-06-16. Version: 2.2.3 → 2.1.4. Update after every code change.*
 
 ---
 

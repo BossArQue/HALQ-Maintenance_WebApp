@@ -1,12 +1,16 @@
 /* ============================================
    FILE: categories.js
    PATH: public/js/categories.js
-   VERSION: 2.1.0
-   DESCRIPTION: Category data, manager modal, drag-drop reordering, color picker.
+   VERSION: 2.1.5
+   DESCRIPTION: Category CRUD, manager modal, drag-drop reordering.
+                Uses HALQ.cat.list as single source of truth.
+                All events via addEventListener (no inline onclick).
    ============================================ */
 
 (function () {
   'use strict';
+
+  console.log('[CAT] categories.js IIFE start');
 
   /* ---------- Constants ---------- */
   const CAT_COLORS = [
@@ -29,108 +33,103 @@
   ];
 
   /* ---------- State ---------- */
-  let _categories = [];
   let _catMgrEditId = null;
   let _catMgrEditColor = null;
   let _catDragSrc = null;
 
-  /* ---------- Public getters ---------- */
-  function getList() { return _categories; }
-  function getById(id) { return _categories.find(c => c.id === id) || null; }
-  function getColors() { return CAT_COLORS; }
+  /* ---------- Helpers ---------- */
+  function _list() { return HALQ.cat.list || []; }
+  function _byId(id) { return _list().find(c => c.id === id) || null; }
+  function _colors() { return CAT_COLORS; }
 
   /* ---------- Persistence (v2 — Fetch API) ---------- */
   async function load() {
     try {
       const result = await HALQ.apiGet('/categories');
       if (result.ok && result.data && result.data.length) {
-        _categories = result.data;
-        console.log('[CAT] loaded', _categories.length, 'categories from API');
+        HALQ.cat.list = result.data;
+        console.log('[CAT] loaded', HALQ.cat.list.length, 'categories from API');
       } else {
         console.log('[CAT] no saved categories — using defaults');
-        _categories = [
-          { id: 1, name: 'Follow-up', color: '#5b9cf6', sort_order: 1 },
-          { id: 2, name: 'Urgent', color: '#ff453a', sort_order: 2 },
-          { id: 3, name: 'Waiting on Vendor', color: '#ff9f0a', sort_order: 3 },
-          { id: 4, name: 'Waiting on Tenant', color: '#34c759', sort_order: 4 },
-          { id: 5, name: 'Waiting on Owner', color: '#bf5af2', sort_order: 5 },
-          { id: 6, name: 'Inspection', color: '#00c7be', sort_order: 6 },
-          { id: 7, name: 'Recurring', color: '#ffd93d', sort_order: 7 }
-        ];
+        _setDefaults();
       }
     } catch (e) {
       console.error('[CAT] load error:', e);
+      _setDefaults();
     }
   }
 
-  async function save() {
-    try {
-      const result = await HALQ.apiPost('/categories', _categories);
-      console.log('[CAT] saved', _categories.length, 'categories:', result.ok ? 'OK' : 'FAIL');
-    } catch (e) {
-      console.error('[CAT] save error:', e);
-    }
+  function _setDefaults() {
+    HALQ.cat.list = [
+      { id: 1, name: 'Follow-up', color: '#5b9cf6', sort_order: 1 },
+      { id: 2, name: 'Urgent', color: '#ff453a', sort_order: 2 },
+      { id: 3, name: 'Waiting on Vendor', color: '#ff9f0a', sort_order: 3 },
+      { id: 4, name: 'Waiting on Tenant', color: '#34c759', sort_order: 4 },
+      { id: 5, name: 'Waiting on Owner', color: '#bf5af2', sort_order: 5 },
+      { id: 6, name: 'Inspection', color: '#00c7be', sort_order: 6 },
+      { id: 7, name: 'Recurring', color: '#ffd93d', sort_order: 7 }
+    ];
   }
 
-  /* ---------- Detail drawer dropdown ---------- */
+  /* ---------- Backend sync: individual CRUD to match API contract ---------- */
+  async function _apiCreate(cat) {
+    const result = await HALQ.apiPost('/categories', {
+      name: cat.name,
+      color: cat.color,
+      sort_order: cat.sort_order
+    });
+    if (result.ok && result.id) {
+      cat.id = result.id;
+      return true;
+    }
+    return false;
+  }
+
+  async function _apiUpdate(cat) {
+    const result = await HALQ.apiPut(`/categories/${cat.id}`, {
+      name: cat.name,
+      color: cat.color,
+      sort_order: cat.sort_order
+    });
+    return result.ok;
+  }
+
+  async function _apiDelete(id) {
+    const result = await HALQ.apiDelete(`/categories/${id}`);
+    return result.ok;
+  }
+
+  async function _apiReorder() {
+    // Update sort_order for all categories
+    const promises = _list().map((c, idx) =>
+      HALQ.apiPut(`/categories/${c.id}`, { name: c.name, color: c.color, sort_order: idx + 1 })
+    );
+    await Promise.all(promises);
+  }
+
+  /* ---------- Detail drawer dropdown (rendered by wo-panel.js, but we provide helper) ---------- */
   function renderDropdown(selectedCatIds) {
     const dd = document.getElementById('cat-dropdown');
     if (!dd) return;
+    const list = _list();
     dd.innerHTML = `
-      <div class="cat-opt cat-opt-clear" onclick="HALQ.categories.select(null)">
+      <div class="cat-opt cat-opt-clear" data-catid="clear">
         <div class="cat-opt-dot" style="background:var(--border2)"></div>
         <span>Clear all</span>
       </div>
       <div class="cat-sep"></div>
-      ${_categories.map(c => `
-        <div class="cat-opt ${selectedCatIds.includes(c.id) ? 'active' : ''}" onclick="HALQ.categories.select(${c.id})">
+      ${list.map(c => `
+        <div class="cat-opt ${selectedCatIds.includes(c.id) ? 'active' : ''}" data-catid="${c.id}">
           <div class="cat-opt-dot" style="background:${c.color}"></div>
           <span style="flex:1">${c.name}</span>
           <div class="cat-checkbox">${selectedCatIds.includes(c.id) ? '✓' : ''}</div>
         </div>
       `).join('')}
       <div class="cat-sep"></div>
-      <div class="cat-opt cat-opt-manage" onclick="HALQ.categories.openManager()">
+      <div class="cat-opt cat-opt-manage" data-action="manage">
         <span>⚙ All Categories...</span>
       </div>
     `;
-  }
-
-  function toggleDropdown() {
-    const dd = document.getElementById('cat-dropdown');
-    const trigger = document.getElementById('cat-trigger');
-    if (!dd || !trigger) return;
-    const isOpen = dd.classList.contains('open');
-    HALQ.app.closeAllDropdowns();
-    if (!isOpen) {
-      renderDropdown(HALQ.wo ? HALQ.wo.selectedCatIds : []);
-      dd.classList.add('open');
-      const rect = trigger.getBoundingClientRect();
-      dd.style.width = rect.width + 'px';
-      const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 300 && rect.top > 300) {
-        dd.style.top = '';
-        dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-      } else {
-        dd.style.bottom = '';
-        dd.style.top = (rect.bottom + 4) + 'px';
-      }
-      dd.style.left = rect.left + 'px';
-    }
-  }
-
-  function select(id) {
-    if (!HALQ.wo) return;
-    if (id === null) {
-      HALQ.wo.selectedCatIds = [];
-    } else {
-      const idx = HALQ.wo.selectedCatIds.indexOf(id);
-      if (idx === -1) HALQ.wo.selectedCatIds.push(id);
-      else HALQ.wo.selectedCatIds.splice(idx, 1);
-    }
-    HALQ.wo.updateCatTrigger();
-    if (HALQ.wo.selected) HALQ.wo.selected._catIds = [...HALQ.wo.selectedCatIds];
-    renderDropdown(HALQ.wo.selectedCatIds);
   }
 
   /* ---------- Manager Modal ---------- */
@@ -151,7 +150,8 @@
   function closeManager() {
     const overlay = document.getElementById('catmgr-overlay');
     if (overlay) overlay.classList.remove('open');
-    renderDropdown(HALQ.wo ? HALQ.wo.selectedCatIds : []);
+    // Refresh WO panel category chips so they reflect any changes
+    if (HALQ.wo && HALQ.wo.renderCategoryChips) HALQ.wo.renderCategoryChips();
   }
 
   function clickOutside(e) {
@@ -159,19 +159,31 @@
   }
 
   function renderMgrList() {
-    const list = document.getElementById('catmgr-list');
-    if (!list) return;
-    list.innerHTML = _categories.map(c => `
+    const listEl = document.getElementById('catmgr-list');
+    if (!listEl) return;
+    const list = _list();
+    listEl.innerHTML = list.map(c => `
       <div class="catmgr-item ${_catMgrEditId === c.id ? 'selected' : ''}"
            draggable="true"
-           data-catid="${c.id}"
-           onclick="HALQ.categories.mgrSelect(${c.id})">
+           data-catid="${c.id}">
         <span class="catmgr-drag-handle" title="Drag to reorder">⠿</span>
         <div class="catmgr-item-dot" style="background:${c.color}"></div>
         <span>${c.name}</span>
       </div>
     `).join('') || '<div style="padding:10px;font-size:11px;color:var(--text3)">No categories yet</div>';
     initMgrDrag();
+    initMgrClick();
+  }
+
+  function initMgrClick() {
+    const listEl = document.getElementById('catmgr-list');
+    if (!listEl) return;
+    listEl.querySelectorAll('.catmgr-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = parseInt(el.dataset.catid);
+        if (!isNaN(id)) mgrSelect(id);
+      });
+    });
   }
 
   function initMgrDrag() {
@@ -202,21 +214,21 @@
         if (!_catDragSrc || _catDragSrc === el) return;
         const fromId = parseInt(_catDragSrc.dataset.catid);
         const toId = parseInt(el.dataset.catid);
-        const fromIdx = _categories.findIndex(c => c.id === fromId);
-        const toIdx = _categories.findIndex(c => c.id === toId);
+        const arr = _list();
+        const fromIdx = arr.findIndex(c => c.id === fromId);
+        const toIdx = arr.findIndex(c => c.id === toId);
         if (fromIdx === -1 || toIdx === -1) return;
-        const [moved] = _categories.splice(fromIdx, 1);
-        _categories.splice(toIdx, 0, moved);
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
         renderMgrList();
-        renderDropdown(HALQ.wo ? HALQ.wo.selectedCatIds : []);
-        save();
+        _apiReorder().catch(e => console.error('[CAT] reorder error:', e));
       });
     });
   }
 
   function mgrSelect(id) {
     _catMgrEditId = id;
-    const cat = getById(id);
+    const cat = _byId(id);
     if (!cat) return;
     _catMgrEditColor = cat.color;
     const renameInput = document.getElementById('catmgr-rename-input');
@@ -237,14 +249,16 @@
     wrap.innerHTML = CAT_COLORS.map(c => `
       <div class="catmgr-color ${_catMgrEditColor === c ? 'selected' : ''}"
            style="background:${c}"
-           onclick="HALQ.categories.mgrPickColor('${c}')">
+           data-color="${c}">
       </div>
     `).join('');
-  }
-
-  function mgrPickColor(color) {
-    _catMgrEditColor = color;
-    renderMgrColors();
+    // Attach click listeners
+    wrap.querySelectorAll('.catmgr-color').forEach(el => {
+      el.addEventListener('click', () => {
+        _catMgrEditColor = el.dataset.color;
+        renderMgrColors();
+      });
+    });
   }
 
   function showMgrPlaceholder() {
@@ -261,41 +275,55 @@
     const status = document.getElementById('catmgr-status');
     if (!name) { mgrStatus('Name cannot be empty', false); return; }
     if (!_catMgrEditColor) { mgrStatus('Pick a color', false); return; }
-    const cat = getById(_catMgrEditId);
+    const cat = _byId(_catMgrEditId);
     if (!cat) return;
     cat.name = name;
     cat.color = _catMgrEditColor;
     renderMgrList();
     mgrStatus('✓ Saved', true);
-    await save();
-    if (HALQ.wo && HALQ.wo.selectedCatId === _catMgrEditId) select(_catMgrEditId);
+    await _apiUpdate(cat);
+    if (HALQ.wo && HALQ.wo.renderCategoryChips) HALQ.wo.renderCategoryChips();
   }
 
   async function mgrDelete() {
-    const idx = _categories.findIndex(c => c.id === _catMgrEditId);
+    const arr = _list();
+    const idx = arr.findIndex(c => c.id === _catMgrEditId);
     if (idx === -1) return;
-    _categories.splice(idx, 1);
-    if (HALQ.wo && HALQ.wo.selectedCatId === _catMgrEditId) select(null);
+    const removed = arr.splice(idx, 1)[0];
+    // Remove this category from any WOs that have it
+    if (HALQ.wo && HALQ.wo.wos) {
+      HALQ.wo.wos.forEach(w => {
+        if (Array.isArray(w._catIds)) {
+          w._catIds = w._catIds.filter(id => id !== removed.id);
+        }
+      });
+      if (HALQ.wo.renderList) HALQ.wo.renderList();
+    }
     showMgrPlaceholder();
     renderMgrList();
-    await save();
+    await _apiDelete(removed.id);
+    mgrStatus('✓ Deleted', true);
+    if (HALQ.wo && HALQ.wo.renderCategoryChips) HALQ.wo.renderCategoryChips();
   }
 
   async function mgrAdd() {
     const input = document.getElementById('catmgr-new-input');
     const name = input ? input.value.trim() : '';
     if (!name) return;
-    if (_categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    const arr = _list();
+    if (arr.find(c => c.name.toLowerCase() === name.toLowerCase())) {
       mgrStatus('Already exists', false); return;
     }
-    const usedColors = new Set(_categories.map(c => c.color));
-    const color = CAT_COLORS.find(c => !usedColors.has(c)) || CAT_COLORS[_categories.length % CAT_COLORS.length];
-    const nextId = _categories.length ? Math.max(..._categories.map(c => c.id)) + 1 : 1;
-    _categories.push({ id: nextId, name, color, sort_order: nextId });
+    const usedColors = new Set(arr.map(c => c.color));
+    const color = CAT_COLORS.find(c => !usedColors.has(c)) || CAT_COLORS[arr.length % CAT_COLORS.length];
+    const nextId = arr.length ? Math.max(...arr.map(c => c.id)) + 1 : 1;
+    const newCat = { id: nextId, name, color, sort_order: nextId };
+    arr.push(newCat);
     if (input) input.value = '';
     renderMgrList();
     mgrStatus('✓ Added: ' + name, true);
-    await save();
+    await _apiCreate(newCat);
+    if (HALQ.wo && HALQ.wo.renderCategoryChips) HALQ.wo.renderCategoryChips();
   }
 
   function mgrStatus(msg, ok) {
@@ -306,21 +334,33 @@
     setTimeout(() => { el.className = 'catmgr-status'; }, 2500);
   }
 
+  /* ---------- Modal event listeners (attached once) ---------- */
+  function attachModalListeners() {
+    const closeBtn = document.getElementById('catmgr-close');
+    const overlay = document.getElementById('catmgr-overlay');
+    const saveBtn = document.getElementById('btn-catmgr-save');
+    const deleteBtn = document.getElementById('btn-catmgr-delete');
+    const addBtn = document.getElementById('btn-catmgr-add');
+
+    if (closeBtn) closeBtn.addEventListener('click', closeManager);
+    if (overlay) overlay.addEventListener('click', clickOutside);
+    if (saveBtn) saveBtn.addEventListener('click', mgrSaveEdit);
+    if (deleteBtn) deleteBtn.addEventListener('click', mgrDelete);
+    if (addBtn) addBtn.addEventListener('click', mgrAdd);
+  }
+
   /* ---------- Public API ---------- */
   HALQ.categories = {
-    getList,
-    getById,
-    getColors,
+    getList: _list,
+    getById: _byId,
+    getColors: _colors,
     load,
-    save,
     renderDropdown,
-    toggleDropdown,
-    select,
     openManager,
     closeManager,
     clickOutside,
     mgrSelect,
-    mgrPickColor,
+    mgrPickColor: (c) => { _catMgrEditColor = c; renderMgrColors(); },
     mgrSaveEdit,
     mgrDelete,
     mgrAdd,
@@ -328,7 +368,10 @@
     renderMgrList,
     renderMgrColors,
     showMgrPlaceholder,
-    initMgrDrag
+    initMgrDrag,
+    attachModalListeners
   };
+
+  console.log('[CAT] categories.js IIFE complete — HALQ.categories defined:', typeof HALQ.categories);
 
 })();

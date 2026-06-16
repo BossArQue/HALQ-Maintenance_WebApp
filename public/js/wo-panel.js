@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.4
+   VERSION: 2.1.5
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
                 All events via addEventListener (no inline onclick).
    ============================================ */
@@ -146,6 +146,7 @@
     loadWOs().then(() => {
       renderList();
       updateBottomBar();
+      if (HALQ.categories && HALQ.categories.attachModalListeners) HALQ.categories.attachModalListeners();
     });
   }
 
@@ -226,8 +227,8 @@
       $.catDropdown.addEventListener('click', e => {
         const opt = e.target.closest('.cat-opt');
         if (!opt) return;
-        if (opt.classList.contains('cat-opt-manage')) {
-          HALQ.categories?.renderManager?.();
+        if (opt.dataset.action === 'manage') {
+          HALQ.categories?.openManager?.();
           HALQ.app.closeAllDropdowns();
           return;
         }

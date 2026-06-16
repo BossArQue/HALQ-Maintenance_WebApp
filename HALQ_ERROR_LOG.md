@@ -110,3 +110,16 @@
 ---
 
 *Last updated: 2026-06-16. Append only.*
+## 2026-06-16 — v2.1.4 Troubleshooting Session
+
+| # | Bug / Gotcha | File | Why It Happened | Fix Applied |
+|---|-------------|------|----------------|-------------|
+| 42 | PUT 405 on /api/wos/:id | functions/api/wos.js | Cloudflare Pages Functions file-based routing: `functions/api/wos.js` only matches `/api/wos` exactly, not `/api/wos/49638-1`. Internal regex never executed because router never invoked the file. | Moved to `functions/api/wos/[[id]].js` catchall route; changed `WHERE id = ?` to `WHERE wo_number = ?` |
+| 43 | HALQ.categories undefined | public/index.html | `categories.js` script tag missing from HTML. OTF described init order but actual `index.html` only loaded `app.js` + `wo-panel.js`. | Added all 6 missing script tags (`af-panel.js`, `email-panel.js`, `notes-panel.js`, `messages.js`, `categories.js`, `settings.js`) with absolute `/js/` paths |
+| 44 | "All Categories..." click silent no-op | public/js/wo-panel.js | `HALQ.catMgr.open?.()` called empty stub `{open: () => {}}` from `app.js`. Optional chaining `?.` suppressed error, making failure silent. | Changed to `HALQ.categories?.openManager?.()` which calls the real `categories.js` function |
+| 45 | Relative asset paths break on API URLs | public/index.html | `src="js/app.js"` resolves to `/api/wos/js/app.js` when browser is on `/api/wos/...`, causing MIME type errors and `HALQ is not defined` | Changed all `src="js/..."` → `src="/js/..."` and `href="css/..."` → `href="/css/..."` |
+| 46 | AI generated code without verifying file existence | HALQ_ONE_TRUE_FILE.md + AI | OTF listed files as "✅ From v1 refactor" but AI assumed they existed without asking. Generated fixes based on reconstructed code instead of actual files. | **New Priority Rule:** Always do proper troubleshooting with diagnostics before coding. Verify root cause with browser console, network tab, and file inspection. Never assume file contents match descriptions. |
+
+---
+
+*Last updated: 2026-06-16. Append only.*
