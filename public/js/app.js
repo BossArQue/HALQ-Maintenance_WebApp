@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.1.2
+   VERSION: 2.1.3
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.1.2';
+const APP_VERSION = '2.1.3';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 

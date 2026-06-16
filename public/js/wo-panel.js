@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.2
+   VERSION: 2.1.3
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
    ============================================ */
 
