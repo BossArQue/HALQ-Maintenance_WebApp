@@ -45,7 +45,7 @@ async function main() {
   const currentCfg = config.get();
   const errors = config.validate(currentCfg);
   if (errors.length) {
-    console.error('❌ Config validation failed:');
+    console.error('Config validation failed:');
     errors.forEach(e => console.error('   •', e));
     process.exit(1);
   }
@@ -80,8 +80,8 @@ async function main() {
   _syncTimer = setInterval(() => _syncLoop(), POLL_INTERVAL_MS);
 
   _isRunning = true;
-  console.log('[MAIN] Bridge is running. Press Ctrl+C to exit.
-');
+  console.log('[MAIN] Bridge is running. Press Ctrl+C to exit.');
+  console.log('');
 
   // Graceful shutdown
   process.on('SIGINT', shutdown);
@@ -122,15 +122,15 @@ async function _processExcel(filePath) {
     // Parse Excel
     console.log('[PROCESS] Starting Excel parse...');
     const parsed = parser.parseFile(filePath);
-    console.log(`[PROCESS] Parse complete. Active: ${parsed.active.length}, Closed: ${parsed.closed.length}`);
+    console.log('[PROCESS] Parse complete. Active: ' + parsed.active.length + ', Closed: ' + parsed.closed.length);
 
-    // ── Upload to HALQ API ──
+    // Upload to HALQ API
     console.log('[PROCESS] Preparing upload payload...');
     const uploadPayload = { 
       wos: parsed.active, 
       closedWos: parsed.closed 
     };
-    console.log(`[PROCESS] Upload payload: ${uploadPayload.wos.length} active, ${uploadPayload.closedWos.length} closed`);
+    console.log('[PROCESS] Upload payload: ' + uploadPayload.wos.length + ' active, ' + uploadPayload.closedWos.length + ' closed');
 
     console.log('[PROCESS] Calling API /upload...');
     const uploadRes = await api.apiPost('/upload', uploadPayload);
@@ -138,14 +138,14 @@ async function _processExcel(filePath) {
 
     if (uploadRes.ok) {
       console.log('[API] Upload OK:', JSON.stringify(uploadRes.counts || uploadRes));
-      tray.notify('HALQ Bridge', `Uploaded ${parsed.active.length} active, ${parsed.closed.length} closed to HALQ`);
+      tray.notify('HALQ Bridge', 'Uploaded ' + parsed.active.length + ' active, ' + parsed.closed.length + ' closed to HALQ');
     } else {
       console.error('[API] Upload failed:', uploadRes.error);
       tray.setStatus('error', 'Upload failed: ' + uploadRes.error);
       return;
     }
 
-    // ── Resolve tag IDs to names for Obsidian sync ──
+    // Resolve tag IDs to names for Obsidian sync
     console.log('[PROCESS] Fetching tags for Obsidian sync...');
     let resolvedTags = {};
     try {
@@ -165,7 +165,7 @@ async function _processExcel(filePath) {
           resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
         });
       }
-      console.log(`[PROCESS] Resolved tags for ${Object.keys(resolvedTags).length} WOs`);
+      console.log('[PROCESS] Resolved tags for ' + Object.keys(resolvedTags).length + ' WOs');
     } catch (e) {
       console.log('[API] Could not fetch tags for Obsidian sync:', e.message);
     }
@@ -219,8 +219,8 @@ async function _syncLoop() {
 }
 
 async function shutdown() {
-  console.log('
-[MAIN] Shutting down...');
+  console.log('');
+  console.log('[MAIN] Shutting down...');
   _isRunning = false;
 
   if (_syncTimer) {
@@ -242,8 +242,8 @@ async function shutdown() {
     try { fs.unlinkSync(path.join(__dirname, f)); } catch (e) {}
   });
 
-  console.log('[MAIN] Goodbye.
-');
+  console.log('[MAIN] Goodbye.');
+  console.log('');
   process.exit(0);
 }
 
