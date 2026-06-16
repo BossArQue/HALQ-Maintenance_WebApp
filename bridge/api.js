@@ -1,19 +1,22 @@
 /* ============================================
    FILE: api.js
    PATH: bridge/api.js
-   VERSION: 2.2.0
-   DESCRIPTION: HALQ API client — fetch wrapper, auth, retry logic.
+   VERSION: 2.2.1
+   DESCRIPTION: HALQ API client — fetch wrapper with timeout, retry, and verbose logging.
    ============================================ */
 
 const fetch = require('node-fetch');
+const AbortController = require('abort-controller');
 
 let _baseUrl = '';
 let _token = null;
 let _retryCount = 3;
 let _retryDelay = 2000;
+const _timeoutMs = 30000; // 30s per request
 
 function setBaseUrl(url) {
   _baseUrl = url.replace(/\/$/, '');
+  console.log('[API] Base URL set to:', _baseUrl);
 }
 
 function setToken(token) {
@@ -34,14 +37,27 @@ function _headers() {
 async function _fetchWithRetry(url, options) {
   let lastErr;
   for (let i = 0; i < _retryCount; i++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), _timeoutMs);
+
     try {
-      const res = await fetch(url, { ...options, headers: _headers() });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      console.log(`[API] Request attempt ${i + 1}/${_retryCount}: ${options.method || 'GET'} ${url}`);
+      const res = await fetch(url, { ...options, headers: _headers(), signal: controller.signal });
+      clearTimeout(timeout);
+
+      const bodyText = await res.text();
+      let body;
+      try { body = JSON.parse(bodyText); } catch { body = { raw: bodyText }; }
+
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}: ${bodyText.slice(0,200)}`);
+      console.log(`[API] Response OK: ${options.method || 'GET'} ${url}`);
       return body;
     } catch (err) {
+      clearTimeout(timeout);
       lastErr = err;
+      console.log(`[API] Attempt ${i + 1} failed:`, err.message);
       if (i < _retryCount - 1) {
+        console.log(`[API] Retrying in ${_retryDelay * (i + 1)}ms...`);
         await sleep(_retryDelay * (i + 1));
       }
     }
@@ -56,9 +72,11 @@ async function apiGet(endpoint, params = {}) {
 }
 
 async function apiPost(endpoint, body) {
+  const bodyStr = JSON.stringify(body);
+  console.log(`[API] POST body size: ${bodyStr.length} chars`);
   return _fetchWithRetry(_baseUrl + '/api' + endpoint, {
     method: 'POST',
-    body: JSON.stringify(body)
+    body: bodyStr
   });
 }
 

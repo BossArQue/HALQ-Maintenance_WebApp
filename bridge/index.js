@@ -1,7 +1,7 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.2.1
+   VERSION: 2.2.2
    DESCRIPTION: Main entry — config load, file watcher, sync loop, graceful shutdown.
    ============================================ */
 
@@ -21,7 +21,7 @@ let _lastExcelPath = null;
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║  HALQ Bridge v2.2.1                                ║');
+  console.log('║  HALQ Bridge v2.2.2                                ║');
   console.log('║  Excel Watcher + Obsidian Vault Sync               ║');
   console.log('╚══════════════════════════════════════════════════════╝');
 
@@ -80,7 +80,8 @@ async function main() {
   _syncTimer = setInterval(() => _syncLoop(), POLL_INTERVAL_MS);
 
   _isRunning = true;
-  console.log('[MAIN] Bridge is running. Press Ctrl+C to exit.\n');
+  console.log('[MAIN] Bridge is running. Press Ctrl+C to exit.
+');
 
   // Graceful shutdown
   process.on('SIGINT', shutdown);
@@ -119,14 +120,21 @@ async function _processExcel(filePath) {
 
   try {
     // Parse Excel
+    console.log('[PROCESS] Starting Excel parse...');
     const parsed = parser.parseFile(filePath);
-    console.log(`[PARSE] Active: ${parsed.active.length}, Closed: ${parsed.closed.length}`);
+    console.log(`[PROCESS] Parse complete. Active: ${parsed.active.length}, Closed: ${parsed.closed.length}`);
 
-    // ── FIX 1: Send active + closed separately to upload API ──
-    const uploadRes = await api.apiPost('/upload', { 
+    // ── Upload to HALQ API ──
+    console.log('[PROCESS] Preparing upload payload...');
+    const uploadPayload = { 
       wos: parsed.active, 
       closedWos: parsed.closed 
-    });
+    };
+    console.log(`[PROCESS] Upload payload: ${uploadPayload.wos.length} active, ${uploadPayload.closedWos.length} closed`);
+
+    console.log('[PROCESS] Calling API /upload...');
+    const uploadRes = await api.apiPost('/upload', uploadPayload);
+    console.log('[PROCESS] API /upload responded');
 
     if (uploadRes.ok) {
       console.log('[API] Upload OK:', JSON.stringify(uploadRes.counts || uploadRes));
@@ -137,12 +145,11 @@ async function _processExcel(filePath) {
       return;
     }
 
-    // ── FIX 2: Resolve tag IDs to names BEFORE calling obsidian.syncWOs ──
+    // ── Resolve tag IDs to names for Obsidian sync ──
+    console.log('[PROCESS] Fetching tags for Obsidian sync...');
     let resolvedTags = {};
     try {
-      // Fetch WOs with their category_ids
       const wosRes = await api.apiGet('/wos');
-      // Fetch category name mapping
       const catsRes = await api.apiGet('/categories');
 
       let catNames = {};
@@ -158,16 +165,19 @@ async function _processExcel(filePath) {
           resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
         });
       }
+      console.log(`[PROCESS] Resolved tags for ${Object.keys(resolvedTags).length} WOs`);
     } catch (e) {
       console.log('[API] Could not fetch tags for Obsidian sync:', e.message);
     }
 
-    // Sync to Obsidian with resolved tag NAMES (not IDs)
+    // Sync to Obsidian
+    console.log('[PROCESS] Starting Obsidian sync...');
     obsidian.syncWOs(cfg.vaultPath, parsed, resolvedTags);
     console.log('[OBSIDIAN] Vault synced');
 
   } catch (err) {
     console.error('[PROCESS] Error:', err.message);
+    console.error('[PROCESS] Stack:', err.stack);
     tray.setStatus('error', err.message);
     tray.notify('HALQ Bridge Error', err.message);
   }
@@ -209,7 +219,8 @@ async function _syncLoop() {
 }
 
 async function shutdown() {
-  console.log('\n[MAIN] Shutting down...');
+  console.log('
+[MAIN] Shutting down...');
   _isRunning = false;
 
   if (_syncTimer) {
@@ -231,7 +242,8 @@ async function shutdown() {
     try { fs.unlinkSync(path.join(__dirname, f)); } catch (e) {}
   });
 
-  console.log('[MAIN] Goodbye.\n');
+  console.log('[MAIN] Goodbye.
+');
   process.exit(0);
 }
 
