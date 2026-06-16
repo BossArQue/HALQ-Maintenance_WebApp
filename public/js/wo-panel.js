@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.5
+   VERSION: 2.1.6
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
                 All events via addEventListener (no inline onclick).
    ============================================ */
@@ -744,7 +744,7 @@
         </div>
       `).join('')}
       <div class="cat-sep"></div>
-      <div class="cat-opt cat-opt-manage">
+      <div class="cat-opt cat-opt-manage" data-action="manage">
         <span>⚙ All Categories...</span>
       </div>
     `;
@@ -754,7 +754,11 @@
     const isOpen = $.catDropdown.classList.contains('open');
     HALQ.app.closeAllDropdowns();
     if (!isOpen) {
-      renderCatDropdown();
+      if (HALQ.categories && HALQ.categories.renderDropdown) {
+        HALQ.categories.renderDropdown(S.selectedCatIds);
+      } else {
+        renderCatDropdown();
+      }
       $.catDropdown.classList.add('open');
       const rect = $.catTrigger.getBoundingClientRect();
       $.catDropdown.style.width = rect.width + 'px';
