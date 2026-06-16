@@ -1,7 +1,7 @@
 /* ============================================
    FILE: parser.js
    PATH: bridge/parser.js
-   VERSION: 2.2.2
+   VERSION: 2.2.3
    DESCRIPTION: Excel parser — SheetJS, column mapping by header name, dup header skip.
    ============================================ */
 
@@ -53,7 +53,7 @@ function parseFile(filePath) {
     if (workbook.Sheets[name]) {
       console.log('[PARSE] Parsing active sheet:', name);
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' });
-      const wos = _extractWOs(rows);
+      const wos = _extractWOs(rows, true);  // FIX 3: is_active = true
       console.log('[PARSE]   → extracted', wos.length, 'WOs from', name);
       activeWos.push(...wos);
       parsedAny = true;
@@ -65,7 +65,7 @@ function parseFile(filePath) {
     if (workbook.Sheets[name]) {
       console.log('[PARSE] Parsing closed sheet:', name);
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' });
-      const wos = _extractWOs(rows);
+      const wos = _extractWOs(rows, false);  // FIX 3: is_active = false
       console.log('[PARSE]   → extracted', wos.length, 'closed WOs from', name);
       closedWos.push(...wos);
       parsedAny = true;
@@ -77,7 +77,7 @@ function parseFile(filePath) {
     const firstSheet = workbook.SheetNames[0];
     console.log('[PARSE] No known sheets found. Falling back to first sheet:', firstSheet);
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: '' });
-    const wos = _extractWOs(rows);
+    const wos = _extractWOs(rows, true);
     console.log('[PARSE]   → extracted', wos.length, 'WOs from raw export');
     activeWos.push(...wos);
   }
@@ -96,7 +96,7 @@ function parseFile(filePath) {
   };
 }
 
-function _extractWOs(rows) {
+function _extractWOs(rows, isActive) {
   if (!rows || rows.length < 2) {
     console.log('[PARSE]   Not enough rows (need >= 2, got', rows?.length || 0, ')');
     return [];
@@ -139,7 +139,6 @@ function _extractWOs(rows) {
     if (woNumIdx >= 0) {
       const woNum = row[woNumIdx];
       if (!woNum || String(woNum).trim() === '') {
-        // This is a property group header row, skip it
         continue;
       }
     }
@@ -158,7 +157,7 @@ function _extractWOs(rows) {
     });
 
     if (wo.wo_number) {
-      wo.is_active = 1;
+      wo.is_active = isActive ? 1 : 0;  // FIX 3: respect sheet type
       wos.push(wo);
     }
   }

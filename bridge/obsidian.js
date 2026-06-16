@@ -1,7 +1,7 @@
 /* ============================================
    FILE: obsidian.js
    PATH: bridge/obsidian.js
-   VERSION: 2.2.0
+   VERSION: 2.2.1
    DESCRIPTION: Obsidian vault sync — .md generation, tag folders, closed detection.
    ============================================ */
 
@@ -75,7 +75,6 @@ function syncWOs(vaultPath, wos, tagsMap) {
   });
 
   // 3. Cleanup: WOs that disappeared from both active AND closed → remove from active folders
-  // (This handles WOs that were deleted from Excel entirely)
   const allKnown = new Set([...activeNumbers, ...closedNumbers]);
   const tagFolders = fs.existsSync(activeBase) ? fs.readdirSync(activeBase) : [];
   tagFolders.forEach(folder => {

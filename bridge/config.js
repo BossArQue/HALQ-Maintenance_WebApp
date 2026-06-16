@@ -1,7 +1,7 @@
 /* ============================================
    FILE: config.js
    PATH: bridge/config.js
-   VERSION: 2.2.0
+   VERSION: 2.2.1
    DESCRIPTION: Config manager — loads from HALQ API, validates, CLI setup dialog.
    ============================================ */
 
@@ -16,7 +16,9 @@ const LOCAL_CONFIG_PATH = path.join(__dirname, '.bridge-config.json');
 let _config = null;
 
 async function load(apiBaseUrl) {
-  setBaseUrl(apiBaseUrl || _config?.apiBaseUrl || 'http://localhost:8787');
+  // Ensure base URL is set BEFORE any API call
+  const targetUrl = apiBaseUrl || _config?.apiBaseUrl || _config?.apiUrl || 'http://localhost:8787';
+  setBaseUrl(targetUrl);
 
   // Try HALQ API first
   try {
@@ -24,7 +26,10 @@ async function load(apiBaseUrl) {
     if (res.ok && res.data?.value) {
       let val = res.data.value;
       if (typeof val === 'string') val = JSON.parse(val);
-      _config = { ...val, apiBaseUrl: apiBaseUrl || val.apiBaseUrl || 'http://localhost:8787' };
+      _config = { 
+        ...val, 
+        apiBaseUrl: targetUrl  // Always use the provided/target URL
+      };
       _saveLocal();
       return _config;
     }
@@ -37,7 +42,7 @@ async function load(apiBaseUrl) {
     try {
       const raw = fs.readFileSync(LOCAL_CONFIG_PATH, 'utf8');
       _config = JSON.parse(raw);
-      if (apiBaseUrl) _config.apiBaseUrl = apiBaseUrl;
+      _config.apiBaseUrl = targetUrl;  // Override with current target
       setBaseUrl(_config.apiBaseUrl);
       return _config;
     } catch (e) {
@@ -52,12 +57,12 @@ async function save(config) {
   _config = { ...config };
   _saveLocal();
 
-  // Push to HALQ API
+  // Push to HALQ API — FIX 4: use consistent key names
   try {
     const payload = {
       excelPath: config.excelPath || '',
       vaultPath: config.vaultPath || '',
-      apiUrl: config.apiUrl || config.apiBaseUrl || ''
+      apiBaseUrl: config.apiBaseUrl || config.apiUrl || ''  // FIX 4: consistent key
     };
     await apiPost('/settings', { key: CONFIG_KEY, value: payload });
     console.log('[CONFIG] Saved to HALQ API');

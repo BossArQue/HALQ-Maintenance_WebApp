@@ -1,7 +1,7 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.2.0
+   VERSION: 2.2.1
    DESCRIPTION: Main entry — config load, file watcher, sync loop, graceful shutdown.
    ============================================ */
 
@@ -21,7 +21,7 @@ let _lastExcelPath = null;
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║  HALQ Bridge v2.2.0                                ║');
+  console.log('║  HALQ Bridge v2.2.1                                ║');
   console.log('║  Excel Watcher + Obsidian Vault Sync               ║');
   console.log('╚══════════════════════════════════════════════════════╝');
 
@@ -122,34 +122,48 @@ async function _processExcel(filePath) {
     const parsed = parser.parseFile(filePath);
     console.log(`[PARSE] Active: ${parsed.active.length}, Closed: ${parsed.closed.length}`);
 
-    // Upload to HALQ API
-    const uploadRes = await api.apiPost('/upload', { wos: parsed.all });
+    // ── FIX 1: Send active + closed separately to upload API ──
+    const uploadRes = await api.apiPost('/upload', { 
+      wos: parsed.active, 
+      closedWos: parsed.closed 
+    });
+
     if (uploadRes.ok) {
-      console.log('[API] Upload OK:', JSON.stringify(uploadRes.counts || {}));
-      tray.notify('HALQ Bridge', `Uploaded ${parsed.all.length} WOs to HALQ`);
+      console.log('[API] Upload OK:', JSON.stringify(uploadRes.counts || uploadRes));
+      tray.notify('HALQ Bridge', `Uploaded ${parsed.active.length} active, ${parsed.closed.length} closed to HALQ`);
     } else {
       console.error('[API] Upload failed:', uploadRes.error);
       tray.setStatus('error', 'Upload failed: ' + uploadRes.error);
       return;
     }
 
-    // Fetch tags for Obsidian sync
-    let tagsMap = {};
+    // ── FIX 2: Resolve tag IDs to names BEFORE calling obsidian.syncWOs ──
+    let resolvedTags = {};
     try {
+      // Fetch WOs with their category_ids
       const wosRes = await api.apiGet('/wos');
+      // Fetch category name mapping
+      const catsRes = await api.apiGet('/categories');
+
+      let catNames = {};
+      if (catsRes.ok && catsRes.data) {
+        catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
+      }
+
       if (wosRes.ok && wosRes.data) {
         wosRes.data.forEach(wo => {
-          tagsMap[wo.wo_number] = (wo.category_ids || [])
+          const ids = (wo.category_ids || [])
             .map(id => String(id))
             .filter(Boolean);
+          resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
         });
       }
     } catch (e) {
-      console.log('[API] Could not fetch tags:', e.message);
+      console.log('[API] Could not fetch tags for Obsidian sync:', e.message);
     }
 
-    // Sync to Obsidian
-    obsidian.syncWOs(cfg.vaultPath, parsed, tagsMap);
+    // Sync to Obsidian with resolved tag NAMES (not IDs)
+    obsidian.syncWOs(cfg.vaultPath, parsed, resolvedTags);
     console.log('[OBSIDIAN] Vault synced');
 
   } catch (err) {
@@ -161,40 +175,32 @@ async function _processExcel(filePath) {
 
 async function _syncLoop() {
   if (!_lastExcelPath) return;
-  // Re-process the last known Excel to catch tag changes from webapp
   const cfg = config.get();
   try {
     const parsed = parser.parseFile(_lastExcelPath);
 
     // Fetch latest tags from HALQ
-    let tagsMap = {};
+    let resolvedTags = {};
     try {
       const wosRes = await api.apiGet('/wos');
+      const catsRes = await api.apiGet('/categories');
+
+      let catNames = {};
+      if (catsRes.ok && catsRes.data) {
+        catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
+      }
+
       if (wosRes.ok && wosRes.data) {
         wosRes.data.forEach(wo => {
-          tagsMap[wo.wo_number] = (wo.category_ids || [])
+          const ids = (wo.category_ids || [])
             .map(id => String(id))
             .filter(Boolean);
+          resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
         });
       }
     } catch (e) {
       return; // API down, skip this cycle
     }
-
-    // Fetch category names
-    let catNames = {};
-    try {
-      const catsRes = await api.apiGet('/categories');
-      if (catsRes.ok && catsRes.data) {
-        catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
-      }
-    } catch (e) {}
-
-    // Resolve tag IDs to names
-    const resolvedTags = {};
-    Object.entries(tagsMap).forEach(([woNum, ids]) => {
-      resolvedTags[woNum] = ids.map(id => catNames[id] || id);
-    });
 
     obsidian.syncWOs(cfg.vaultPath, parsed, resolvedTags);
   } catch (e) {
