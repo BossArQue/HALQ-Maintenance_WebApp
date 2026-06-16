@@ -1,7 +1,7 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.2.2
+   VERSION: 2.2.3
    DESCRIPTION: Main entry — config load, file watcher, sync loop, graceful shutdown.
    ============================================ */
 
@@ -21,8 +21,8 @@ let _lastExcelPath = null;
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║  HALQ Bridge v2.2.2                                ║');
-  console.log('║  Excel Watcher + Obsidian Vault Sync               ║');
+  console.log('║  HALQ Bridge v2.2.3                                  ║');
+  console.log('║  Excel Watcher + Obsidian Vault Sync                 ║');
   console.log('╚══════════════════════════════════════════════════════╝');
 
   // Load config
@@ -114,6 +114,19 @@ function _startWatcher(watchPath) {
     });
 }
 
+// Sanitize WO object — remove undefined, convert null to empty string
+function _sanitizePayload(obj) {
+  if (obj === null || obj === undefined) return '';
+  if (typeof obj !== 'object') return obj;
+  const out = {};
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (val === undefined) continue; // skip undefined entirely
+    out[key] = val === null ? '' : val;
+  }
+  return out;
+}
+
 async function _processExcel(filePath) {
   _lastExcelPath = filePath;
   const cfg = config.get();
@@ -124,11 +137,15 @@ async function _processExcel(filePath) {
     const parsed = parser.parseFile(filePath);
     console.log('[PROCESS] Parse complete. Active: ' + parsed.active.length + ', Closed: ' + parsed.closed.length);
 
+    // Sanitize payload — ensure no undefined values
+    const activeWos = parsed.active.map(_sanitizePayload);
+    const closedWos = parsed.closed.map(_sanitizePayload);
+
     // Upload to HALQ API
     console.log('[PROCESS] Preparing upload payload...');
     const uploadPayload = { 
-      wos: parsed.active, 
-      closedWos: parsed.closed 
+      wos: activeWos, 
+      closedWos: closedWos 
     };
     console.log('[PROCESS] Upload payload: ' + uploadPayload.wos.length + ' active, ' + uploadPayload.closedWos.length + ' closed');
 
