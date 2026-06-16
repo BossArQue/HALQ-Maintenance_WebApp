@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.1.0
+   VERSION: 2.1.1
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -490,3 +490,19 @@ HALQ.af.applyUrl = function (url) {
 HALQ.email.openOutlook = function () {
   window.open('https://outlook.office.com/mail', '_blank');
 };
+
+// =====================
+// FIX: Attach utility functions to HALQ root namespace
+// so wo-panel.js and other modules can access them directly
+// =====================
+HALQ.fmtDate = fmtDate;
+HALQ.fmtDateISO = fmtDateISO;
+HALQ.nextBizDay = nextBizDay;
+HALQ.nextNextBizDay = nextNextBizDay;
+HALQ.getNextFriday = getNextFriday;
+HALQ.getWeekStart = getWeekStart;
+HALQ.calendarAgeToBizDays = calendarAgeToBizDays;
+HALQ.skipWeekend = skipWeekend;
+HALQ.escapeHtml = escapeHtml;
+HALQ.showDebug = showDebug;
+HALQ.showErrorDialog = showErrorDialog;
