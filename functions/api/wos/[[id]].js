@@ -1,18 +1,23 @@
 /* ============================================
-   FILE: wos.js
-   PATH: functions/api/wos.js
+   FILE: [[id]].js
+   PATH: functions/api/wos/[[id]].js
    VERSION: 2.1.4
-   DESCRIPTION: Work Orders API — GET list (filter/search/cat), GET single, POST bulk upsert, PUT update, DELETE soft-delete.
+   DESCRIPTION: Work Orders API — catchall route for /api/wos and /api/wos/:id.
+                GET list, GET single, POST bulk upsert, PUT update, DELETE soft-delete.
    ============================================ */
 
 export async function onRequest(context) {
-  const { request, env } = context;
+  const { request, env, params } = context;
   const db = env.DB;
   const url = new URL(request.url);
 
+  // [[id]] catchall behavior:
+  // /api/wos          → params.id is undefined
+  // /api/wos/49638-1  → params.id = ["49638-1"]
+  const id = params.id ? params.id[0] : undefined;
+
   try {
     if (request.method === 'GET') {
-      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (id) {
         return await getOne(db, id);
       }
@@ -25,14 +30,12 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'PUT') {
-      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (!id) return jsonResponse({ ok: false, error: 'Missing WO ID' }, 400);
       const body = await request.json();
       return await update(db, id, body);
     }
 
     if (request.method === 'DELETE') {
-      const id = url.pathname.match(/\/api\/wos\/(.+)/)?.[1];
       if (!id) return jsonResponse({ ok: false, error: 'Missing WO ID' }, 400);
       return await remove(db, id);
     }
@@ -70,7 +73,7 @@ async function getAll(db, url) {
   // Category filter
   if (cat) {
     sql += ' AND (category_ids LIKE ?)';
-    params.push('%"' + cat + '"%');
+    params.push('"' + cat + '"');
   }
 
   sql += ' ORDER BY created_at DESC';
@@ -87,7 +90,8 @@ async function getAll(db, url) {
 }
 
 async function getOne(db, id) {
-  const row = await db.prepare('SELECT * FROM work_orders WHERE id = ?').bind(id).first();
+  // id is the wo_number string (e.g., "49638-1")
+  const row = await db.prepare('SELECT * FROM work_orders WHERE wo_number = ?').bind(id).first();
   if (!row) return jsonResponse({ ok: false, error: 'Not found' }, 404);
 
   row.category_ids = row.category_ids || '[]';
@@ -154,6 +158,7 @@ async function upsert(db, body) {
 }
 
 async function update(db, id, body) {
+  // id is the wo_number string
   const fields = [];
   const values = [];
 
@@ -179,7 +184,7 @@ async function update(db, id, body) {
   fields.push('updated_at = CURRENT_TIMESTAMP');
   values.push(id);
 
-  await db.prepare(`UPDATE work_orders SET ${fields.join(', ')} WHERE id = ?`).bind(...values).run();
+  await db.prepare(`UPDATE work_orders SET ${fields.join(', ')} WHERE wo_number = ?`).bind(...values).run();
 
   // Audit log
   await db.prepare(`INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)`)
@@ -189,7 +194,8 @@ async function update(db, id, body) {
 }
 
 async function remove(db, id) {
-  await db.prepare('UPDATE work_orders SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(id).run();
+  // id is the wo_number string
+  await db.prepare('UPDATE work_orders SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE wo_number = ?').bind(id).run();
 
   await db.prepare(`INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)`)
     .bind('delete', 'work_order', id, '{}').run();

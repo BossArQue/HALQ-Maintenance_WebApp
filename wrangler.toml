@@ -5,7 +5,7 @@
 # DESCRIPTION: Cloudflare Pages + Workers config for HALQ v2 webapp.
 # ============================================
 
-name = "halq-maintenance"
+name = "halq-maintenance-webapp"  # Must match your Pages project name exactly
 compatibility_date = "2026-06-13"
 compatibility_flags = ["nodejs_compat"]
 
