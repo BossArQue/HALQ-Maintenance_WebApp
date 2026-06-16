@@ -1,7 +1,7 @@
 /* ============================================
    FILE: messages.js
    PATH: public/js/messages.js
-   VERSION: 2.1.0
+   VERSION: 2.1.1
    DESCRIPTION: Message templates, vendor directory, token resolution, clipboard send.
    ============================================ */
 
@@ -75,20 +75,20 @@
       S.templates = {
         tenant: {
           email: [
-            { name: 'Not heard from contractor', body: 'Hello {res},
+            { name: 'Not heard from contractor', body: `Hello {res},
 
 If you have not heard from our contractor, please call them directly to schedule your repair.
 
 {vendor_details}
 
-' },
-            { name: 'Vendor trying to reach you', body: 'Hello {res},
+` },
+            { name: 'Vendor trying to reach you', body: `Hello {res},
 
 Our vendor is trying to reach you. Please call them directly to schedule your repair.
 
 {vendor_details}
 
-' }
+` }
           ],
           text: [
             { name: 'Not heard from contractor', body: 'Hi {res}, if you have not heard from our contractor please call them directly: {vendor_details}' },
@@ -97,16 +97,16 @@ Our vendor is trying to reach you. Please call them directly to schedule your re
         },
         vendor: {
           email: [
-            { name: 'Follow up', body: 'Hello,
+            { name: 'Follow up', body: `Hello,
 
 What is the update on WO #{wo} — {prop}?
 
-' },
-            { name: 'Invoice', body: 'Hello,
+` },
+            { name: 'Invoice', body: `Hello,
 
 Please send your invoice for WO #{wo} — {prop}.
 
-' }
+` }
           ],
           text: [
             { name: 'Follow up', body: 'Hi, what is the update on WO #{wo} at {prop}?' },
@@ -151,7 +151,7 @@ Please send your invoice for WO #{wo} — {prop}.
             <div class="msg-template-row-header">
               <input class="msg-template-name" data-group="${group}" data-type="${type}" data-idx="${i}"
                 value="${tpl.name.replace(/"/g, '&quot;')}" placeholder="Template name">
-              <button class="msg-del-btn" onclick="HALQ.msg.deleteTemplate('${group}','${type}',${i})" title="Delete">🗑</button>
+              <button class="msg-del-btn" data-action="delete-template" data-group="${group}" data-type="${type}" data-idx="${i}" title="Delete">🗑</button>
             </div>
             <textarea class="msg-template-body" data-group="${group}" data-type="${type}" data-idx="${i}"
               rows="4" placeholder="Message body... use {wo} {prop} {res} {vendor} {vendor_phone} {vendor_email} {vendor_details}">${tpl.body}</textarea>
