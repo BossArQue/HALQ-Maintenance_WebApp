@@ -3,6 +3,7 @@
    PATH: public/js/wo-panel.js
    VERSION: 2.1.3
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
+                All events via addEventListener (no inline onclick).
    ============================================ */
 
 (function () {
@@ -60,7 +61,11 @@
       uploadOverlay: document.getElementById('upload-overlay'),
       uploadDropzone: document.getElementById('upload-dropzone'),
       uploadFileInput: document.getElementById('upload-file-input'),
-      uploadStatus: document.getElementById('upload-status')
+      uploadStatus: document.getElementById('upload-status'),
+      btnUploadExcel: document.getElementById('btn-upload-excel'),
+      btnSaveDetail: document.getElementById('btn-save-detail'),
+      btnUploadCancel: document.getElementById('btn-upload-cancel'),
+      detailClose: document.getElementById('wo-detail-close')
     };
   }
 
@@ -132,6 +137,7 @@
   // ── Init ──
   function init() {
     cache();
+    attachEventListeners();
     initFollowupDates();
     initCtxDelegation();
     initUploadHandlers();
@@ -143,7 +149,132 @@
     });
   }
 
-  // Close dropdowns when detail panel scrolls (fixed dropdowns won't scroll with trigger)
+  // Attach ALL event listeners (no inline onclick)
+  function attachEventListeners() {
+    // Search
+    if ($.searchInput) {
+      $.searchInput.addEventListener('input', e => filter(e.target.value));
+    }
+    if ($.searchClear) {
+      $.searchClear.addEventListener('click', () => {
+        $.searchInput.value = '';
+        filter('');
+      });
+    }
+
+    // Filter chips (delegation)
+    if ($.filters) {
+      $.filters.addEventListener('click', e => {
+        const chip = e.target.closest('.filter-chip');
+        if (!chip) return;
+        const filterType = chip.dataset.filter;
+        if (filterType) toggleChip(chip, filterType);
+      });
+    }
+
+    // Category filter more button
+    if ($.filterMoreBtn) {
+      $.filterMoreBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleFilterCatDropdown(e);
+      });
+    }
+
+    // Follow-up trigger
+    if ($.followupTrigger) {
+      $.followupTrigger.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleFollowup();
+      });
+    }
+
+    // Follow-up options (delegation on portal dropdown)
+    if ($.followupDD) {
+      $.followupDD.addEventListener('click', e => {
+        const opt = e.target.closest('.followup-opt');
+        if (!opt) return;
+        const key = opt.dataset.followup;
+        if (key === 'custom') {
+          $.followupCustom.classList.add('open');
+          if ($.followupCustomInput) {
+            $.followupCustomInput.focus();
+            try { $.followupCustomInput.showPicker(); } catch (_) {}
+          }
+        } else if (key) {
+          setFollowup(key);
+        }
+      });
+    }
+
+    // Custom date input
+    if ($.followupCustomInput) {
+      $.followupCustomInput.addEventListener('change', e => {
+        if (e.target.value) setFollowupCustom(e.target.value);
+      });
+    }
+
+    // Category trigger
+    if ($.catTrigger) {
+      $.catTrigger.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleCatDropdown();
+      });
+    }
+
+    // Category options (delegation on portal dropdown)
+    if ($.catDropdown) {
+      $.catDropdown.addEventListener('click', e => {
+        const opt = e.target.closest('.cat-opt');
+        if (!opt) return;
+        if (opt.classList.contains('cat-opt-manage')) {
+          HALQ.categories.openManager?.();
+          HALQ.app.closeAllDropdowns();
+          return;
+        }
+        if (opt.classList.contains('cat-opt-clear')) {
+          selectCat(null);
+          return;
+        }
+        const catId = parseInt(opt.dataset.catid);
+        if (!isNaN(catId)) selectCat(catId);
+      });
+    }
+
+    // Detail close
+    if ($.detailClose) {
+      $.detailClose.addEventListener('click', toggleDetail);
+    }
+
+    // Save button
+    if ($.btnSaveDetail) {
+      $.btnSaveDetail.addEventListener('click', saveDetail);
+    }
+
+    // Upload button
+    if ($.btnUploadExcel) {
+      $.btnUploadExcel.addEventListener('click', uploadExcel);
+    }
+
+    // Upload cancel
+    if ($.btnUploadCancel) {
+      $.btnUploadCancel.addEventListener('click', () => {
+        if ($.uploadOverlay) $.uploadOverlay.style.display = 'none';
+      });
+    }
+
+    // Global click to close dropdowns (if clicking outside)
+    document.addEventListener('click', e => {
+      if (e.target.closest('.followup-dropdown') || e.target.closest('.cat-dropdown') ||
+          e.target.closest('.wo-filter-dropdown') || e.target.closest('#wo-ctx-menu') ||
+          e.target.closest('.followup-trigger') || e.target.closest('.cat-trigger') ||
+          e.target.closest('.wo-filter-more-btn')) {
+        return;
+      }
+      HALQ.app.closeAllDropdowns();
+    });
+  }
+
+  // Close dropdowns when detail panel scrolls
   function initDetailScrollClose() {
     if ($.detailBody) {
       $.detailBody.addEventListener('scroll', () => {
@@ -199,7 +330,6 @@
   }
 
   async function loadTags() {
-    // Tags are now loaded inline with WOs via category_ids + follow_up_date
     return Promise.resolve();
   }
 
@@ -401,13 +531,20 @@
         return ids.includes(cat.id);
       }).length;
       const isActive = S.currentFilter === 'cat:' + cat.id;
-      return `<div class="wo-filter-dd-item${isActive ? ' active' : ''}"
-        onclick="HALQ.wo.selectCatFilter(${cat.id})">
+      return `<div class="wo-filter-dd-item${isActive ? ' active' : ''}" data-catid="${cat.id}">
         <span class="wo-filter-dd-dot" style="background:${cat.color}"></span>
         <span style="flex:1">${cat.name}</span>
         <span class="wo-filter-dd-count">${count}</span>
       </div>`;
     }).join('');
+
+    // Attach click listeners to filter dropdown items
+    $.filterDDList.querySelectorAll('.wo-filter-dd-item').forEach(el => {
+      el.addEventListener('click', e => {
+        const catId = parseInt(e.currentTarget.dataset.catid);
+        if (!isNaN(catId)) selectCatFilter(catId);
+      });
+    });
 
     _updateCatBtn();
   }
@@ -571,18 +708,9 @@
     else if (key === 'nextday') date = HALQ.nextNextBizDay(today);
     else if (key === 'thisweek') date = HALQ.getNextFriday(today, 0);
     else if (key === 'nextweek') date = HALQ.getNextFriday(today, 1);
-    else if (key === 'custom') {
-      $.followupCustom.classList.add('open');
-      const inp = $.followupCustomInput;
-      inp.focus();
-      try { inp.showPicker(); } catch (_) { }
-      return;
-    }
 
     S.currentFollowup = HALQ.fmtDateISO(date);
     $.followupVal.textContent = HALQ.fmtDate(date);
-    document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
     HALQ.app.closeAllDropdowns();
   }
 
@@ -591,7 +719,6 @@
     const d = new Date(isoVal + 'T00:00:00');
     S.currentFollowup = isoVal;
     $.followupVal.textContent = HALQ.fmtDate(d);
-    document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'));
     HALQ.app.closeAllDropdowns();
   }
 
@@ -603,20 +730,20 @@
     if (!$.catDropdown) return;
     const cats = HALQ.cat.list;
     $.catDropdown.innerHTML = `
-      <div class="cat-opt cat-opt-clear" onclick="HALQ.wo.selectCat(null)">
+      <div class="cat-opt cat-opt-clear" data-catid="clear">
         <div class="cat-opt-dot" style="background:var(--border2)"></div>
         <span>Clear all</span>
       </div>
       <div class="cat-sep"></div>
       ${cats.map(c => `
-        <div class="cat-opt ${S.selectedCatIds.includes(c.id) ? 'active' : ''}" onclick="HALQ.wo.selectCat(${c.id})">
+        <div class="cat-opt ${S.selectedCatIds.includes(c.id) ? 'active' : ''}" data-catid="${c.id}">
           <div class="cat-opt-dot" style="background:${c.color}"></div>
           <span style="flex:1">${c.name}</span>
           <div class="cat-checkbox">${S.selectedCatIds.includes(c.id) ? '✓' : ''}</div>
         </div>
       `).join('')}
       <div class="cat-sep"></div>
-      <div class="cat-opt cat-opt-manage" onclick="HALQ.categories.openManager()">
+      <div class="cat-opt cat-opt-manage">
         <span>⚙ All Categories...</span>
       </div>
     `;
@@ -716,7 +843,6 @@
     const w = S.wos.find(x => x.wo === woNum);
     const catIds = Array.isArray(w?._catIds) ? w._catIds : [];
 
-    // v2: Message templates loaded from HALQ.msg.templates (populated by messages.js)
     const tpl = HALQ.msg.templates;
 
     function flyout(id, items) {
@@ -727,9 +853,9 @@
       let s = '';
       const list = (tpl[group]?.[type]) || [];
       list.forEach((t, i) => {
-        s += `<div class="wo-ctx-item" onclick="HALQ.msg.ctxSend('${group}','${type}',${i})">${t.name}</div>`;
+        s += `<div class="wo-ctx-item" data-group="${group}" data-type="${type}" data-idx="${i}">${t.name}</div>`;
       });
-      s += `<div class="wo-ctx-item" style="color:var(--text3);font-style:italic" onclick="HALQ.msg.ctxSend('${group}','${type}',-1)">✏ Free Message</div>`;
+      s += `<div class="wo-ctx-item" data-freemsg="${group},${type}" style="color:var(--text3);font-style:italic">✏ Free Message</div>`;
       return s;
     }
 
@@ -754,27 +880,27 @@
         { key: 'thisweek', label: 'This Week', date: thisweek },
         { key: 'nextweek', label: 'Next Week', date: nextweek },
       ].map(opt =>
-        `<div class="wo-ctx-item" onclick="HALQ.wo.ctxSetFollowup('${opt.key}')">
+        `<div class="wo-ctx-item" data-ctx-followup="${opt.key}">
           <span style="font-size:14px">📅</span>
           <span style="flex:1">${opt.label}</span>
           <span style="font-size:12px;color:var(--text3);font-family:monospace">${HALQ.fmtDate(opt.date)}</span>
         </div>`
       ).join('') +
-      `<div class="wo-ctx-item" onclick="HALQ.wo.ctxSetFollowupCustom()">
+      `<div class="wo-ctx-item" data-ctx-followup="custom">
         <span style="font-size:14px">📅</span><span>Custom…</span>
       </div>`
     );
 
     let catItems = '';
     if (catIds.length) {
-      catItems += `<div class="wo-ctx-item" onclick="HALQ.wo.ctxClearCats()">
+      catItems += `<div class="wo-ctx-item" data-ctx-clearcats="1">
         <span class="ctx-dot" style="background:var(--border2)"></span>
         <span style="color:var(--text3);font-style:italic">Clear all</span>
       </div>`;
     }
     HALQ.cat.list.forEach(cat => {
       const active = catIds.includes(cat.id);
-      catItems += `<div class="wo-ctx-item" onclick="HALQ.wo.ctxToggleCat(${cat.id})">
+      catItems += `<div class="wo-ctx-item" data-ctx-catid="${cat.id}">
         <span class="ctx-dot" style="background:${cat.color}"></span>
         <span style="flex:1">${cat.name}</span>
         ${active ? '<span style="color:var(--accent);font-size:14px">✓</span>' : ''}
@@ -796,6 +922,37 @@
 
     $.ctxMenu.innerHTML = html;
     $.ctxMenu.style.display = 'block';
+
+    // Attach delegation listener for context menu items
+    $.ctxMenu.onclick = e => {
+      const item = e.target.closest('.wo-ctx-item');
+      if (!item) return;
+
+      if (item.dataset.ctxFollowup) {
+        if (item.dataset.ctxFollowup === 'custom') ctxSetFollowupCustom();
+        else ctxSetFollowup(item.dataset.ctxFollowup);
+        return;
+      }
+      if (item.dataset.ctxCatid) {
+        ctxToggleCat(parseInt(item.dataset.ctxCatid));
+        return;
+      }
+      if (item.dataset.ctxClearcats) {
+        ctxClearCats();
+        return;
+      }
+      if (item.dataset.group && item.dataset.type) {
+        HALQ.msg.ctxSend(item.dataset.group, item.dataset.type, parseInt(item.dataset.idx));
+        closeCtxMenu();
+        return;
+      }
+      if (item.dataset.freemsg) {
+        const [group, type] = item.dataset.freemsg.split(',');
+        HALQ.msg.ctxSend(group, type, -1);
+        closeCtxMenu();
+        return;
+      }
+    };
 
     const vw = window.innerWidth, vh = window.innerHeight;
     let x = e.clientX, y = e.clientY;
@@ -964,7 +1121,6 @@
       }
 
       // Map columns — v2 uses full column names from AppFolio export
-      // Expected headers: Work Order Number, Property, Unit, Primary Resident, etc.
       const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
       const colMap = {};
       headers.forEach((h, i) => {

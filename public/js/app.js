@@ -86,6 +86,45 @@ function init() {
   const verEls = document.querySelectorAll('#app-version-label, #bb-version');
   verEls.forEach(el => { if (el) el.textContent = 'v' + APP_VERSION; });
 
+  // Attach nav events (no inline onclick)
+  document.querySelectorAll('[data-view]').forEach(el => {
+    el.addEventListener('click', () => switchView(el.dataset.view));
+  });
+
+  // Settings button
+  const settingsBtn = document.getElementById('tb-nav-settings');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      const overlay = document.getElementById('settings-overlay');
+      if (overlay) overlay.classList.add('open');
+    });
+  }
+
+  // Settings close
+  const settingsClose = document.getElementById('settings-close');
+  if (settingsClose) {
+    settingsClose.addEventListener('click', () => {
+      const overlay = document.getElementById('settings-overlay');
+      if (overlay) overlay.classList.remove('open');
+    });
+  }
+
+  // Theme options
+  document.querySelectorAll('.theme-option').forEach(el => {
+    el.addEventListener('click', () => setTheme(el.dataset.theme, el));
+  });
+
+  // Font options
+  document.querySelectorAll('.font-option').forEach(el => {
+    el.addEventListener('click', () => setAppFont(el.dataset.font, el));
+  });
+
+  // Font size slider
+  const fontSizeSlider = document.getElementById('font-size-slider');
+  if (fontSizeSlider) {
+    fontSizeSlider.addEventListener('input', e => setAppFontSize(e.target.value));
+  }
+
   // Load categories from API
   loadCategories().then(() => {
     // Bootstrap WO panel
@@ -134,9 +173,16 @@ function switchView(view) {
 
   const actionsEl = document.getElementById('topbar-actions');
   if (actionsEl) {
-    if (isWO) actionsEl.innerHTML = `<button class="btn btn-primary" onclick="HALQ.wo.uploadExcel()">📤 Upload Excel</button>`;
-    else if (isEmail) actionsEl.innerHTML = `<button class="btn btn-ghost" onclick="HALQ.email.openOutlook()" title="Open Outlook">✉ Outlook</button>`;
+    if (isWO) actionsEl.innerHTML = `<button class="btn btn-primary" id="btn-upload-excel">📤 Upload Excel</button>`;
+    else if (isEmail) actionsEl.innerHTML = `<button class="btn btn-ghost" id="btn-open-outlook" title="Open Outlook">✉ Outlook</button>`;
     else actionsEl.innerHTML = '';
+
+    // Re-attach listeners to new buttons
+    const uploadBtn = document.getElementById('btn-upload-excel');
+    if (uploadBtn) uploadBtn.addEventListener('click', () => HALQ.wo.uploadExcel?.());
+
+    const outlookBtn = document.getElementById('btn-open-outlook');
+    if (outlookBtn) outlookBtn.addEventListener('click', () => HALQ.email.openOutlook?.());
   }
 
   // Nav active states
@@ -415,16 +461,24 @@ function showErrorDialog(title, message) {
     <div style="background:var(--surface);border:1px solid var(--red);border-radius:10px;padding:20px 24px;width:480px;max-width:90vw;display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="color:var(--red);font-weight:600;font-size:13px">✗ ${escapeHtml(title)}</span>
-        <span onclick="document.getElementById('halq-error-dialog').remove()" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
+        <span id="err-dialog-close" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
       </div>
       <textarea readonly style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:monospace;font-size:11px;padding:10px;width:100%;height:120px;resize:none;outline:none;user-select:text">${escapeHtml(message)}</textarea>
       <div style="font-size:10px;color:var(--text3)">Click inside and Ctrl+A, then Ctrl+C</div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button onclick="navigator.clipboard.writeText(this.dataset.msg).then(()=>this.textContent='✓ Copied')" data-msg="${escapeHtml(message)}" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Copy</button>
-        <button onclick="document.getElementById('halq-error-dialog').remove()" style="background:var(--red);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Close</button>
+        <button id="err-dialog-copy" data-msg="${escapeHtml(message)}" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Copy</button>
+        <button id="err-dialog-close-btn" style="background:var(--red);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Close</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
+
+  // Attach listeners
+  overlay.querySelector('#err-dialog-close')?.addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#err-dialog-close-btn')?.addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#err-dialog-copy')?.addEventListener('click', function() {
+    navigator.clipboard.writeText(this.dataset.msg).then(() => this.textContent = '✓ Copied');
+  });
+
   setTimeout(() => { const ta = overlay.querySelector('textarea'); if (ta) { ta.focus(); ta.select(); } }, 50);
 }
 
@@ -449,7 +503,11 @@ HALQ.promptDate = function (label, callback) {
   overlay.firstElementChild.appendChild(inp);
   const btns = document.createElement('div');
   btns.style.cssText = 'display:flex;gap:8px;margin-top:12px;justify-content:flex-end';
-  btns.innerHTML = `<button style="background:none;border:1px solid var(--border2);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px" onclick="this.closest('.nt-prompt-overlay')?.remove()">Cancel</button>`;
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'background:none;border:1px solid var(--border2);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px';
+  cancelBtn.addEventListener('click', () => overlay.remove());
+  btns.appendChild(cancelBtn);
   overlay.firstElementChild.appendChild(btns);
   document.body.appendChild(overlay);
   setTimeout(() => { try { inp.showPicker(); } catch (_) {} inp.focus(); }, 60);
