@@ -59,6 +59,15 @@ async function apiPut(endpoint, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
+  const contentType = res.headers.get('content-type');
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+  }
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
+  }
   return res.json();
 }
 

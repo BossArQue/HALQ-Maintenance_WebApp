@@ -227,7 +227,7 @@
         const opt = e.target.closest('.cat-opt');
         if (!opt) return;
         if (opt.classList.contains('cat-opt-manage')) {
-          HALQ.categories.openManager?.();
+          HALQ.catMgr.open?.();
           HALQ.app.closeAllDropdowns();
           return;
         }
