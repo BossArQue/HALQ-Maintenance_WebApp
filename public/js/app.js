@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.1.1
+   VERSION: 2.1.2
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.1.2';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -313,10 +313,18 @@ function updateClock() {
 // =====================
 
 function closeAllDropdowns() {
-  document.getElementById('followup-dropdown')?.classList.remove('open');
-  document.getElementById('followup-custom-row')?.classList.remove('open');
-  document.getElementById('cat-dropdown')?.classList.remove('open');
-  document.getElementById('wo-filter-dropdown')?.classList.remove('open');
+  const ids = ['followup-dropdown', 'followup-custom-row', 'cat-dropdown', 'wo-filter-dropdown'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('open');
+    // Clear inline positioning styles to prevent stale coords on next open
+    el.style.top = '';
+    el.style.left = '';
+    el.style.right = '';
+    el.style.bottom = '';
+    el.style.width = '';
+  });
 }
 
 // =====================

@@ -1,7 +1,7 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.1
+   VERSION: 2.1.2
    DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
    ============================================ */
 
@@ -28,6 +28,7 @@
       searchInput: document.getElementById('wo-search-input'),
       searchClear: document.getElementById('wo-search-clear'),
       detail: document.getElementById('wo-detail'),
+      detailBody: document.querySelector('.wo-detail-body'),
       filters: document.getElementById('wo-filters'),
       filterMoreWrap: document.getElementById('wo-filter-more-wrap'),
       filterMoreBtn: document.getElementById('wo-filter-more-btn'),
@@ -134,11 +135,21 @@
     initFollowupDates();
     initCtxDelegation();
     initUploadHandlers();
+    initDetailScrollClose();
     // Load WOs from API
     loadWOs().then(() => {
       renderList();
       updateBottomBar();
     });
+  }
+
+  // Close dropdowns when detail panel scrolls (fixed dropdowns won't scroll with trigger)
+  function initDetailScrollClose() {
+    if ($.detailBody) {
+      $.detailBody.addEventListener('scroll', () => {
+        HALQ.app.closeAllDropdowns();
+      });
+    }
   }
 
   // =====================
@@ -544,11 +555,12 @@
       if (spaceBelow < 280 && rect.top > 280) {
         $.followupDD.style.top = '';
         $.followupDD.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+        $.followupDD.style.left = rect.left + 'px';
       } else {
         $.followupDD.style.bottom = '';
         $.followupDD.style.top = (rect.bottom + 4) + 'px';
+        $.followupDD.style.left = rect.left + 'px';
       }
-      $.followupDD.style.left = rect.left + 'px';
     }
   }
 
@@ -622,11 +634,12 @@
       if (spaceBelow < 300 && rect.top > 300) {
         $.catDropdown.style.top = '';
         $.catDropdown.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+        $.catDropdown.style.left = rect.left + 'px';
       } else {
         $.catDropdown.style.bottom = '';
         $.catDropdown.style.top = (rect.bottom + 4) + 'px';
+        $.catDropdown.style.left = rect.left + 'px';
       }
-      $.catDropdown.style.left = rect.left + 'px';
     }
   }
 
