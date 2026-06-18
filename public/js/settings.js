@@ -1,33 +1,267 @@
 /* ============================================
    FILE: settings.js
    PATH: public/js/settings.js
-   VERSION: 2.1.1
-   DESCRIPTION: Settings panel UI — theme, font, layout, message templates, vendor directory, bridge config.
+   VERSION: 2.2.3
+   DESCRIPTION: Settings panel UI — theme, font, layout, nav, message templates, vendor directory, bridge config, PIN.
    ============================================ */
 
 (function () {
   'use strict';
 
   /* ---------- DOM refs ---------- */
-  let _overlay = null, _panel = null;
+  let _overlay = null;
   let _currentTab = 'appearance';
+  let _pinState = { digits: '', confirmed: '', mode: 'verify' };
 
   /* ---------- init ---------- */
   function init() {
     _overlay = document.getElementById('settings-overlay');
-    _panel = document.querySelector('.settings-panel');
 
-    _overlay?.addEventListener('click', e => { if (e.target === _overlay) closeSettings(); });
-    document.querySelector('.settings-close')?.addEventListener('click', closeSettings);
+    _overlay?.addEventListener('click', e => {
+      if (e.target === _overlay) close();
+    });
+
+    document.getElementById('settings-close')?.addEventListener('click', close);
 
     // Tab switching
     document.querySelectorAll('.settings-tab').forEach(tab => {
       tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab')));
     });
 
+    // Theme options
+    document.querySelectorAll('.theme-option').forEach(el => {
+      el.addEventListener('click', () => setTheme(el.getAttribute('data-theme')));
+    });
+
+    // Layout options
+    document.querySelectorAll('.layout-option[data-layout]').forEach(el => {
+      el.addEventListener('click', () => setLayout(el.getAttribute('data-layout')));
+    });
+
+    // Nav style options
+    document.querySelectorAll('.layout-option[data-nav]').forEach(el => {
+      el.addEventListener('click', () => setNavStyle(el.getAttribute('data-nav')));
+    });
+
+    // Font options
+    document.querySelectorAll('.font-option').forEach(el => {
+      el.addEventListener('click', () => setFont(el.getAttribute('data-font')));
+    });
+
+    // Font size slider
+    const fontSlider = document.getElementById('font-size-slider');
+    if (fontSlider) {
+      fontSlider.addEventListener('input', e => {
+        const size = parseInt(e.target.value, 10);
+        const valEl = document.getElementById('font-size-val');
+        if (valEl) valEl.textContent = size + 'px';
+        setFontSize(size);
+      });
+    }
+
+    // Preference toggles
+    document.querySelectorAll('.toggle-switch[data-pref]').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.getAttribute('data-pref');
+        togglePref(key, el);
+      });
+    });
+
+    // Bridge config
+    document.getElementById('bridge-save-btn')?.addEventListener('click', saveBridgeConfig);
+
+    // Excel browse (hidden file input)
+    const browseBtn = document.getElementById('btn-browse-excel');
+    const fileInput = document.getElementById('excel-file-input');
+    if (browseBtn && fileInput) {
+      browseBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          const pathInput = document.getElementById('bridge-excel-path');
+          if (pathInput) pathInput.value = file.name;
+        }
+        // Reset so the same file can be selected again
+        e.target.value = '';
+      });
+    }
+
+    // Message template add buttons
+    const templateGroups = [
+      ['tenant', 'email'], ['tenant', 'text'],
+      ['vendor', 'email'], ['vendor', 'text'],
+      ['owner', 'email'], ['owner', 'text']
+    ];
+    templateGroups.forEach(([group, type]) => {
+      const btn = document.getElementById(`btn-add-template-${group}-${type}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (HALQ.msg && HALQ.msg.addTemplate) HALQ.msg.addTemplate(group, type);
+        });
+      }
+    });
+
+    // Message template save buttons
+    ['tenant', 'vendor', 'owner'].forEach(group => {
+      const btn = document.getElementById(`btn-save-templates-${group}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (HALQ.msg && HALQ.msg.saveTemplates) HALQ.msg.saveTemplates();
+        });
+      }
+    });
+
+    // Vendor directory buttons
+    document.getElementById('btn-vendor-import')?.addEventListener('click', () => {
+      if (HALQ.msg && HALQ.msg.dirImportExcel) HALQ.msg.dirImportExcel();
+    });
+    document.getElementById('btn-vendor-add')?.addEventListener('click', () => {
+      if (HALQ.msg && HALQ.msg.dirAddManual) HALQ.msg.dirAddManual();
+    });
+
+    // Vendor search
+    const vendorSearch = document.getElementById('vendor-dir-search');
+    if (vendorSearch) {
+      vendorSearch.addEventListener('input', e => {
+        if (HALQ.msg && HALQ.msg.dirRenderTable) HALQ.msg.dirRenderTable(e.target.value);
+      });
+    }
+
+    // PIN overlay listeners
+    initPinListeners();
+
     loadSettingsToUI();
   }
 
+  /* ---------- PIN handlers ---------- */
+  function initPinListeners() {
+    document.querySelectorAll('.pin-key').forEach(key => {
+      key.addEventListener('click', () => pinKey(key.getAttribute('data-key')));
+    });
+
+    const pinInput = document.getElementById('pin-keyboard-input');
+    if (pinInput) {
+      pinInput.addEventListener('input', e => {
+        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+        e.target.value = val;
+        _pinState.digits = val;
+        updatePinDots();
+        if (val.length === 4) checkPin();
+      });
+      pinInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') pinKey('cancel');
+      });
+    }
+  }
+
+  function updatePinDots() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('pd' + i);
+      if (dot) dot.classList.toggle('filled', i < _pinState.digits.length);
+    }
+  }
+
+  function checkPin() {
+    const stored = localStorage.getItem('halq_pin');
+    const pinInput = document.getElementById('pin-keyboard-input');
+
+    if (stored) {
+      // Verify mode
+      if (_pinState.digits === stored) {
+        closePin();
+        open();
+      } else {
+        showPinError('Incorrect PIN');
+        _pinState.digits = '';
+        if (pinInput) pinInput.value = '';
+        updatePinDots();
+      }
+    } else {
+      // Set mode
+      if (!_pinState.confirmed) {
+        _pinState.confirmed = _pinState.digits;
+        _pinState.digits = '';
+        if (pinInput) pinInput.value = '';
+        updatePinDots();
+        const sub = document.getElementById('pin-sub');
+        if (sub) sub.textContent = 'Confirm your PIN';
+      } else {
+        if (_pinState.digits === _pinState.confirmed) {
+          savePin(_pinState.digits);
+          closePin();
+          open();
+        } else {
+          showPinError('PINs do not match');
+          _pinState.confirmed = '';
+          _pinState.digits = '';
+          if (pinInput) pinInput.value = '';
+          updatePinDots();
+          const sub = document.getElementById('pin-sub');
+          if (sub) sub.textContent = 'Enter a new PIN (4 digits)';
+        }
+      }
+    }
+  }
+
+  function showPinError(msg) {
+    const err = document.getElementById('pin-error');
+    if (err) {
+      err.textContent = msg;
+      setTimeout(() => { err.textContent = ''; }, 2000);
+    }
+  }
+
+  function pinKey(key) {
+    if (key === 'cancel') {
+      closePin();
+      return;
+    }
+    if (key === 'back') {
+      _pinState.digits = _pinState.digits.slice(0, -1);
+    } else if (/^\d$/.test(key)) {
+      _pinState.digits = (_pinState.digits + key).slice(0, 4);
+    }
+
+    const pinInput = document.getElementById('pin-keyboard-input');
+    if (pinInput) pinInput.value = _pinState.digits;
+    updatePinDots();
+    if (_pinState.digits.length === 4) checkPin();
+  }
+
+  function openPin() {
+    _pinState.digits = '';
+    _pinState.confirmed = '';
+    const pinInput = document.getElementById('pin-keyboard-input');
+    if (pinInput) pinInput.value = '';
+    updatePinDots();
+
+    const stored = localStorage.getItem('halq_pin');
+    const sub = document.getElementById('pin-sub');
+    if (sub) sub.textContent = stored ? 'Enter your PIN to continue' : 'Enter a new PIN (4 digits)';
+
+    const pinOverlay = document.getElementById('pin-overlay');
+    if (pinOverlay) pinOverlay.style.display = '';
+    pinInput?.focus();
+  }
+
+  function closePin() {
+    const pinOverlay = document.getElementById('pin-overlay');
+    if (pinOverlay) pinOverlay.style.display = 'none';
+    _pinState.digits = '';
+    _pinState.confirmed = '';
+  }
+
+  function savePin(pin) {
+    localStorage.setItem('halq_pin', pin);
+    HALQ.apiPost('/settings', { key: 'pin', value: pin }).catch(() => {});
+  }
+
+  function clearPin() {
+    localStorage.removeItem('halq_pin');
+    HALQ.apiPost('/settings', { key: 'pin', value: '' }).catch(() => {});
+  }
+
+  /* ---------- Tab switching ---------- */
   function switchTab(tabName) {
     _currentTab = tabName;
     document.querySelectorAll('.settings-tab').forEach(t => {
@@ -36,19 +270,84 @@
     document.querySelectorAll('.settings-tab-panel').forEach(p => {
       p.classList.toggle('hidden', p.getAttribute('data-panel') !== tabName);
     });
+
+    if (tabName === 'messages') {
+      if (HALQ.msg && HALQ.msg.renderTemplates) HALQ.msg.renderTemplates();
+      if (HALQ.msg && HALQ.msg.dirRenderTable) HALQ.msg.dirRenderTable();
+    }
   }
 
-  function openSettings() {
+  /* ---------- Open / Close ---------- */
+  function open() {
+    const stored = localStorage.getItem('halq_pin');
+    if (stored) {
+      openPin();
+      return;
+    }
     loadSettingsToUI();
     _overlay?.classList.add('open');
   }
 
-  function closeSettings() {
+  function close() {
     _overlay?.classList.remove('open');
   }
 
   /* ---------- Load all settings into UI ---------- */
   async function loadSettingsToUI() {
+    // Apply localStorage values first for responsiveness
+    applySettingsToUI();
+
+    // Then sync from API
+    try {
+      const result = await HALQ.apiGet('/settings');
+      if (result.ok && result.data) {
+        const settings = Array.isArray(result.data) ? result.data : [];
+        settings.forEach(s => {
+          if (!s || !s.key) return;
+          switch (s.key) {
+            case 'theme':
+              if (s.value) localStorage.setItem('halq_theme', s.value);
+              break;
+            case 'appFont':
+              if (s.value) localStorage.setItem('halq_font', s.value);
+              break;
+            case 'appFontSize':
+              if (s.value != null) localStorage.setItem('halq_fontSize', String(s.value));
+              break;
+            case 'layoutMode':
+              if (s.value) localStorage.setItem('halq_layout', s.value);
+              break;
+            case 'navStyle':
+              if (s.value) localStorage.setItem('halq_navStyle', s.value);
+              break;
+            case 'colorCodeWOs':
+            case 'autoSearch':
+            case 'showBottomBar':
+            case 'showMenuBar':
+              localStorage.setItem('halq_' + s.key, String(s.value));
+              break;
+            case 'bridge_config':
+              if (s.value) {
+                const cfg = typeof s.value === 'object' ? s.value : JSON.parse(s.value);
+                const excelInput = document.getElementById('bridge-excel-path');
+                const vaultInput = document.getElementById('bridge-vault-path');
+                const apiInput = document.getElementById('bridge-api-url');
+                if (excelInput) excelInput.value = cfg.excelPath || '';
+                if (vaultInput) vaultInput.value = cfg.vaultPath || '';
+                if (apiInput) apiInput.value = cfg.apiUrl || '';
+              }
+              break;
+          }
+        });
+        // Re-apply after API sync
+        applySettingsToUI();
+      }
+    } catch (e) {
+      console.log('[SETTINGS] API load failed, using localStorage');
+    }
+  }
+
+  function applySettingsToUI() {
     // Theme
     const theme = localStorage.getItem('halq_theme') || 'dark';
     document.body.setAttribute('data-theme', theme);
@@ -71,42 +370,27 @@
     document.documentElement.style.setProperty('--app-font-size', fontSize + 'px');
 
     // Layout
-    const layout = localStorage.getItem('halq_layout') || 'standard';
+    const layout = localStorage.getItem('halq_layout') || 'side';
+    document.querySelectorAll('.layout-option[data-layout]').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-layout') === layout);
+    });
     const pl = document.getElementById('panel-layout');
     if (pl) pl.className = 'panel-layout' + (layout === 'vertical' ? ' vertical' : '');
 
-    // Bridge config from API
-    try {
-      const result = await HALQ.apiGet('/settings');
-      if (result.ok && result.data) {
-        result.data.forEach(s => {
-          if (s.key === 'theme' && s.value) {
-            document.body.setAttribute('data-theme', s.value);
-            localStorage.setItem('halq_theme', s.value);
-          }
-          if (s.key === 'appFont' && s.value) {
-            localStorage.setItem('halq_font', s.value);
-          }
-          if (s.key === 'appFontSize' && s.value) {
-            localStorage.setItem('halq_fontSize', String(s.value));
-          }
-          if (s.key === 'layoutMode' && s.value) {
-            localStorage.setItem('halq_layout', s.value);
-          }
-          if (s.key === 'bridge_config' && s.value) {
-            const cfg = typeof s.value === 'object' ? s.value : JSON.parse(s.value);
-            const excelInput = document.getElementById('bridge-excel-path');
-            const vaultInput = document.getElementById('bridge-vault-path');
-            const apiInput = document.getElementById('bridge-api-url');
-            if (excelInput) excelInput.value = cfg.excelPath || '';
-            if (vaultInput) vaultInput.value = cfg.vaultPath || '';
-            if (apiInput) apiInput.value = cfg.apiUrl || '';
-          }
-        });
-      }
-    } catch (e) {
-      console.log('[SETTINGS] API load failed, using localStorage');
-    }
+    // Nav style
+    const navStyle = localStorage.getItem('halq_navStyle') || 'sidebar';
+    document.querySelectorAll('.layout-option[data-nav]').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-nav') === navStyle);
+    });
+    applyNavStyle(navStyle);
+
+    // Preferences
+    ['colorCodeWOs', 'autoSearch', 'showBottomBar', 'showMenuBar'].forEach(key => {
+      const val = localStorage.getItem('halq_' + key) === 'true';
+      const el = document.querySelector(`.toggle-switch[data-pref="${key}"]`);
+      if (el) el.classList.toggle('on', val);
+    });
+    applyBottomBar();
   }
 
   /* ---------- Theme ---------- */
@@ -125,37 +409,71 @@
     document.querySelectorAll('.font-option').forEach(el => {
       el.classList.toggle('active', el.getAttribute('data-font') === fontName);
     });
-    HALQ.app.setAppFont(fontName);
+    if (HALQ.app && HALQ.app.setAppFont) HALQ.app.setAppFont(fontName);
     HALQ.apiPost('/settings', { key: 'appFont', value: fontName }).catch(() => {});
   }
 
   /* ---------- Font Size ---------- */
   function setFontSize(size) {
-    size = parseInt(size);
+    size = parseInt(size, 10);
     localStorage.setItem('halq_fontSize', String(size));
-    HALQ.app.setAppFontSize(size);
+    document.documentElement.style.setProperty('--app-font-size', size + 'px');
+    if (HALQ.app && HALQ.app.setAppFontSize) HALQ.app.setAppFontSize(size);
     HALQ.apiPost('/settings', { key: 'appFontSize', value: size }).catch(() => {});
   }
 
   /* ---------- Layout ---------- */
   function setLayout(mode) {
     localStorage.setItem('halq_layout', mode);
+    document.querySelectorAll('.layout-option[data-layout]').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-layout') === mode);
+    });
     const pl = document.getElementById('panel-layout');
     if (pl) pl.className = 'panel-layout' + (mode === 'vertical' ? ' vertical' : '');
     HALQ.apiPost('/settings', { key: 'layoutMode', value: mode }).catch(() => {});
   }
 
+  /* ---------- Nav Style ---------- */
+  function setNavStyle(mode) {
+    localStorage.setItem('halq_navStyle', mode);
+    document.querySelectorAll('.layout-option[data-nav]').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-nav') === mode);
+    });
+    applyNavStyle(mode);
+    HALQ.apiPost('/settings', { key: 'navStyle', value: mode }).catch(() => {});
+  }
+
+  function applyNavStyle(mode) {
+    document.body.setAttribute('data-nav', mode);
+    const sidebar = document.getElementById('sidebar');
+    const topNav = document.getElementById('top-nav');
+    const sectionTabs = document.getElementById('section-tabs');
+    if (sidebar) sidebar.style.display = (mode === 'sidebar') ? '' : 'none';
+    if (topNav) topNav.style.display = (mode === 'topnav') ? '' : 'none';
+    if (sectionTabs) sectionTabs.style.display = (mode === 'tabs') ? '' : 'none';
+  }
+
   /* ---------- Toggle Preference ---------- */
-  async function togglePref(el, key) {
+  async function togglePref(key, el) {
     el.classList.toggle('on');
     const val = el.classList.contains('on');
     localStorage.setItem('halq_' + key, String(val));
     HALQ.apiPost('/settings', { key, value: val }).catch(() => {});
-    if (key === 'showBottomBar') {
-      const bb = document.querySelector('.bottombar');
-      if (bb) bb.style.display = val ? '' : 'none';
-    }
-    if (key === 'colorCodeWOs' && HALQ.wo.renderList) HALQ.wo.renderList();
+
+    if (key === 'showBottomBar') applyBottomBar();
+    if (key === 'showMenuBar') applyMenuBar();
+    if (key === 'colorCodeWOs' && HALQ.wo && HALQ.wo.renderList) HALQ.wo.renderList();
+  }
+
+  function applyBottomBar() {
+    const val = localStorage.getItem('halq_showBottomBar') === 'true';
+    const bb = document.querySelector('.bottombar');
+    if (bb) bb.style.display = val ? '' : 'none';
+  }
+
+  function applyMenuBar() {
+    const val = localStorage.getItem('halq_showMenuBar') === 'true';
+    document.body.classList.toggle('menu-bar-visible', val);
   }
 
   /* ---------- Bridge Config ---------- */
@@ -178,7 +496,7 @@
         showBridgeStatus('Save failed: ' + (res.error || 'Unknown'), 'error');
       }
     } catch (e) {
-      showBridgeStatus('Save failed: ' + e.message, 'error');
+      showBridgeStatus('Save failed: ' + (e && e.message ? e.message : 'Network error'), 'error');
     }
   }
 
@@ -186,33 +504,36 @@
     const el = document.getElementById('bridge-status');
     if (!el) return;
     el.textContent = msg;
-    el.className = 'bridge-status ' + type;
+    el.className = 'bridge-status ' + (type || '');
     setTimeout(() => { el.textContent = ''; el.className = 'bridge-status'; }, 3000);
-  }
-
-  /* ---------- Message Templates UI bridge ---------- */
-  function renderMsgTemplates() {
-    if (HALQ.msg.renderTemplates) HALQ.msg.renderTemplates();
-  }
-
-  function renderVendorDir() {
-    if (HALQ.msg.dirRenderTable) HALQ.msg.dirRenderTable();
   }
 
   /* ---------- Public API ---------- */
   HALQ.settings = {
     init,
-    open: openSettings,
-    close: closeSettings,
+    open,
+    close,
+    switchTab,
     setTheme,
+    setLayout,
+    setNavStyle,
     setFont,
     setFontSize,
-    setLayout,
     togglePref,
     saveBridgeConfig,
-    renderMsgTemplates,
-    renderVendorDir,
-    loadSettingsToUI
-  };
+    showBridgeStatus,
+    loadSettingsToUI,
 
+    // PIN (legacy compat)
+    pinKey,
+    savePin,
+    clearPin,
+    onPinKeyboardInput: (input) => {
+      const val = input.value.replace(/\D/g, '').slice(0, 4);
+      input.value = val;
+      _pinState.digits = val;
+      updatePinDots();
+      if (val.length === 4) checkPin();
+    }
+  };
 })();

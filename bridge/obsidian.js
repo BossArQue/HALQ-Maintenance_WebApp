@@ -1,8 +1,8 @@
 /* ============================================
    FILE: obsidian.js
    PATH: bridge/obsidian.js
-   VERSION: 2.2.1
-   DESCRIPTION: Obsidian vault sync — .md generation, tag folders, closed detection.
+   VERSION: 2.2.4
+   DESCRIPTION: Obsidian vault sync — reads from webapp API, writes .md files, tag folders, closed detection.
    ============================================ */
 
 const fs = require('fs');
@@ -26,56 +26,55 @@ function ensureFolders(vaultPath, tags) {
   if (!fs.existsSync(closedBase)) fs.mkdirSync(closedBase, { recursive: true });
 }
 
-function syncWOs(vaultPath, wos, tagsMap) {
-  // tagsMap: { wo_number: [category_names] }
+// =====================
+// OBSIDIAN SYNC — Webapp data as source
+// =====================
+
+async function syncWOs(vaultPath, wos, tagsMap) {
+  // wos: flat array from webapp API [{wo_number, property, unit, ..., is_active, category_ids}]
+  // tagsMap: { wo_number: [category_names] } resolved by Bridge
   const activeBase = path.join(vaultPath, ACTIVE_DIR);
   const closedBase = path.join(vaultPath, CLOSED_DIR);
 
-  // Build set of active WO numbers
-  const activeNumbers = new Set(wos.active.map(w => w.wo_number));
-  const closedNumbers = new Set(wos.closed.map(w => w.wo_number));
+  const active = (wos || []).filter(w => w.is_active);
+  const closed = (wos || []).filter(w => !w.is_active);
+
+  const activeNumbers = new Set(active.map(w => w.wo_number));
+  const closedNumbers = new Set(closed.map(w => w.wo_number));
+  const allKnown = new Set([...activeNumbers, ...closedNumbers]);
 
   // 1. Write/update active WOs in tag folders
-  wos.active.forEach(wo => {
+  active.forEach(wo => {
     const woTags = tagsMap[wo.wo_number] || [];
     const md = generateMarkdown(wo, woTags);
     const fileName = sanitizeFileName(wo.wo_number) + '.md';
 
-    // Write to each tag folder
     woTags.forEach(tagName => {
       const tagFolder = path.join(activeBase, sanitizeFolderName(tagName));
       if (!fs.existsSync(tagFolder)) fs.mkdirSync(tagFolder, { recursive: true });
       fs.writeFileSync(path.join(tagFolder, fileName), md, 'utf8');
     });
 
-    // If no tags, write to root of Active Monitoring
     if (woTags.length === 0) {
       fs.writeFileSync(path.join(activeBase, fileName), md, 'utf8');
     }
   });
 
-  // 2. Move closed WOs: delete from all active tag folders, write to Closed
-  wos.closed.forEach(wo => {
+  // 2. Move closed WOs
+  closed.forEach(wo => {
     const fileName = sanitizeFileName(wo.wo_number) + '.md';
-
-    // Remove from all active tag folders
     const tagFolders = fs.existsSync(activeBase) ? fs.readdirSync(activeBase) : [];
     tagFolders.forEach(folder => {
       const fPath = path.join(activeBase, folder, fileName);
       if (fs.existsSync(fPath)) fs.unlinkSync(fPath);
     });
-
-    // Also remove from root
     const rootPath = path.join(activeBase, fileName);
     if (fs.existsSync(rootPath)) fs.unlinkSync(rootPath);
-
-    // Write to Closed
     const closedMd = generateMarkdown(wo, [], true);
     fs.writeFileSync(path.join(closedBase, fileName), closedMd, 'utf8');
   });
 
-  // 3. Cleanup: WOs that disappeared from both active AND closed → remove from active folders
-  const allKnown = new Set([...activeNumbers, ...closedNumbers]);
+  // 3. Cleanup: remove orphaned files not in any active or closed list
   const tagFolders = fs.existsSync(activeBase) ? fs.readdirSync(activeBase) : [];
   tagFolders.forEach(folder => {
     const folderPath = path.join(activeBase, folder);

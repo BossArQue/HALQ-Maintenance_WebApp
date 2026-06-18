@@ -1,8 +1,9 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.2.3
-   DESCRIPTION: Main entry — config load, file watcher, sync loop, graceful shutdown.
+   VERSION: 2.2.4
+   DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown.
+                Excel → Webapp → Obsidian. Webapp is the source of truth for Obsidian sync.
    ============================================ */
 
 const chokidar = require('chokidar');
@@ -21,8 +22,8 @@ let _lastExcelPath = null;
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║  HALQ Bridge v2.2.3                                  ║');
-  console.log('║  Excel Watcher + Obsidian Vault Sync                 ║');
+  console.log('║  HALQ Bridge v2.2.4                                  ║');
+  console.log('║  Excel → Webapp → Obsidian Sync                      ║');
   console.log('╚══════════════════════════════════════════════════════╝');
 
   // Load config
@@ -76,7 +77,7 @@ async function main() {
   // Start watcher
   _startWatcher(currentCfg.excelPath);
 
-  // Start sync loop
+  // Start sync loop — polls webapp, NOT Excel
   _syncTimer = setInterval(() => _syncLoop(), POLL_INTERVAL_MS);
 
   _isRunning = true;
@@ -162,35 +163,9 @@ async function _processExcel(filePath) {
       return;
     }
 
-    // Resolve tag IDs to names for Obsidian sync
-    console.log('[PROCESS] Fetching tags for Obsidian sync...');
-    let resolvedTags = {};
-    try {
-      const wosRes = await api.apiGet('/wos');
-      const catsRes = await api.apiGet('/categories');
-
-      let catNames = {};
-      if (catsRes.ok && catsRes.data) {
-        catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
-      }
-
-      if (wosRes.ok && wosRes.data) {
-        wosRes.data.forEach(wo => {
-          const ids = (wo.category_ids || [])
-            .map(id => String(id))
-            .filter(Boolean);
-          resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
-        });
-      }
-      console.log('[PROCESS] Resolved tags for ' + Object.keys(resolvedTags).length + ' WOs');
-    } catch (e) {
-      console.log('[API] Could not fetch tags for Obsidian sync:', e.message);
-    }
-
-    // Sync to Obsidian
-    console.log('[PROCESS] Starting Obsidian sync...');
-    obsidian.syncWOs(cfg.vaultPath, parsed, resolvedTags);
-    console.log('[OBSIDIAN] Vault synced');
+    // 4. Fetch from Webapp (source of truth) and sync to Obsidian
+    console.log('[PROCESS] Fetching current WOs from Webapp...');
+    await _syncToObsidian(cfg.vaultPath);
 
   } catch (err) {
     console.error('[PROCESS] Error:', err.message);
@@ -200,38 +175,50 @@ async function _processExcel(filePath) {
   }
 }
 
-async function _syncLoop() {
-  if (!_lastExcelPath) return;
-  const cfg = config.get();
+async function _syncToObsidian(vaultPath) {
   try {
-    const parsed = parser.parseFile(_lastExcelPath);
+    const wosRes = await api.apiGet('/wos');
+    const catsRes = await api.apiGet('/categories');
 
-    // Fetch latest tags from HALQ
-    let resolvedTags = {};
-    try {
-      const wosRes = await api.apiGet('/wos');
-      const catsRes = await api.apiGet('/categories');
-
-      let catNames = {};
-      if (catsRes.ok && catsRes.data) {
-        catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
-      }
-
-      if (wosRes.ok && wosRes.data) {
-        wosRes.data.forEach(wo => {
-          const ids = (wo.category_ids || [])
-            .map(id => String(id))
-            .filter(Boolean);
-          resolvedTags[wo.wo_number] = ids.map(id => catNames[id] || id);
-        });
-      }
-    } catch (e) {
-      return; // API down, skip this cycle
+    if (!wosRes.ok || !wosRes.data) {
+      console.log('[SYNC] No WOs from webapp, skipping Obsidian sync');
+      return;
     }
 
-    obsidian.syncWOs(cfg.vaultPath, parsed, resolvedTags);
+    // Resolve category IDs → names
+    let catNames = {};
+    if (catsRes.ok && catsRes.data) {
+      catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
+    }
+
+    const wos = wosRes.data;
+    const resolvedTags = {};
+    wos.forEach(wo => {
+      const ids = (wo.category_ids || '[]');
+      let catIds;
+      try {
+        catIds = JSON.parse(ids);
+      } catch (e) {
+        catIds = [];
+      }
+      resolvedTags[wo.wo_number] = catIds.map(id => catNames[String(id)] || id).filter(Boolean);
+    });
+
+    console.log('[SYNC] Syncing ' + wos.length + ' WOs to Obsidian');
+    obsidian.syncWOs(vaultPath, wos, resolvedTags);
+    console.log('[OBSIDIAN] Vault synced');
   } catch (e) {
-    // Silent fail on poll — file may be locked
+    console.log('[SYNC] Obsidian sync failed:', e.message);
+  }
+}
+
+async function _syncLoop() {
+  const cfg = config.get();
+  try {
+    // Sync from webapp (source of truth) — NOT from Excel
+    await _syncToObsidian(cfg.vaultPath);
+  } catch (e) {
+    // Silent fail on poll — API may be down
   }
 }
 

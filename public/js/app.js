@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.1.4';
+const APP_VERSION = '2.2.3';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -100,38 +100,16 @@ function init() {
     el.addEventListener('click', () => switchView(el.dataset.view));
   });
 
-  // Settings button
+  // Settings button — delegate to settings.js if available
   const settingsBtn = document.getElementById('tb-nav-settings');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
-      const overlay = document.getElementById('settings-overlay');
-      if (overlay) overlay.classList.add('open');
+      if (HALQ.settings && HALQ.settings.open) HALQ.settings.open();
+      else {
+        const overlay = document.getElementById('settings-overlay');
+        if (overlay) overlay.classList.add('open');
+      }
     });
-  }
-
-  // Settings close
-  const settingsClose = document.getElementById('settings-close');
-  if (settingsClose) {
-    settingsClose.addEventListener('click', () => {
-      const overlay = document.getElementById('settings-overlay');
-      if (overlay) overlay.classList.remove('open');
-    });
-  }
-
-  // Theme options
-  document.querySelectorAll('.theme-option').forEach(el => {
-    el.addEventListener('click', () => setTheme(el.dataset.theme, el));
-  });
-
-  // Font options
-  document.querySelectorAll('.font-option').forEach(el => {
-    el.addEventListener('click', () => setAppFont(el.dataset.font, el));
-  });
-
-  // Font size slider
-  const fontSizeSlider = document.getElementById('font-size-slider');
-  if (fontSizeSlider) {
-    fontSizeSlider.addEventListener('input', e => setAppFontSize(e.target.value));
   }
 
   // Load categories from API

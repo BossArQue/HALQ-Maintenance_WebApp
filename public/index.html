@@ -1,7 +1,7 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.1.4
+   VERSION: 2.2.3
    DESCRIPTION: SPA shell — layout, modals, script loading order.
    ============================================ -->
 <!DOCTYPE html>
@@ -214,47 +214,223 @@
     </div>
   </div>
 
+  <!-- PIN LOCK OVERLAY -->
+  <div class="pin-overlay" id="pin-overlay" style="display:none">
+    <div class="pin-modal">
+      <div class="pin-title">🔒 Settings Locked</div>
+      <div class="pin-sub" id="pin-sub">Enter your PIN to continue</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="pin-error-msg" id="pin-error"></div>
+      <input class="pin-keyboard-input" id="pin-keyboard-input" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <div class="pin-keypad">
+        <div class="pin-key" data-key="1">1</div>
+        <div class="pin-key" data-key="2">2</div>
+        <div class="pin-key" data-key="3">3</div>
+        <div class="pin-key" data-key="4">4</div>
+        <div class="pin-key" data-key="5">5</div>
+        <div class="pin-key" data-key="6">6</div>
+        <div class="pin-key" data-key="7">7</div>
+        <div class="pin-key" data-key="8">8</div>
+        <div class="pin-key" data-key="9">9</div>
+        <div class="pin-key" data-key="back">⌫</div>
+        <div class="pin-key" data-key="0">0</div>
+        <div class="pin-key" data-key="cancel">✕</div>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS OVERLAY -->
   <div class="settings-overlay" id="settings-overlay">
     <div class="settings-panel">
       <div class="settings-header">
-        <div class="settings-title">Settings</div>
+        <div class="settings-title">⚙ HALQ Settings</div>
         <div class="settings-close" id="settings-close">✕</div>
       </div>
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="appearance">Appearance</button>
+        <button class="settings-tab" data-tab="preferences">Preferences</button>
+        <button class="settings-tab" data-tab="bridge">Bridge Config</button>
+        <button class="settings-tab" data-tab="messages">Messages</button>
+      </div>
       <div class="settings-body">
-        <div class="settings-section">
-          <div class="settings-section-title">Appearance</div>
-          <div class="theme-grid">
-            <div class="theme-option active" data-theme="dark">
-              <div class="theme-dot" style="background:#1c1c1c"></div> Dark
+        <div class="settings-tab-panel" data-panel="appearance">
+          <div class="settings-section">
+            <div class="settings-section-title">Theme</div>
+            <div class="theme-grid">
+              <div class="theme-option active" data-theme="dark">
+                <div class="theme-dot" style="background:#1c1c1c"></div> Dark
+              </div>
+              <div class="theme-option" data-theme="light">
+                <div class="theme-dot" style="background:#f0f2f8"></div> Light
+              </div>
+              <div class="theme-option" data-theme="midnight">
+                <div class="theme-dot" style="background:#050508"></div> Midnight
+              </div>
+              <div class="theme-option" data-theme="forest">
+                <div class="theme-dot" style="background:#0d1410"></div> Forest
+              </div>
             </div>
-            <div class="theme-option" data-theme="light">
-              <div class="theme-dot" style="background:#f0f2f8"></div> Light
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Layout</div>
+            <div class="layout-options">
+              <div class="layout-option active" data-layout="side">◫ Side by Side</div>
+              <div class="layout-option" data-layout="vertical">⊟ Stacked</div>
             </div>
-            <div class="theme-option" data-theme="midnight">
-              <div class="theme-dot" style="background:#050508"></div> Midnight
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Navigation Style</div>
+            <div class="layout-options">
+              <div class="layout-option active" data-nav="sidebar">⊞ Left Sidebar</div>
+              <div class="layout-option" data-nav="topnav">↕ Top Bar</div>
+              <div class="layout-option" data-nav="tabs">⊟ Tabs</div>
+              <div class="layout-option" data-nav="none">✕ Hidden</div>
             </div>
-            <div class="theme-option" data-theme="forest">
-              <div class="theme-dot" style="background:#0d1410"></div> Forest
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Font</div>
+            <div class="font-options">
+              <div class="font-option active" data-font="Inter">
+                Inter <span class="font-option-preview" style="font-family:'Inter',sans-serif">AaBbCc 123</span>
+              </div>
+              <div class="font-option" data-font="system-ui">
+                System <span class="font-option-preview" style="font-family:system-ui,sans-serif">AaBbCc 123</span>
+              </div>
+              <div class="font-option" data-font="Georgia">
+                Georgia <span class="font-option-preview" style="font-family:Georgia,serif">AaBbCc 123</span>
+              </div>
+              <div class="font-option" data-font="Roboto">
+                Roboto <span class="font-option-preview" style="font-family:Roboto,sans-serif">AaBbCc 123</span>
+              </div>
+              <div class="font-option" data-font="Segoe UI">
+                Segoe UI <span class="font-option-preview" style="font-family:'Segoe UI',sans-serif">AaBbCc 123</span>
+              </div>
+              <div class="font-option" data-font="Courier New">
+                Courier New <span class="font-option-preview" style="font-family:'Courier New',monospace">AaBbCc 123</span>
+              </div>
+            </div>
+            <div class="font-size-row">
+              <span style="font-size:11px;color:var(--text3)">Size</span>
+              <input type="range" class="font-size-slider" id="font-size-slider" min="11" max="18" step="1" value="13">
+              <span class="font-size-val" id="font-size-val">13px</span>
             </div>
           </div>
         </div>
-        <div class="settings-section">
-          <div class="settings-section-title">Font</div>
-          <div class="font-options">
-            <div class="font-option active" data-font="Inter">
-              Inter <span class="font-option-preview">Aa</span>
+        <div class="settings-tab-panel hidden" data-panel="preferences">
+          <div class="settings-section">
+            <div class="settings-section-title">Work Orders</div>
+            <div class="toggle-row">
+              <span>Color Code WOs by Age</span>
+              <div class="toggle-switch" id="pref-color-code" data-pref="colorCodeWOs"></div>
             </div>
-            <div class="font-option" data-font="system-ui">
-              System <span class="font-option-preview">Aa</span>
-            </div>
-            <div class="font-option" data-font="Georgia">
-              Georgia <span class="font-option-preview">Aa</span>
+            <div class="toggle-row">
+              <span>Auto-search on WO Click</span>
+              <div class="toggle-switch" id="pref-auto-search" data-pref="autoSearch"></div>
             </div>
           </div>
-          <div class="font-size-row">
-            <input type="range" class="font-size-slider" id="font-size-slider" min="11" max="18" value="13">
-            <span class="font-size-val" id="font-size-val">13px</span>
+          <div class="settings-section">
+            <div class="settings-section-title">Interface</div>
+            <div class="toggle-row">
+              <span>Show Bottom Bar</span>
+              <div class="toggle-switch" id="pref-bottom-bar" data-pref="showBottomBar"></div>
+            </div>
+            <div class="toggle-row">
+              <span>Show Menu Bar</span>
+              <div class="toggle-switch" id="pref-menu-bar" data-pref="showMenuBar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-tab-panel hidden" data-panel="bridge">
+          <div class="settings-section">
+            <div class="settings-section-title">Bridge Configuration</div>
+            <div class="bridge-row">
+              <label>Excel Path</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input class="settings-input" id="bridge-excel-path" type="text" placeholder="Path to WorkOrders.xlsm">
+                <input type="file" id="excel-file-input" accept=".xlsx,.xlsm" style="display:none">
+                <button class="btn btn-ghost" id="btn-browse-excel" style="flex-shrink:0">📂 Browse</button>
+              </div>
+              <div class="bridge-hint">Set the path to your Work Order Status Update .xlsm file.</div>
+            </div>
+            <div class="bridge-row">
+              <label>Vault Path</label>
+              <input class="settings-input" id="bridge-vault-path" type="text" placeholder="Path to Obsidian vault">
+              <div class="bridge-hint">Path to your Obsidian vault for note sync.</div>
+            </div>
+            <div class="bridge-row">
+              <label>API URL</label>
+              <input class="settings-input" id="bridge-api-url" type="url" placeholder="https://api.example.com">
+              <div class="bridge-hint">HALQ Bridge API endpoint.</div>
+            </div>
+            <button class="btn btn-primary" id="bridge-save-btn">💾 Save Config</button>
+            <div id="bridge-status"></div>
+          </div>
+        </div>
+        <div class="settings-tab-panel hidden" data-panel="messages">
+          <div class="settings-section">
+            <div class="settings-section-title">Tenant</div>
+            <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{res}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+            <div class="msg-section-label">📧 Email Templates</div>
+            <div class="msg-template-list" id="msg-list-tenant-email"></div>
+            <div class="msg-add-btn" id="btn-add-template-tenant-email">＋ Add Email Template</div>
+            <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+            <div class="msg-template-list" id="msg-list-tenant-text"></div>
+            <div class="msg-add-btn" id="btn-add-template-tenant-text">＋ Add Text Template</div>
+            <button class="btn btn-primary msg-save-btn" id="btn-save-templates-tenant">💾 Save Tenant Templates</button>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Vendor</div>
+            <div class="msg-token-hint">Tokens: <code>{wo}</code> <code>{prop}</code> <code>{vendor}</code> <code>{vendor_phone}</code> <code>{vendor_email}</code> <code>{vendor_details}</code></div>
+            <div class="msg-section-label">📧 Email Templates</div>
+            <div class="msg-template-list" id="msg-list-vendor-email"></div>
+            <div class="msg-add-btn" id="btn-add-template-vendor-email">＋ Add Email Template</div>
+            <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+            <div class="msg-template-list" id="msg-list-vendor-text"></div>
+            <div class="msg-add-btn" id="btn-add-template-vendor-text">＋ Add Text Template</div>
+            <button class="btn btn-primary msg-save-btn" id="btn-save-templates-vendor">💾 Save Vendor Templates</button>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Owner <span style="font-size:9px;color:var(--text3);font-weight:400;margin-left:6px">— Coming Soon</span></div>
+            <div class="msg-section-label">📧 Email Templates <span style="color:var(--text3);font-size:9px">(sent via Outlook)</span></div>
+            <div class="msg-template-list" id="msg-list-owner-email"></div>
+            <div class="msg-add-btn" id="btn-add-template-owner-email">＋ Add Email Template</div>
+            <div class="msg-section-label" style="margin-top:12px">💬 Text Templates</div>
+            <div class="msg-template-list" id="msg-list-owner-text"></div>
+            <div class="msg-add-btn" id="btn-add-template-owner-text">＋ Add Text Template</div>
+            <button class="btn btn-primary msg-save-btn" id="btn-save-templates-owner">💾 Save Owner Templates</button>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Vendor Directory</div>
+            <div class="settings-info">
+              Vendor contact details used in message tokens.<br>
+              Import from Excel to seed from your Data Base Vendor sheet.
+            </div>
+            <div class="settings-btn-row" style="margin-top:10px">
+              <button class="btn btn-primary" id="btn-vendor-import" style="font-size:11px;padding:5px 10px">📥 Import from Excel</button>
+              <button class="btn btn-ghost" id="btn-vendor-add" style="font-size:11px;padding:5px 10px">＋ Add Vendor</button>
+            </div>
+            <input id="vendor-dir-search" class="settings-input" type="text" placeholder="🔍 Search vendors..." style="margin-top:10px">
+            <div id="vendor-dir-status" class="creds-status"></div>
+            <div id="vendor-dir-table-wrap" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-top:8px">
+              <table id="vendor-dir-table" style="width:100%;border-collapse:collapse;font-size:11px">
+                <thead>
+                  <tr style="background:var(--surface2);position:sticky;top:0;z-index:1">
+                    <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Name</th>
+                    <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 1</th>
+                    <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Phone 2</th>
+                    <th style="padding:6px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Email</th>
+                    <th style="padding:6px 4px;border-bottom:1px solid var(--border);width:52px"></th>
+                  </tr>
+                </thead>
+                <tbody id="vendor-dir-tbody"></tbody>
+              </table>
+            </div>
+            <div id="vendor-dir-count" style="font-size:10px;color:var(--text3);margin-top:6px;text-align:right"></div>
           </div>
         </div>
       </div>
