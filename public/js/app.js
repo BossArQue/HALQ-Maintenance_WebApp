@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.2.3';
+const APP_VERSION = '2.3.0';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -94,6 +94,34 @@ function init() {
   // Version labels
   const verEls = document.querySelectorAll('#app-version-label, #bb-version');
   verEls.forEach(el => { if (el) el.textContent = 'v' + APP_VERSION; });
+
+  // ── Auth: fetch user, wire logout ──
+  (async function initAuth() {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.ok && data.data?.authenticated) {
+        const userDisplay = document.getElementById('user-display-name');
+        if (userDisplay) userDisplay.textContent = data.data.username || 'User';
+      } else {
+        // Not authenticated — middleware will redirect, but this catches edge cases
+        window.location.href = '/login.html';
+        return;
+      }
+    } catch (e) {
+      // If API is unreachable, let middleware handle it
+    }
+
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {}
+        window.location.href = '/login.html';
+      });
+    }
+  })();
 
   // Attach nav events (no inline onclick)
   document.querySelectorAll('[data-view]').forEach(el => {

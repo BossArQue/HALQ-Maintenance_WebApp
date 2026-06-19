@@ -1,7 +1,7 @@
 -- ============================================
 -- FILE: schema.sql
 -- PATH: db/schema.sql
--- VERSION: 2.0.0
+-- VERSION: 2.1.0
 -- DESCRIPTION: D1 database schema for HALQ v2 — all tables.
 -- ============================================
 
@@ -133,6 +133,16 @@ CREATE TABLE IF NOT EXISTS user_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT NOT NULL UNIQUE,
     value TEXT,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Users — single-user auth table
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

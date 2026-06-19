@@ -8,9 +8,36 @@
 // Phase 0: Open access — no auth required.
 // Phase 1: Add Cloudflare Access SSO JWT verification.
 
+const JWT_SECRET = 'HALQ_JWT_SECRET';
+
+function b64urlDecode(str) {
+  str += new Array(5 - str.length % 4).join('=');
+  str = str.replace(/\-/g, '+').replace(/\_/g, '/');
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+}
+
+async function verifyJWT(token, env) {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const secret = env[JWT_SECRET] || 'halq-default-change-me-immediately';
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+  const valid = await crypto.subtle.verify('HMAC', key, b64urlDecode(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+  if (!valid) return null;
+  try { return JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1]))); } catch (e) { return null; }
+}
+
 export async function onRequest(context) {
-  const { request, next } = context;
+  const { request, next, env } = context;
   const url = new URL(request.url);
+  const path = url.pathname;
+
+  // ── Public paths — no auth required ──
+  const publicPaths = ['/login.html', '/favicon.svg', '/assets/'];
+  const isPublic = publicPaths.some(p => path.startsWith(p)) || path.startsWith('/api/auth/');
+  if (isPublic) {
+    const response = await next();
+    return response;
+  }
 
   // CORS headers
   const corsHeaders = {
@@ -20,30 +47,33 @@ export async function onRequest(context) {
     'Access-Control-Max-Age': '86400',
   };
 
-  // Handle preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Rate limiting (simple in-memory per IP)
-  const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const now = Date.now();
-  const windowMs = 60000; // 1 minute
-  const maxRequests = 100;
+  // ── Auth check ──
+  const cookie = request.headers.get('Cookie') || '';
+  const match = cookie.match(/halq_auth=([^;]+)/);
+  let isAuthenticated = false;
 
-  // Note: In production, use KV for distributed rate limiting
-  // Phase 0: Skip rate limiting (no KV yet)
+  if (match) {
+    const payload = await verifyJWT(match[1], env);
+    isAuthenticated = payload && payload.sub;
+  }
 
-  // Auth stub — Phase 1 will verify Cloudflare Access JWT here
-  // const jwt = request.headers.get('CF-Access-Jwt-Assertion');
-  // if (!jwt) return new Response(JSON.stringify({ok: false, error: 'Unauthorized'}), {status: 401, headers: {'Content-Type': 'application/json'}});
+  if (!isAuthenticated) {
+    // API requests → 401 JSON
+    if (path.startsWith('/api/')) {
+      return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+    // Page requests → redirect to login
+    return Response.redirect(`${url.origin}/login.html`, 302);
+  }
 
   const response = await next();
-
-  // Add CORS to all responses
-  Object.entries(corsHeaders).forEach(([key, val]) => {
-    response.headers.set(key, val);
-  });
-
+  Object.entries(corsHeaders).forEach(([key, val]) => response.headers.set(key, val));
   return response;
 }
