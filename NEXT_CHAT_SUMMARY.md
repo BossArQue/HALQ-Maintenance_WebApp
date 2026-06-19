@@ -1,7 +1,7 @@
 # HALQ — Next Chat Summary
 
 > **Session:** 2026-06-17
-> **Version:** v2.2.3
+> **Version:** v2.2.6
 > **Status:** Settings Panel Rebuild ✅ Pushed to GitHub
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
@@ -68,8 +68,8 @@ The user picked these 4 items for the next session:
 
 | # | Question | Why It Matters | Status |
 |---|----------|---------------|--------|
-| Tag folder duplicates | WOs with multiple tags → one folder or all folders? | Determines obsidian.js logic | **ASK USER** |
-| Closed folder structure | `vault/WOs/Closed/` or `vault/WOs/Closed/yyyy-MM/`? | Determines obsidian.js logic | **ASK USER** |
+| Tag folder duplicates | WOs with multiple tags → one folder or all folders? | Determines obsidian.js logic | **RESOLVED: Primary tag only** |
+| Closed folder structure | `vault/WOs/Closed/` or `vault/WOs/Closed/yyyy-MM/`? | Determines obsidian.js logic | **RESOLVED: Monthly `YYYY-MM`** |
 | Bridge start/stop mechanism | Spawn `node bridge/index.js` from webapp? Webapp needs Node.js access. | May not work from browser. Alternative: Bridge exposes local HTTP endpoint, webapp calls it. | **ASK USER** |
 
 ---

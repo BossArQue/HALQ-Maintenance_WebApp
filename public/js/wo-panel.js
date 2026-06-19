@@ -1,8 +1,8 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.1.6
-   DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu.
+   VERSION: 2.2.6
+   DESCRIPTION: WO list, filtering, detail drawer, Excel upload (Active + Closed sheets), context menu.
                 All events via addEventListener (no inline onclick).
    ============================================ */
 
@@ -1114,90 +1114,38 @@
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
 
-      // Parse Active Monitoring sheet (or first sheet)
-      const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('active')) || workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      // Find sheet names
+      const activeSheet = workbook.SheetNames.find(n => /active|work queue/i.test(n));
+      const closedSheet = workbook.SheetNames.find(n => /closed/i.test(n));
+      const fallbackSheet = workbook.SheetNames[0];
 
-      if (!jsonData.length) {
-        if ($.uploadStatus) $.uploadStatus.textContent = '✗ No data found in sheet';
+      // Parse active WOs
+      const activeWos = activeSheet
+        ? _parseSheet(workbook.Sheets[activeSheet], true)
+        : _parseSheet(workbook.Sheets[fallbackSheet], true);
+
+      // Parse closed WOs (if sheet exists)
+      const closedWos = closedSheet
+        ? _parseSheet(workbook.Sheets[closedSheet], false)
+        : [];
+
+      const total = activeWos.length + closedWos.length;
+      if (!total) {
+        if ($.uploadStatus) $.uploadStatus.textContent = '✗ No work orders found in any sheet';
         S._uploadParsing = false;
         return;
       }
 
-      // Map columns — v2 uses full column names from AppFolio export
-      const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
-      const colMap = {};
-      headers.forEach((h, i) => {
-        if (h.includes('work order') || h === 'wo') colMap.wo = i;
-        if (h.includes('property') && !h.includes('name')) colMap.property = i;
-        if (h.includes('property name') || h === 'property_name') colMap.property_name = i;
-        if (h.includes('street') || h.includes('address')) colMap.property_street = i;
-        if (h.includes('unit') || h === 'unit number') colMap.unit = i;
-        if (h.includes('resident') || h.includes('tenant')) colMap.resident = i;
-        if (h.includes('created') || h.includes('date created')) colMap.created = i;
-        if (h.includes('priority')) colMap.priority = i;
-        if (h.includes('status')) colMap.status = i;
-        if (h.includes('vendor')) colMap.vendor = i;
-        if (h.includes('job') || h.includes('description') || h.includes('summary')) colMap.job = i;
-      });
+      if ($.uploadStatus) $.uploadStatus.textContent = `⏳ Uploading ${activeWos.length} active, ${closedWos.length} closed...`;
 
-      // If no headers matched, try legacy column positions (A-AD mapping)
-      if (Object.keys(colMap).length < 3) {
-        colMap.wo = 4;           // Column E
-        colMap.property = 28;    // Column AC
-        colMap.unit = 9;         // Column J
-        colMap.resident = 10;    // Column K
-        colMap.created = 11;     // Column L
-        colMap.priority = 1;     // Column B
-        colMap.status = 7;       // Column H
-        colMap.vendor = 8;       // Column I
-        colMap.job = 5;          // Column F
-      }
-
-      const wos = [];
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (!row[colMap.wo]) continue;
-
-        const woNum = String(row[colMap.wo]).trim();
-        if (!woNum) continue;
-
-        const createdStr = row[colMap.created] ? String(row[colMap.created]) : '';
-        let age = 0;
-        if (createdStr) {
-          try {
-            const created = new Date(createdStr);
-            age = Math.floor((Date.now() - created.getTime()) / 86400000);
-          } catch (_) { }
-        }
-
-        wos.push({
-          wo_number: woNum,
-          property: row[colMap.property] ? String(row[colMap.property]) : '',
-          property_name: row[colMap.property_name] ? String(row[colMap.property_name]) : '',
-          property_street: row[colMap.property] ? String(row[colMap.property]) : '',
-          unit: row[colMap.unit] ? String(row[colMap.unit]) : '',
-          primary_resident: row[colMap.resident] ? String(row[colMap.resident]) : '',
-          created_at: createdStr || new Date().toISOString().split('T')[0],
-          priority: row[colMap.priority] ? String(row[colMap.priority]) : '',
-          status: row[colMap.status] ? String(row[colMap.status]) : 'Waiting',
-          vendor: row[colMap.vendor] ? String(row[colMap.vendor]) : '',
-          job_description: row[colMap.job] ? String(row[colMap.job]) : '',
-          age: age
-        });
-      }
-
-      if ($.uploadStatus) $.uploadStatus.textContent = `⏳ Uploading ${wos.length} work orders...`;
-
-      // Send to API
-      const result = await HALQ.apiPost('/upload', { wos });
+      // Send to API — matches backend contract {wos, closedWos}
+      const result = await HALQ.apiPost('/upload', { wos: activeWos, closedWos: closedWos });
 
       if (result.ok) {
+        const c = result.counts || result;
         if ($.uploadStatus) {
-          $.uploadStatus.innerHTML = `✓ Uploaded: <strong>${result.inserted}</strong> new, <strong>${result.updated}</strong> updated, <strong>${result.autoClosed}</strong> closed`;
+          $.uploadStatus.innerHTML = `✓ Uploaded: <strong>${c.inserted || 0}</strong> new, <strong>${c.updated || 0}</strong> updated, <strong>${c.closed || 0}</strong> closed`;
         }
-        // Reload WOs from API
         await loadWOs();
         renderList();
         updateBottomBar();
@@ -1215,6 +1163,93 @@
       S._uploadParsing = false;
       if ($.uploadFileInput) $.uploadFileInput.value = '';
     }
+  }
+
+  // Parse a single sheet into WO objects
+  function _parseSheet(worksheet, isActive) {
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    if (!jsonData || jsonData.length < 2) return [];
+
+    // Detect duplicate header row
+    let headerRow = jsonData[0].map(h => String(h).trim());
+    let dataStart = 1;
+    if (jsonData.length > 1) {
+      const row1 = jsonData[1].map(h => String(h).trim());
+      const isDup = row1.length === headerRow.length && row1.every((v, i) => v === headerRow[i]);
+      if (isDup) dataStart = 2;
+    }
+
+    const headers = headerRow.map(h => h.toLowerCase());
+    const colMap = {};
+    headers.forEach((h, i) => {
+      if (h.includes('work order') || h === 'wo') colMap.wo = i;
+      if (h.includes('property') && !h.includes('name')) colMap.property = i;
+      if (h.includes('property name') || h === 'property_name') colMap.property_name = i;
+      if (h.includes('street') || h.includes('address')) colMap.property_street = i;
+      if (h.includes('unit') || h === 'unit number') colMap.unit = i;
+      if (h.includes('resident') || h.includes('tenant')) colMap.resident = i;
+      if (h.includes('created') || h.includes('date created')) colMap.created = i;
+      if (h.includes('priority')) colMap.priority = i;
+      if (h.includes('status')) colMap.status = i;
+      if (h.includes('vendor')) colMap.vendor = i;
+      if (h.includes('job') || h.includes('description') || h.includes('summary')) colMap.job = i;
+      if (h.includes('estimate')) colMap.estimate = i;
+      if (h.includes('approval')) colMap.approval = i;
+      if (h.includes('issue')) colMap.issue = i;
+    });
+
+    // Fallback to legacy column positions if headers don't match
+    if (Object.keys(colMap).length < 3) {
+      colMap.wo = 4;           // E
+      colMap.property = 28;    // AC
+      colMap.unit = 9;         // J
+      colMap.resident = 10;    // K
+      colMap.created = 11;     // L
+      colMap.priority = 1;     // B
+      colMap.status = 7;       // H
+      colMap.vendor = 8;       // I
+      colMap.job = 5;          // F
+      colMap.estimate = 14;    // O
+      colMap.approval = 15;    // P
+      colMap.issue = 31;       // AF
+    }
+
+    const wos = [];
+    for (let i = dataStart; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      const woNum = row[colMap.wo] ? String(row[colMap.wo]).trim() : '';
+      if (!woNum) continue;
+
+      const createdStr = row[colMap.created] ? String(row[colMap.created]) : '';
+      let age = 0;
+      if (createdStr) {
+        try {
+          const created = new Date(createdStr);
+          if (!isNaN(created.getTime())) age = Math.floor((Date.now() - created.getTime()) / 86400000);
+        } catch (_) {}
+      }
+
+      wos.push({
+        wo_number: woNum,
+        property: row[colMap.property] ? String(row[colMap.property]) : '',
+        property_name: row[colMap.property_name] ? String(row[colMap.property_name]) : '',
+        property_street: row[colMap.property_street] ? String(row[colMap.property_street]) : '',
+        unit: row[colMap.unit] ? String(row[colMap.unit]) : '',
+        primary_resident: row[colMap.resident] ? String(row[colMap.resident]) : '',
+        created_at: createdStr || new Date().toISOString().split('T')[0],
+        priority: row[colMap.priority] ? String(row[colMap.priority]) : '',
+        status: row[colMap.status] ? String(row[colMap.status]) : 'Waiting',
+        vendor: row[colMap.vendor] ? String(row[colMap.vendor]) : '',
+        job_description: row[colMap.job] ? String(row[colMap.job]) : '',
+        estimate_amount: row[colMap.estimate] ? String(row[colMap.estimate]) : '',
+        estimate_approval_status: row[colMap.approval] ? String(row[colMap.approval]) : '',
+        work_order_issue: row[colMap.issue] ? String(row[colMap.issue]) : '',
+        is_active: isActive ? 1 : 0,
+        age: age
+      });
+    }
+
+    return wos;
   }
 
 })();

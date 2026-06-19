@@ -1,8 +1,8 @@
 /* ============================================
    FILE: config.js
    PATH: bridge/config.js
-   VERSION: 2.2.2
-   DESCRIPTION: Config manager — loads from HALQ API, validates, CLI setup dialog.
+   VERSION: 2.2.5
+   DESCRIPTION: Config manager — loads from HALQ API, OneDrive auto-detect, validates, CLI setup.
    ============================================ */
 
 const fs = require('fs');
@@ -14,6 +14,57 @@ const CONFIG_KEY = 'bridge_config';
 const LOCAL_CONFIG_PATH = path.join(__dirname, '.bridge-config.json');
 
 let _config = null;
+
+// OneDrive auto-detect — looks for user's known folder structure
+function _autoDetectPaths() {
+  const home = process.env.USERPROFILE || process.env.HOME;
+  if (!home) return null;
+
+  // Common OneDrive paths
+  const oneDrivePaths = [
+    path.join(home, 'OneDrive'),
+    path.join(home, 'OneDrive - DEEH'), // if org-named
+    path.join('D:', 'OneDrive'),         // D: drive (user's setup)
+    path.join('C:', 'OneDrive'),
+  ];
+
+  let oneDriveRoot = null;
+  for (const p of oneDrivePaths) {
+    if (fs.existsSync(p)) {
+      oneDriveRoot = p;
+      break;
+    }
+  }
+  if (!oneDriveRoot) return null;
+
+  // Known paths from user's setup
+  const excelCandidates = [
+    path.join(oneDriveRoot, 'Talley Properties', 'Work Orders'),
+    path.join(oneDriveRoot, 'Work Orders'),
+    path.join(oneDriveRoot, 'DEEH', 'Work Orders'),
+  ];
+
+  const vaultCandidates = [
+    path.join(oneDriveRoot, 'DEEH', 'Obsidian', 'Talley Properties Work Order'),
+    path.join(oneDriveRoot, 'Obsidian', 'Talley Properties Work Order'),
+    path.join(oneDriveRoot, 'DEEH', 'Obsidian'),
+  ];
+
+  let excelPath = null;
+  for (const p of excelCandidates) {
+    if (fs.existsSync(p)) { excelPath = p; break; }
+  }
+
+  let vaultPath = null;
+  for (const p of vaultCandidates) {
+    if (fs.existsSync(p)) { vaultPath = p; break; }
+  }
+
+  if (excelPath || vaultPath) {
+    return { excelPath, vaultPath, detected: true };
+  }
+  return null;
+}
 
 async function load(apiBaseUrl) {
   // Ensure base URL is set BEFORE any API call
@@ -106,16 +157,34 @@ async function promptSetup() {
   console.log('║  HALQ Bridge — First-Time Setup                    ║');
   console.log('╚══════════════════════════════════════════════════════╝\n');
 
+  // Auto-detect OneDrive paths
+  const detected = _autoDetectPaths();
+  let defaultExcel = '';
+  let defaultVault = '';
+
+  if (detected) {
+    console.log('🔍 OneDrive folders auto-detected:');
+    if (detected.excelPath) {
+      console.log('   Excel:    ' + detected.excelPath);
+      defaultExcel = detected.excelPath;
+    }
+    if (detected.vaultPath) {
+      console.log('   Vault:    ' + detected.vaultPath);
+      defaultVault = detected.vaultPath;
+    }
+    console.log('');
+  }
+
   const apiUrl = await ask('HALQ API base URL [http://localhost:8787]: ');
-  const excelPath = await ask('Excel watch folder path: ');
-  const vaultPath = await ask('Obsidian vault path: ');
+  const excelPath = await ask(`Excel watch folder path [${defaultExcel}]: `);
+  const vaultPath = await ask(`Obsidian vault path [${defaultVault}]: `);
 
   rl.close();
 
   const cfg = {
     apiBaseUrl: apiUrl.trim() || 'http://localhost:8787',
-    excelPath: excelPath.trim(),
-    vaultPath: vaultPath.trim()
+    excelPath: excelPath.trim() || defaultExcel,
+    vaultPath: vaultPath.trim() || defaultVault
   };
 
   const errors = validate(cfg);
