@@ -1,14 +1,12 @@
 /* ============================================
    FILE: _middleware.js
    PATH: functions/_middleware.js
-   VERSION: 2.0.0
-   DESCRIPTION: Auth middleware stub, CORS, rate limiting for HALQ v2 API.
+   VERSION: 2.3.1
+   DESCRIPTION: Auth middleware for HALQ v2 — protects routes, redirects unauthenticated users to login.
    ============================================ */
 
-// Phase 0: Open access — no auth required.
-// Phase 1: Add Cloudflare Access SSO JWT verification.
-
-const JWT_SECRET = 'HALQ_JWT_SECRET';
+// NOTE: This is a Pages project. Secrets must be set via:
+//   wrangler pages secret put HALQ_JWT_SECRET
 
 function b64urlDecode(str) {
   str += new Array(5 - str.length % 4).join('=');
@@ -32,11 +30,22 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // ── Public paths — no auth required ──
-  const publicPaths = ['/login.html', '/favicon.svg', '/assets/'];
-  const isPublic = publicPaths.some(p => path.startsWith(p)) || path.startsWith('/api/auth/');
+  // ── Debug header (helps troubleshoot redirect loops) ──
+  const debug = { path, hasSecret: !!env.HALQ_JWT_SECRET };
+
+  // ── NEVER redirect if we're already at or near the login page ──
+  if (path === '/login.html' || path === '/login' || path.startsWith('/login.')) {
+    const response = await next();
+    response.headers.set('X-HALQ-Auth', 'public-login');
+    return response;
+  }
+
+  // ── Other public paths ──
+  const publicPaths = ['/favicon', '/assets/', '/api/auth/'];
+  const isPublic = publicPaths.some(p => path.startsWith(p));
   if (isPublic) {
     const response = await next();
+    response.headers.set('X-HALQ-Auth', 'public');
     return response;
   }
 
@@ -59,22 +68,27 @@ export async function onRequest(context) {
 
   if (match) {
     const payload = await verifyJWT(match[1], env);
-    isAuthenticated = payload && payload.sub;
+    isAuthenticated = !!(payload && payload.sub);
   }
+
+  debug.authenticated = isAuthenticated;
 
   if (!isAuthenticated) {
     // API requests → 401 JSON
     if (path.startsWith('/api/')) {
       return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders, 'X-HALQ-Auth': JSON.stringify(debug) }
       });
     }
     // Page requests → redirect to login
-    return Response.redirect(`${url.origin}/login.html`, 302);
+    const response = Response.redirect(`${url.origin}/login.html`, 302);
+    response.headers.set('X-HALQ-Auth', JSON.stringify(debug));
+    return response;
   }
 
   const response = await next();
   Object.entries(corsHeaders).forEach(([key, val]) => response.headers.set(key, val));
+  response.headers.set('X-HALQ-Auth', JSON.stringify(debug));
   return response;
 }
