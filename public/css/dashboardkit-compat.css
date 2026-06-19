@@ -3,14 +3,16 @@
    PATH: public/css/dashboardkit-compat.css
    VERSION: 2.3.0
    DESCRIPTION: Bridges HALQ's existing components with DashboardKit layout.
+                Light content area + dark sidebar (classic admin dashboard look).
    ============================================ */
 
-/* ── Make pc-content fill available space and host HALQ panels ── */
+/* ── Layout: pc-container fills space with sidebar margin ── */
 .pc-container {
   min-height: calc(100vh - 70px);
   padding: 0;
   margin-left: 280px; /* sidebar width */
   transition: margin-left 0.15s ease;
+  background: #f0f2f8; /* light gray background matching template */
 }
 
 .pc-sidebar.collapsed + .pc-header + .pc-container {
@@ -22,6 +24,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #f0f2f8;
 }
 
 /* HALQ panel wrapper inside DashboardKit content */
@@ -32,7 +35,7 @@
   overflow: hidden;
 }
 
-/* ── Ensure HALQ panel-layout fills the space ── */
+/* ── HALQ panels fill the content area ── */
 .panel-layout {
   flex: 1;
   height: 100%;
@@ -45,56 +48,27 @@
   overflow: hidden;
 }
 
-/* ── Dark theme overrides for DashboardKit ── */
-body[data-pc-header-theme="dark"] .pc-header {
-  background: #1c232f;
-  border-bottom: 1px solid #2a3d50;
-  color: #ced4dc;
+/* ── Light content area with HALQ theme vars ── */
+body[data-theme="light"] .pc-content {
+  background: var(--bg, #f0f2f8);
+  color: var(--text, #1a1a2e);
 }
 
-body[data-pc-header-theme="dark"] .pc-header .pc-head-link {
-  color: #ced4dc;
+body[data-theme="dark"] .pc-content {
+  background: var(--bg, #0f0f12);
+  color: var(--text, #e8e8ec);
 }
 
-body[data-pc-header-theme="dark"] .pc-header .pc-head-link:hover {
-  background: rgba(255,255,255,0.05);
-  color: #fff;
+/* Match HALQ accent to DashboardKit purple (preset-1) */
+body[data-theme="light"] {
+  --accent: #7267ef;
+  --accent2: #5b52bf;
 }
 
-body[data-pc-header-theme="dark"] .pc-header .dropdown-menu {
-  background: #1c232f;
-  border-color: #2a3d50;
-  color: #ced4dc;
+body[data-theme="dark"] {
+  --accent: #7267ef;
+  --accent2: #5b52bf;
 }
-
-body[data-pc-header-theme="dark"] .pc-header .dropdown-item {
-  color: #ced4dc;
-}
-
-body[data-pc-header-theme="dark"] .pc-header .dropdown-item:hover {
-  background: rgba(255,255,255,0.05);
-  color: #fff;
-}
-
-body[data-pc-header-theme="dark"] .pc-header .dropdown-header {
-  border-bottom-color: #2a3d50;
-  color: #fff;
-}
-
-body[data-pc-header-theme="dark"] .pc-header .dropdown-header h4 {
-  color: #fff;
-}
-
-/* Also support HALQ data-theme="dark" for consistency */
-body[data-theme="dark"] .pc-header {
-  background: #1c232f;
-  border-bottom: 1px solid #2a3d50;
-  color: #ced4dc;
-}
-
-/* ── Hide the legacy titlebar/sidebar rules since those elements are gone ── */
-/* (These elements no longer exist in the DOM, so their rules are harmless,
-   but we override any global body styles from app.css that might conflict.) */
 
 /* ── Fix HALQ bottombar inside DashboardKit layout ── */
 .bottombar {
@@ -115,20 +89,19 @@ body[data-theme="dark"] .pc-header {
 
 /* ── Fix HALQ search/input styles inside Bootstrap context ── */
 .wo-search {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  border: 1px solid var(--border, #d8dbe8);
+  background: var(--surface, #ffffff);
+  color: var(--text, #1a1a2e);
 }
 
 .wo-search:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(91, 156, 246, 0.2);
+  border-color: var(--accent, #7267ef);
+  box-shadow: 0 0 0 2px rgba(114, 103, 239, 0.2);
 }
 
 /* ── Ensure HALQ buttons keep their styling ── */
 .btn {
-  /* Prevent Bootstrap from overriding HALQ's .btn */
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
@@ -149,42 +122,40 @@ body[data-theme="dark"] .pc-header {
 }
 
 .btn-primary {
-  background: var(--accent) !important;
+  background: var(--accent, #7267ef) !important;
   color: #fff !important;
-  border-color: var(--accent2) !important;
+  border-color: var(--accent2, #5b52bf) !important;
 }
 
 .btn-primary:hover {
-  background: var(--accent2) !important;
+  background: var(--accent2, #5b52bf) !important;
   transform: translateY(-1px) !important;
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06)) !important;
   color: #fff !important;
 }
 
 .btn-ghost {
-  background: var(--surface2) !important;
-  color: var(--text2) !important;
-  border-color: var(--border2) !important;
+  background: var(--surface2, #f5f6fa) !important;
+  color: var(--text2, #4a4a6a) !important;
+  border-color: var(--border2, #c5c9d8) !important;
 }
 
 .btn-ghost:hover {
-  background: var(--surface3) !important;
-  color: var(--text) !important;
-  border-color: var(--border) !important;
+  background: var(--surface3, #ebedf5) !important;
+  color: var(--text, #1a1a2e) !important;
+  border-color: var(--border, #d8dbe8) !important;
 }
 
-/* Focus states */
 .btn:focus-visible,
 .btn:focus {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(91, 156, 246, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(114, 103, 239, 0.3) !important;
 }
 
-/* Prevent Bootstrap active/focus overrides */
 .btn-primary:active,
 .btn-primary:focus {
-  background: var(--accent2) !important;
-  border-color: var(--accent2) !important;
+  background: var(--accent2, #5b52bf) !important;
+  border-color: var(--accent2, #5b52bf) !important;
   color: #fff !important;
 }
 
@@ -219,26 +190,15 @@ body[data-theme="dark"] .pc-header {
 
 /* ── Sidebar active nav item highlight ── */
 .pc-item.active .pc-link {
-  color: var(--bs-primary);
-  background: var(--pc-active-background);
+  color: var(--bs-primary, #7267ef);
+  background: var(--pc-active-background, rgba(114, 103, 239, 0.12));
 }
 
 .pc-item.active .pc-micon i {
-  color: var(--bs-primary);
+  color: var(--bs-primary, #7267ef);
 }
 
 /* ── Ensure HALQ detail drawer doesn't get clipped ── */
 .wo-detail {
   z-index: 100;
-}
-
-/* ── HALQ content color overrides inside DashboardKit ── */
-body[data-theme="dark"] .pc-content {
-  background: var(--bg);
-  color: var(--text);
-}
-
-body[data-theme="light"] .pc-content {
-  background: var(--bg);
-  color: var(--text);
 }
