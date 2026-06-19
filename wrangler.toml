@@ -1,7 +1,7 @@
 # ============================================
 # FILE: wrangler.toml
 # PATH: wrangler.toml
-# VERSION: 2.0.1
+# VERSION: 2.3.0
 # DESCRIPTION: Cloudflare Pages + Workers config for HALQ v2 webapp.
 # ============================================
 
@@ -11,6 +11,11 @@ compatibility_flags = ["nodejs_compat"]
 
 # Pages build output
 pages_build_output_dir = "public"
+
+# IMPORTANT: This is a Pages project. Use `wrangler pages` commands, not `wrangler` Workers commands.
+# To set secrets:  wrangler pages secret put HALQ_JWT_SECRET
+# To deploy:        git push (Pages auto-deploys from git)
+# To see logs:      wrangler pages deployment tail
 
 # D1 Database
 [[d1_databases]]

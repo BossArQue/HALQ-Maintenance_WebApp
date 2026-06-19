@@ -19,7 +19,8 @@ function b64urlDecode(str) {
 async function verifyJWT(token, env) {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
-  const secret = env[JWT_SECRET] || 'halq-default-change-me-immediately';
+  const secret = env.HALQ_JWT_SECRET;
+  if (!secret) return null;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const valid = await crypto.subtle.verify('HMAC', key, b64urlDecode(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
   if (!valid) return null;

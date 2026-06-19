@@ -1,111 +1,130 @@
 # HALQ — Next Chat Summary
 
 > **Session:** 2026-06-17
-> **Version:** v2.2.6
-> **Status:** Tag Folders + Closed Detection + Manual Upload Enhancement ✅ Pushed to GitHub
+> **Version:** v2.3.0
+> **Status:** Login + Auth System ✅ Pushed to GitHub
 > **Ponytail:** ON (default full) — Laziest solution that works. See Rule 8 in HALQ_ONE_TRUE_FILE.md.
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
-> **Commit:** `bd451b6`
-> **Deploy:** Git pushed — Cloudflare Pages auto-deploys on push. No `wrangler deploy` needed.
+> **Commit:** `1f08b8a`
+> **Deploy:** Cloudflare Pages auto-deploys on push. `wrangler deploy` for Workers.
 
 ---
 
 ## What Was Done
 
-### v2.2.6 — Tag Folders + Closed Detection + Manual Upload
+### v2.3.0 — Login + Auth System
 
-**4 files changed, 270 insertions, 109 deletions**
+**6 files changed, 914 insertions, 21 deletions**
 
 | File | Change |
 |------|--------|
-| `bridge/obsidian.js` | v2.2.5 — Primary tag folders, monthly closed folders, YAML frontmatter, auto-removes old location on tag change |
-| `bridge/config.js` | v2.2.5 — OneDrive auto-detection for Excel + Obsidian vault paths |
-| `public/js/wo-panel.js` | v2.2.6 — Browser upload parses both "Active Monitoring" + "Closed" sheets, sends `{wos, closedWos}`, duplicate header detection, `_parseSheet()` helper |
-| `NEXT_CHAT_SUMMARY.md` | Updated for next session |
+| `public/login.html` | **NEW** — DashboardKit purple overlay login page. Username/password form, "Remember me" checkbox, setup form for first-time account creation, toast notifications, auto-redirect if already logged in. |
+| `functions/api/auth.js` | **NEW** — Single-user auth API. PBKDF2 password hashing (100k iterations, SHA-256), HMAC-SHA256 JWT, httpOnly cookie `halq_auth`. Endpoints: `POST /login`, `POST /logout`, `GET /me`, `POST /setup`. |
+| `functions/_middleware.js` | v2.0.0 — Route protection. Allows `/login.html`, `/assets/*`, `/api/auth/*`. Redirects unauthenticated page requests to `/login.html`. Returns 401 for unauthenticated API requests. |
+| `db/schema.sql` | v2.1.0 — Added `users` table: `id`, `username`, `password_hash`, `salt`, `created_at`. |
+| `public/js/app.js` | v2.3.0 — Auth init on load: fetches `/api/auth/me`, displays username in topbar, wires logout button. Version bump. |
+| `public/index.html` | v2.3.0 — Added user dropdown with logout button in topbar. |
 
 ---
 
-## What This Means
+## Auth Flow
 
-- **Bridge Obsidian sync now uses tag folders** — file goes to primary tag folder (first tag), all tags in YAML frontmatter for Obsidian search
-- **Closed WOs move to monthly folders** — `📁 Closed WOs/2026-06/` automatically
-- **OneDrive auto-detect** — Bridge setup shows auto-detected paths, just press Enter
-- **Manual upload now handles both sheets** — webapp drag-and-drop parses Active + Closed, sends correct payload to backend
+```
+1. First visit → /login.html
+   └─ If no user exists → "First time? Create account" link → setup form
+   └─ If user exists → sign in with username/password
+
+2. On login → POST /api/auth/login
+   └─ PBKDF2 verifies password against stored hash
+   └─ Issues JWT signed with HMAC-SHA256
+   └─ Sets httpOnly cookie `halq_auth` (30 days if "Remember me", 1 day otherwise)
+   └─ Redirects to /
+
+3. On every request → middleware checks cookie
+   └─ Valid JWT → proceed
+   └─ Invalid/missing → redirect to /login.html (pages) or 401 (APIs)
+
+4. Logout → POST /api/auth/logout → clears cookie → redirect to /login.html
+```
+
+---
+
+## ⚠️ Required Before Using
+
+### 1. Set JWT Secret
+```bash
+wrangler secret put HALQ_JWT_SECRET
+# Enter a strong random string (e.g., from openssl rand -base64 32)
+```
+
+### 2. Run D1 Migration
+```bash
+wrangler d1 execute halq-prod --file=db/schema.sql
+# Or your D1 database name
+```
+
+### 3. Deploy Workers
+```bash
+wrangler deploy
+```
+
+### 4. Create Your Account
+1. Visit `https://your-domain.com/login.html`
+2. Click "First time? Create account"
+3. Set username and password (min 6 chars)
+4. Sign in
 
 ---
 
 ## Outstanding Priorities (User-Selected)
 
-### 1. Login Page (Next Chat Priority)
-- Single user (you only), username/password
-- "Remember Me" checkbox (30-day JWT cookie)
-- Protects webapp from public access
-- Credentials stored in D1 with bcrypt hashes
+### 1. Test v2.3.0 (Next)
+- Run `wrangler deploy`
+- Test login flow: create account → login → logout
+- Verify middleware redirects unauthenticated users
+- Check that all existing features still work post-auth
 
 ### 2. Bridge Auto-Wizard (Deferred)
 - First-time GUI setup in browser
 - Auto-detects OneDrive paths (already done in config.js)
 - Shows: Excel path, Vault path, API URL → [Next] → [Done]
 
-### 3. Test v2.2.6 (Deploy First)
-- Run `wrangler deploy` on your PC
-- Test Bridge: run `node bridge/index.js`, verify tag folders created
-- Test Manual Upload: drag Excel to webapp, verify both active + closed show
-- Verify Obsidian vault shows WOs in correct folders
+### 3. Settings Panel Rebuild (From OTF Gap Analysis)
+- Legacy v1 had 4 tabs: Accounts, Appearance, Preferences, Messages
+- Current v2 only has Appearance (theme + font)
+- Messages tab (templates + vendor directory) is completely missing
 
 ---
 
-## UI Refresh — DashboardKit Integration (NEW)
+## UI Refresh — DashboardKit Integration (5 Phases)
 
-> **Source:** `Sample Template/` (DashboardKit Free Admin Template, MIT license)
-> **Decision:** Use Bootstrap variant. Cherry-pick assets into `public/`. Backend unchanged.
-
-### 10 Ideas Approved
-
-| # | Idea | Status |
-|---|------|--------|
-| 1 | **Command Center Dashboard** — stat cards, ApexCharts status pie, recent activity, Bridge sync indicator | ✅ Approved |
-| 2 | **Sidebar Command Structure** — Work Orders, Notes, Email, Obsidian, Settings, Upload tabs with icons | ✅ Approved |
-| 3 | **Rich Data Table** — sortable WO list with status badges, search, action buttons | ✅ Approved |
-| 4 | **Card Layout Detail** — split view: property info, timeline, notes/attachments | ✅ Approved |
-| 5 | **Live Obsidian Pane** — Bridge-synced markdown preview, backlinks, tags, live status | ✅ Approved (moonshot) |
-| 6 | **Drag-and-Drop Upload** — styled upload zone with preview table before confirm | ✅ Approved |
-| 7 | **Mobile Field View** — compact layout, touch cards, large status buttons | ✅ Approved |
-| 8 | **Themed Status Pages** — custom 404, empty states, maintenance mode using template illustrations | ✅ Approved |
-| 9 | **Notification Center** — topbar bell with dropdown: overdue alerts, new orders, Bridge events | ✅ Approved |
-| 10 | **User Customizer** — dark/light toggle, sidebar collapse, density, saved to `localStorage` | ✅ Approved |
-
-### Build Priority (5 Phases)
-
-| Phase | Goal | Deliverables |
-|-------|------|--------------|
-| **1. Foundation** | Shell looks professional | Extract CSS/JS/fonts, wire sidebar+topbar+footer, all existing pages inherit shell |
-| **2. Core Pages** | Daily workflow is beautiful | Rich WO table, Card detail view — same API endpoints, new render |
-| **3. Dashboard** | "Command Center" wow factor | Home dashboard with stats, charts, activity feed, Bridge sync card |
-| **4. Polish** | App feels complete | Status pages, upload page, notification center, user customizer |
-| **5. Advanced** | Push boundaries | Mobile compact view, live Obsidian pane (may need Bridge webhook) |
+| Phase | Goal | Status |
+|-------|------|--------|
+| 1. Foundation | Shell looks professional | In progress (login page done) |
+| 2. Core Pages | Rich WO table, card detail | Not started |
+| 3. Dashboard | Command Center stats + charts | Not started |
+| 4. Polish | Upload page, notifications, customizer | Not started |
+| 5. Advanced | Mobile view, live Obsidian pane | Not started |
 
 ---
 
-## Open Decisions to Resolve
+## Open Decisions
 
 | # | Question | Status |
 |---|----------|--------|
-| Login credentials storage | D1 `users` table with bcrypt? | **RESOLVED: D1 + bcrypt** |
-| "Remember Me" duration | 30 days? 7 days? | **PENDING: Confirm with user** |
-| Admin features | Only user management tab? | **PENDING: Single user, no roles needed** |
+| Auth method | **RESOLVED: Custom username/password with PBKDF2 + JWT** |
+| "Remember Me" duration | **RESOLVED: 30 days checked, 1 day unchecked** |
+| Admin features | **RESOLVED: Single user, no roles needed** |
 
 ---
 
 ## Files to Reference in Next Chat
 
-- **OTF:** `HALQ_ONE_TRUE_FILE.md` (updated with v2.2.6 changelog)
-- **Code Index:** `HALQ_CODE_INDEX.md` (updated with v2.2.5/v2.2.6 functions)
-- **Error Log:** `HALQ_ERROR_LOG.md`
-- **Login:** `public/login.html` (needs creation), `functions/api/auth.js` (needs creation), `db/schema.sql` (add users table)
-- **Bridge:** `bridge/obsidian.js`, `bridge/config.js`, `bridge/index.js`
-- **Webapp upload:** `public/js/wo-panel.js` v2.2.6
+- **OTF:** `HALQ_ONE_TRUE_FILE.md` (updated with v2.3.0 changelog)
+- **Login:** `public/login.html`, `functions/api/auth.js`, `functions/_middleware.js`
+- **Schema:** `db/schema.sql` (users table)
+- **App shell:** `public/index.html`, `public/js/app.js`
 - **UI Template:** `Sample Template/bootstrap/dist/` (CSS, layouts, fonts, JS plugins)
 
 ---
@@ -119,9 +138,9 @@ Your branch is up to date with 'origin/main'.
 nothing to commit, working tree clean
 ```
 
-**Commit:** `bd451b6` — pushed to `origin/main`
-**Deploy:** Cloudflare Pages auto-deploys on git push. Already live.
+**Commit:** `1f08b8a` — pushed to `origin/main`
+**Deploy:** Cloudflare Pages auto-deploys on git push. Workers need `wrangler deploy`.
 
 ---
 
-*End of summary. Start next chat with: "check OTF" or "build Phase 1".*
+*End of summary. Start next chat with: "test login" or "build Phase 2".*
