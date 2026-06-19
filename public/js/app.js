@@ -111,6 +111,16 @@ function init() {
       }
     });
   }
+  const sidebarSettingsBtn = document.getElementById('sidebar-nav-settings');
+  if (sidebarSettingsBtn) {
+    sidebarSettingsBtn.addEventListener('click', () => {
+      if (HALQ.settings && HALQ.settings.open) HALQ.settings.open();
+      else {
+        const overlay = document.getElementById('settings-overlay');
+        if (overlay) overlay.classList.add('open');
+      }
+    });
+  }
 
   // Load categories from API
   loadCategories().then(() => {
@@ -177,6 +187,9 @@ function switchView(view) {
     document.getElementById('nav-' + v)?.classList.toggle('active', v === view);
     document.getElementById('tb-nav-' + v)?.classList.toggle('active', v === view);
   });
+  // Home nav uses 'wo' view
+  const navHome = document.getElementById('nav-home');
+  if (navHome) navHome.classList.toggle('active', view === 'wo');
 
   if (isNotes && HALQ.notes.renderInPanel) HALQ.notes.renderInPanel();
   if (isEmail && HALQ.email.init) HALQ.email.init();

@@ -10,7 +10,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HALQ — Housing & Asset Logistics Queue</title>
-  <base target="_blank">
 
   <!-- [DashboardKit CSS] -->
   <link rel="stylesheet" href="/assets/dashboardkit/fonts/feather.css">
@@ -36,10 +35,10 @@
 <body data-theme="dark"
       data-pc-preset="preset-1"
       data-pc-sidebar-theme="dark"
-      data-pc-header-theme="light"
+      data-pc-header-theme="dark"
       data-pc-sidebar-caption="true"
       data-pc-direction="ltr"
-      data-pc-theme="light">
+      data-pc-theme="dark">
 
   <!-- [ Pre-loader ] start -->
   <div class="loader-bg">
@@ -59,6 +58,12 @@
       <div class="navbar-content">
         <ul class="pc-navbar">
           <li class="pc-item pc-caption"><label>Command</label></li>
+          <li class="pc-item active" id="nav-home" data-view="wo">
+            <a href="javascript:void(0)" class="pc-link">
+              <span class="pc-micon"><i class="ti ti-home"></i></span>
+              <span class="pc-mtext">Dashboard</span>
+            </a>
+          </li>
           <li class="pc-item" id="nav-wo" data-view="wo">
             <a href="javascript:void(0)" class="pc-link">
               <span class="pc-micon"><i class="ti ti-clipboard-list"></i></span>
@@ -98,7 +103,7 @@
           </li>
           <li class="pc-item pc-caption"><label>System</label></li>
           <li class="pc-item" id="nav-settings">
-            <a href="javascript:void(0)" class="pc-link" id="tb-nav-settings">
+            <a href="javascript:void(0)" class="pc-link" id="sidebar-nav-settings">
               <span class="pc-micon"><i class="ti ti-settings"></i></span>
               <span class="pc-mtext">Settings</span>
             </a>

@@ -46,43 +46,50 @@
 }
 
 /* ── Dark theme overrides for DashboardKit ── */
-body[data-theme="dark"] .pc-header {
+body[data-pc-header-theme="dark"] .pc-header {
   background: #1c232f;
   border-bottom: 1px solid #2a3d50;
   color: #ced4dc;
 }
 
-body[data-theme="dark"] .pc-header .pc-head-link {
+body[data-pc-header-theme="dark"] .pc-header .pc-head-link {
   color: #ced4dc;
 }
 
-body[data-theme="dark"] .pc-header .pc-head-link:hover {
+body[data-pc-header-theme="dark"] .pc-header .pc-head-link:hover {
   background: rgba(255,255,255,0.05);
   color: #fff;
 }
 
-body[data-theme="dark"] .pc-header .dropdown-menu {
+body[data-pc-header-theme="dark"] .pc-header .dropdown-menu {
   background: #1c232f;
   border-color: #2a3d50;
   color: #ced4dc;
 }
 
-body[data-theme="dark"] .pc-header .dropdown-item {
+body[data-pc-header-theme="dark"] .pc-header .dropdown-item {
   color: #ced4dc;
 }
 
-body[data-theme="dark"] .pc-header .dropdown-item:hover {
+body[data-pc-header-theme="dark"] .pc-header .dropdown-item:hover {
   background: rgba(255,255,255,0.05);
   color: #fff;
 }
 
-body[data-theme="dark"] .pc-header .dropdown-header {
+body[data-pc-header-theme="dark"] .pc-header .dropdown-header {
   border-bottom-color: #2a3d50;
   color: #fff;
 }
 
-body[data-theme="dark"] .pc-header .dropdown-header h4 {
+body[data-pc-header-theme="dark"] .pc-header .dropdown-header h4 {
   color: #fff;
+}
+
+/* Also support HALQ data-theme="dark" for consistency */
+body[data-theme="dark"] .pc-header {
+  background: #1c232f;
+  border-bottom: 1px solid #2a3d50;
+  color: #ced4dc;
 }
 
 /* ── Hide the legacy titlebar/sidebar rules since those elements are gone ── */
