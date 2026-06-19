@@ -2,85 +2,77 @@
 
 > **Session:** 2026-06-17
 > **Version:** v2.2.6
-> **Status:** Settings Panel Rebuild ✅ Pushed to GitHub
+> **Status:** Tag Folders + Closed Detection + Manual Upload Enhancement ✅ Pushed to GitHub
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
-> **Commit:** `984107c`
+> **Commit:** `bd451b6`
+> **Deploy:** Git pushed — run `wrangler deploy` on your PC
 
 ---
 
 ## What Was Done
 
-### v2.2.3 — Settings Panel Rebuild to Legacy Parity
+### v2.2.6 — Tag Folders + Closed Detection + Manual Upload
 
-**5 files changed, 663 insertions, 202 deletions**
+**4 files changed, 270 insertions, 109 deletions**
 
 | File | Change |
 |------|--------|
-| `public/index.html` | Replaced 46-line skeleton settings overlay with 220-line full tabbed panel (Appearance, Preferences, Bridge Config, Messages) + PIN lock overlay |
-| `public/js/settings.js` | Rebuilt from 2-function stub (218 lines) → 18-function controller (539 lines) |
-| `public/js/app.js` | Removed duplicate theme/font listeners; settings button delegates to `HALQ.settings.open()`; version bumped to 2.2.3 |
-| `bridge/index.js` | (pre-existing local change, included in commit) |
-| `bridge/obsidian.js` | (pre-existing local change, included in commit) |
-
-**All handlers use `addEventListener` — zero inline `onclick`.**
+| `bridge/obsidian.js` | v2.2.5 — Primary tag folders, monthly closed folders, YAML frontmatter, auto-removes old location on tag change |
+| `bridge/config.js` | v2.2.5 — OneDrive auto-detection for Excel + Obsidian vault paths |
+| `public/js/wo-panel.js` | v2.2.6 — Browser upload parses both "Active Monitoring" + "Closed" sheets, sends `{wos, closedWos}`, duplicate header detection, `_parseSheet()` helper |
+| `NEXT_CHAT_SUMMARY.md` | Updated for next session |
 
 ---
 
 ## What This Means
 
-- **Settings panel is now functional** — theme, layout, nav, font, preferences, bridge config, messages, vendor directory, PIN lock
-- **All settings persist** to `localStorage` + `POST /api/settings`
-- **Bridge config** (Excel path, Vault path, API URL) can be set via webapp UI instead of editing `.bridge-config.json`
-- **Message templates** and **vendor directory** can be managed from the Messages tab (delegates to existing `messages.js`)
-- **PIN lock** web-adapted: stores in localStorage + API, not Electron safeStorage
+- **Bridge Obsidian sync now uses tag folders** — file goes to primary tag folder (first tag), all tags in YAML frontmatter for Obsidian search
+- **Closed WOs move to monthly folders** — `📁 Closed WOs/2026-06/` automatically
+- **OneDrive auto-detect** — Bridge setup shows auto-detected paths, just press Enter
+- **Manual upload now handles both sheets** — webapp drag-and-drop parses Active + Closed, sends correct payload to backend
 
 ---
 
 ## Outstanding Priorities (User-Selected)
 
-The user picked these 4 items for the next session:
+### 1. Login Page (Next Chat Priority)
+- Single user (you only), username/password
+- "Remember Me" checkbox (30-day JWT cookie)
+- Protects webapp from public access
+- Credentials stored in D1 with bcrypt hashes
 
-### 1. Bridge Auto-Start via WebApp (Manual Start/Stop)
-- User wants a **webapp button** to start/stop the Bridge, not Windows auto-start registry
-- Need: Bridge status endpoint (`/api/bridge/ping`), webapp → Bridge start/stop commands
-- UI: Bridge status indicator in settings or topbar
+### 2. Bridge Auto-Wizard (Deferred)
+- First-time GUI setup in browser
+- Auto-detects OneDrive paths (already done in config.js)
+- Shows: Excel path, Vault path, API URL → [Next] → [Done]
 
-### 2. Tray Icon Cleanup on Crash
-- Bridge currently leaves tray icon on crash
-- Need: `SIGINT`/`SIGTERM`/`uncaughtException` handlers in `bridge/index.js`
-- Startup: detect stale lockfile/PID, clean up before starting
-
-### 3. Tag-Based Folder Sync
-- Obsidian vault currently puts all WOs in flat `vault/WOs/` folder
-- Should create subfolders per category: `vault/WOs/{categoryName}/`
-- Modify `bridge/obsidian.js` `syncWOs()` to use category folders
-- WOs with multiple tags → duplicate or primary folder (user decision needed)
-
-### 4. Closed Detection
-- Excel "Closed" sheet → D1 `is_active = 0` + Obsidian `vault/WOs/Closed/` folder
-- Bridge parser already handles closed sheet; backend `upload.js` marks `is_active = 0`
-- Need to verify: Bridge moves closed WOs to closed folder, webapp filters them out
+### 3. Test v2.2.6 (Deploy First)
+- Run `wrangler deploy` on your PC
+- Test Bridge: run `node bridge/index.js`, verify tag folders created
+- Test Manual Upload: drag Excel to webapp, verify both active + closed show
+- Verify Obsidian vault shows WOs in correct folders
 
 ---
 
 ## Open Decisions to Resolve
 
-| # | Question | Why It Matters | Status |
-|---|----------|---------------|--------|
-| Tag folder duplicates | WOs with multiple tags → one folder or all folders? | Determines obsidian.js logic | **RESOLVED: Primary tag only** |
-| Closed folder structure | `vault/WOs/Closed/` or `vault/WOs/Closed/yyyy-MM/`? | Determines obsidian.js logic | **RESOLVED: Monthly `YYYY-MM`** |
-| Bridge start/stop mechanism | Spawn `node bridge/index.js` from webapp? Webapp needs Node.js access. | May not work from browser. Alternative: Bridge exposes local HTTP endpoint, webapp calls it. | **ASK USER** |
+| # | Question | Status |
+|---|----------|--------|
+| Login credentials storage | D1 `users` table with bcrypt? | **RESOLVED: D1 + bcrypt** |
+| "Remember Me" duration | 30 days? 7 days? | **PENDING: Confirm with user** |
+| Admin features | Only user management tab? | **PENDING: Single user, no roles needed** |
 
 ---
 
 ## Files to Reference in Next Chat
 
-- **OTF:** `HALQ_ONE_TRUE_FILE.md` (updated with v2.2.3 changelog + new Next Actions)
-- **Code Index:** `HALQ_CODE_INDEX.md` (updated with 18 settings.js functions)
-- **Error Log:** `HALQ_ERROR_LOG.md` (updated with new entries + fixed #8)
-- **Bridge config:** `bridge/index.js`, `bridge/obsidian.js`, `bridge/tray.js`
-- **Webapp settings:** `public/js/settings.js`, `public/index.html`
+- **OTF:** `HALQ_ONE_TRUE_FILE.md` (updated with v2.2.6 changelog)
+- **Code Index:** `HALQ_CODE_INDEX.md` (updated with v2.2.5/v2.2.6 functions)
+- **Error Log:** `HALQ_ERROR_LOG.md`
+- **Login:** `public/login.html` (needs creation), `functions/api/auth.js` (needs creation), `db/schema.sql` (add users table)
+- **Bridge:** `bridge/obsidian.js`, `bridge/config.js`, `bridge/index.js`
+- **Webapp upload:** `public/js/wo-panel.js` v2.2.6
 
 ---
 
@@ -93,8 +85,9 @@ Your branch is up to date with 'origin/main'.
 nothing to commit, working tree clean
 ```
 
-**Commit:** `984107c` — pushed to `origin/main`
+**Commit:** `bd451b6` — pushed to `origin/main`
+**Deploy:** Run `wrangler deploy` on your PC to go live
 
 ---
 
-*End of summary. Start next chat with: "check OTF" or pick a priority from the list above.*
+*End of summary. Start next chat with: "check OTF" or "build login page".*
