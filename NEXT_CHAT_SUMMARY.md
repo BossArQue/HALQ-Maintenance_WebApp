@@ -3,6 +3,7 @@
 > **Session:** 2026-06-17
 > **Version:** v2.2.6
 > **Status:** Tag Folders + Closed Detection + Manual Upload Enhancement ✅ Pushed to GitHub
+> **Ponytail:** ON (default full) — Laziest solution that works. See Rule 8 in HALQ_ONE_TRUE_FILE.md.
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
 > **Commit:** `bd451b6`
@@ -55,6 +56,38 @@
 
 ---
 
+## UI Refresh — DashboardKit Integration (NEW)
+
+> **Source:** `Sample Template/` (DashboardKit Free Admin Template, MIT license)
+> **Decision:** Use Bootstrap variant. Cherry-pick assets into `public/`. Backend unchanged.
+
+### 10 Ideas Approved
+
+| # | Idea | Status |
+|---|------|--------|
+| 1 | **Command Center Dashboard** — stat cards, ApexCharts status pie, recent activity, Bridge sync indicator | ✅ Approved |
+| 2 | **Sidebar Command Structure** — Work Orders, Notes, Email, Obsidian, Settings, Upload tabs with icons | ✅ Approved |
+| 3 | **Rich Data Table** — sortable WO list with status badges, search, action buttons | ✅ Approved |
+| 4 | **Card Layout Detail** — split view: property info, timeline, notes/attachments | ✅ Approved |
+| 5 | **Live Obsidian Pane** — Bridge-synced markdown preview, backlinks, tags, live status | ✅ Approved (moonshot) |
+| 6 | **Drag-and-Drop Upload** — styled upload zone with preview table before confirm | ✅ Approved |
+| 7 | **Mobile Field View** — compact layout, touch cards, large status buttons | ✅ Approved |
+| 8 | **Themed Status Pages** — custom 404, empty states, maintenance mode using template illustrations | ✅ Approved |
+| 9 | **Notification Center** — topbar bell with dropdown: overdue alerts, new orders, Bridge events | ✅ Approved |
+| 10 | **User Customizer** — dark/light toggle, sidebar collapse, density, saved to `localStorage` | ✅ Approved |
+
+### Build Priority (5 Phases)
+
+| Phase | Goal | Deliverables |
+|-------|------|--------------|
+| **1. Foundation** | Shell looks professional | Extract CSS/JS/fonts, wire sidebar+topbar+footer, all existing pages inherit shell |
+| **2. Core Pages** | Daily workflow is beautiful | Rich WO table, Card detail view — same API endpoints, new render |
+| **3. Dashboard** | "Command Center" wow factor | Home dashboard with stats, charts, activity feed, Bridge sync card |
+| **4. Polish** | App feels complete | Status pages, upload page, notification center, user customizer |
+| **5. Advanced** | Push boundaries | Mobile compact view, live Obsidian pane (may need Bridge webhook) |
+
+---
+
 ## Open Decisions to Resolve
 
 | # | Question | Status |
@@ -73,6 +106,7 @@
 - **Login:** `public/login.html` (needs creation), `functions/api/auth.js` (needs creation), `db/schema.sql` (add users table)
 - **Bridge:** `bridge/obsidian.js`, `bridge/config.js`, `bridge/index.js`
 - **Webapp upload:** `public/js/wo-panel.js` v2.2.6
+- **UI Template:** `Sample Template/bootstrap/dist/` (CSS, layouts, fonts, JS plugins)
 
 ---
 
@@ -90,4 +124,4 @@ nothing to commit, working tree clean
 
 ---
 
-*End of summary. Start next chat with: "check OTF" or "build login page".*
+*End of summary. Start next chat with: "check OTF" or "build Phase 1".*

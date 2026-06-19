@@ -1,8 +1,8 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.2.3
-   DESCRIPTION: SPA shell — layout, modals, script loading order.
+   VERSION: 2.3.0
+   DESCRIPTION: SPA shell with DashboardKit layout.
    ============================================ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -10,72 +10,174 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HALQ — Housing & Asset Logistics Queue</title>
+  <base target="_blank">
+
+  <!-- [DashboardKit CSS] -->
+  <link rel="stylesheet" href="/assets/dashboardkit/fonts/feather.css">
+  <link rel="stylesheet" href="/assets/dashboardkit/fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="/assets/dashboardkit/fonts/material.css">
+  <link rel="stylesheet" href="/assets/dashboardkit/fonts/phosphor/duotone/style.css">
+  <link rel="stylesheet" href="/assets/dashboardkit/css/plugins/bootstrap.min.css">
+  <link rel="stylesheet" href="/assets/dashboardkit/css/style.css" id="main-style-link">
+  <link rel="stylesheet" href="/assets/dashboardkit/css/style-preset.css">
+
+  <!-- [HALQ CSS] -->
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/wo-panel.css">
   <link rel="stylesheet" href="/css/category-manager.css">
   <link rel="stylesheet" href="/css/context-menu.css">
   <link rel="stylesheet" href="/css/settings.css">
-  <base target="_blank">
+  <link rel="stylesheet" href="/css/dashboardkit-compat.css">
+
   <!-- SheetJS for browser-side Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
 </head>
-<body data-theme="dark">
 
-  <!-- TITLEBAR -->
-  <div class="titlebar">
-    <div class="tb-title">HALQ</div>
-    <div class="tb-sub" id="app-version-label">v2.1.4</div>
-    <div class="tb-controls">
-      <button class="tb-btn" id="tb-nav-wo" data-view="wo">📋 WO</button>
-      <button class="tb-btn" id="tb-nav-notes" data-view="notes">📝 Notes</button>
-      <button class="tb-btn" id="tb-nav-settings">⚙ Settings</button>
-    </div>
+<body data-theme="dark"
+      data-pc-preset="preset-1"
+      data-pc-sidebar-theme="dark"
+      data-pc-header-theme="light"
+      data-pc-sidebar-caption="true"
+      data-pc-direction="ltr"
+      data-pc-theme="light">
+
+  <!-- [ Pre-loader ] start -->
+  <div class="loader-bg">
+    <div class="pc-loader"><div class="loader-fill"></div></div>
   </div>
+  <span id="app-version-label" style="display:none"></span>
+  <!-- [ Pre-loader ] End -->
 
-  <!-- APP LAYOUT -->
-  <div class="app">
-    <!-- SIDEBAR -->
-    <div class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">H</div>
-        <div>
-          <div class="logo-text">HALQ</div>
-          <div class="logo-ver" id="bb-version">v2.1.4</div>
+  <!-- [ Sidebar Menu ] start -->
+  <nav class="pc-sidebar">
+    <div class="navbar-wrapper">
+      <div class="m-header">
+        <a href="/" class="b-brand text-primary">
+          <span class="logo-lg" style="font-size:18px;font-weight:700;letter-spacing:0.5px;color:#fff;">HALQ</span>
+        </a>
+      </div>
+      <div class="navbar-content">
+        <ul class="pc-navbar">
+          <li class="pc-item pc-caption"><label>Command</label></li>
+          <li class="pc-item" id="nav-wo" data-view="wo">
+            <a href="javascript:void(0)" class="pc-link">
+              <span class="pc-micon"><i class="ti ti-clipboard-list"></i></span>
+              <span class="pc-mtext">Work Orders</span>
+              <span class="pc-badge" id="nav-wo-badge"></span>
+            </a>
+          </li>
+          <li class="pc-item" id="nav-notes" data-view="notes">
+            <a href="javascript:void(0)" class="pc-link">
+              <span class="pc-micon"><i class="ti ti-notes"></i></span>
+              <span class="pc-mtext">Notes</span>
+            </a>
+          </li>
+          <li class="pc-item" id="nav-email" data-view="email">
+            <a href="javascript:void(0)" class="pc-link">
+              <span class="pc-micon"><i class="ti ti-mail"></i></span>
+              <span class="pc-mtext">Email</span>
+            </a>
+          </li>
+          <li class="pc-item pc-hasmenu" id="nav-obsidian">
+            <a href="javascript:void(0)" class="pc-link">
+              <span class="pc-micon"><i class="ti ti-brain"></i></span>
+              <span class="pc-mtext">Obsidian</span>
+              <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
+            </a>
+            <ul class="pc-submenu">
+              <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Sync Status</a></li>
+              <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Latest Files</a></li>
+              <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Bridge Health</a></li>
+            </ul>
+          </li>
+          <li class="pc-item" id="nav-upload">
+            <a href="javascript:void(0)" class="pc-link" onclick="HALQ.wo.uploadExcel?.()">
+              <span class="pc-micon"><i class="ti ti-upload"></i></span>
+              <span class="pc-mtext">Upload</span>
+            </a>
+          </li>
+          <li class="pc-item pc-caption"><label>System</label></li>
+          <li class="pc-item" id="nav-settings">
+            <a href="javascript:void(0)" class="pc-link" id="tb-nav-settings">
+              <span class="pc-micon"><i class="ti ti-settings"></i></span>
+              <span class="pc-mtext">Settings</span>
+            </a>
+          </li>
+        </ul>
+        <div class="card nav-action-card" style="display:none">
+          <div class="card-body">
+            <h5 class="text-white">HALQ</h5>
+            <p class="text-white text-opacity-75">v2.3.0</p>
+          </div>
         </div>
       </div>
-      <div class="sidebar-nav">
-        <div class="nav-section">
-          <div class="nav-label">Views</div>
-          <div class="nav-item active" id="nav-wo" data-view="wo">
-            <span class="nav-icon">📋</span> Work Orders
-            <span class="nav-badge" id="nav-wo-badge"></span>
-          </div>
-          <div class="nav-item" id="nav-notes" data-view="notes">
-            <span class="nav-icon">📝</span> Notes
-          </div>
-        </div>
-      </div>
-      <div class="sidebar-footer">
-        <div class="status-pill">
-          <div class="status-dot"></div>
-          <span id="clock">--:--:--</span>
-        </div>
+      <div class="navbar-content" style="margin-top:auto;padding:12px 20px;font-size:11px;color:var(--pc-sidebar-color);opacity:0.6;border-top:1px solid rgba(255,255,255,0.05);">
+        <span id="bb-version">v2.2.3</span>
       </div>
     </div>
+  </nav>
+  <!-- [ Sidebar Menu ] end -->
 
-    <!-- MAIN -->
-    <div class="main">
-      <div class="topbar">
-        <div class="topbar-title" id="topbar-title">Work Orders</div>
-        <div class="topbar-actions" id="topbar-actions">
-          <button class="btn btn-primary" id="btn-upload-excel">📤 Upload Excel</button>
-        </div>
+  <!-- [ Header Topbar ] start -->
+  <header class="pc-header">
+    <div class="header-wrapper">
+      <!-- [Mobile Media Block] start -->
+      <div class="me-auto pc-mob-drp">
+        <ul class="list-unstyled">
+          <li class="pc-h-item pc-sidebar-collapse">
+            <a href="#" class="pc-head-link ms-0" id="sidebar-hide"><i class="ti ti-menu-2"></i></a>
+          </li>
+          <li class="pc-h-item pc-sidebar-popup">
+            <a href="#" class="pc-head-link ms-0" id="mobile-collapse"><i class="ti ti-menu-2"></i></a>
+          </li>
+        </ul>
+      </div>
+      <!-- [Mobile Media Block end] -->
+
+      <!-- Page Title (injected by app.js) -->
+      <div class="me-auto d-none d-md-flex align-items-center" style="margin-left:12px;">
+        <h5 class="m-0" id="topbar-title">Work Orders</h5>
       </div>
 
-      <div class="content">
+      <div class="ms-auto">
+        <ul class="list-unstyled">
+          <!-- Titlebar nav buttons (legacy ID references for app.js) -->
+          <li class="pc-h-item d-none" id="tb-nav-wo" data-view="wo"></li>
+          <li class="pc-h-item d-none" id="tb-nav-notes" data-view="notes"></li>
+          <li class="pc-h-item d-none" id="tb-nav-email" data-view="email"></li>
+
+          <!-- Notifications -->
+          <li class="dropdown pc-h-item">
+            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+              <i class="ti ti-bell"></i>
+              <span class="badge bg-danger pc-h-badge" id="notif-badge" style="display:none">0</span>
+            </a>
+            <div class="dropdown-menu dropdown-notification dropdown-menu-end pc-h-dropdown">
+              <div class="dropdown-header d-flex align-items-center justify-content-between">
+                <h4 class="m-0">Notifications</h4>
+                <a href="#!" class="text-primary text-sm" onclick="document.getElementById('notif-list').innerHTML='<div class=\'text-center text-muted p-3\'>No new notifications</div>';document.getElementById('notif-badge').style.display='none'">Clear</a>
+              </div>
+              <div class="dropdown-body" id="notif-list">
+                <div class="text-center text-muted p-3">No new notifications</div>
+              </div>
+            </div>
+          </li>
+
+          <!-- Topbar Actions (injected by app.js) -->
+          <li class="pc-h-item" id="topbar-actions">
+            <button class="btn btn-primary btn-sm" id="btn-upload-excel">📤 Upload Excel</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <!-- [ Header Topbar ] end -->
+
+  <!-- [ Main Content ] start -->
+  <div class="pc-container">
+    <div class="pc-content">
+      <!-- HALQ Panels -->
+      <div class="halq-panels">
         <!-- WO VIEW -->
         <div id="panel-layout" class="panel-layout" style="display:flex">
           <div class="wo-panel">
@@ -177,9 +279,19 @@
             <div style="font-size:14px">Notes panel coming in Phase 2</div>
           </div>
         </div>
+
+        <!-- EMAIL VIEW (placeholder) -->
+        <div id="email-panel" class="view-panel" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);flex-direction:column;gap:12px">
+            <div style="font-size:48px">✉</div>
+            <div style="font-size:14px">Email panel coming in Phase 2</div>
+          </div>
+        </div>
       </div>
+      <!-- /HALQ Panels -->
     </div>
   </div>
+  <!-- [ Main Content ] end -->
 
   <!-- PORTAL DROPDOWNS (body level, escapes all clipping) -->
   <div class="followup-dropdown" id="followup-dropdown">
@@ -469,27 +581,43 @@
   </div>
 
   <!-- SCRIPTS -->
-  <!-- 1. Core app (registers namespace, utilities) -->
+  <!-- 1. DashboardKit -->
+  <script src="/assets/dashboardkit/js/plugins/popper.min.js"></script>
+  <script src="/assets/dashboardkit/js/plugins/simplebar.min.js"></script>
+  <script src="/assets/dashboardkit/js/plugins/bootstrap.min.js"></script>
+  <script src="/assets/dashboardkit/js/plugins/feather.min.js"></script>
+  <script src="/assets/dashboardkit/js/pcoded.js"></script>
+
+  <!-- 2. Core app (registers namespace, utilities) -->
   <script src="/js/app.js"></script>
 
-  <!-- 2. Feature panels (depend on HALQ.app) -->
+  <!-- 3. Feature panels (depend on HALQ.app) -->
   <script src="/js/wo-panel.js"></script>
   <script src="/js/af-panel.js"></script>
   <script src="/js/email-panel.js"></script>
   <script src="/js/notes-panel.js"></script>
 
-  <!-- 3. Shared services (used by panels + settings) -->
+  <!-- 4. Shared services (used by panels + settings) -->
   <script src="/js/messages.js"></script>
   <script src="/js/categories.js"></script>
 
-  <!-- 4. Settings (depends on everything above) -->
+  <!-- 5. Settings (depends on everything above) -->
   <script src="/js/settings.js"></script>
 
-  <!-- 5. Bootstrap -->
+  <!-- 6. Bootstrap -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       HALQ.app.init();
       HALQ.settings.init();
+      // Initialize feather icons
+      if (typeof feather !== 'undefined') feather.replace();
+      // DashboardKit layout init
+      layout_change('light');
+      layout_sidebar_change('dark');
+      change_box_container('false');
+      layout_caption_change('true');
+      layout_rtl_change('false');
+      preset_change('preset-1');
     });
   </script>
 </body>

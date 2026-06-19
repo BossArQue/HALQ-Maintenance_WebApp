@@ -1,0 +1,237 @@
+/* ============================================
+   FILE: dashboardkit-compat.css
+   PATH: public/css/dashboardkit-compat.css
+   VERSION: 2.3.0
+   DESCRIPTION: Bridges HALQ's existing components with DashboardKit layout.
+   ============================================ */
+
+/* ── Make pc-content fill available space and host HALQ panels ── */
+.pc-container {
+  min-height: calc(100vh - 70px);
+  padding: 0;
+  margin-left: 280px; /* sidebar width */
+  transition: margin-left 0.15s ease;
+}
+
+.pc-sidebar.collapsed + .pc-header + .pc-container {
+  margin-left: 70px;
+}
+
+.pc-content {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HALQ panel wrapper inside DashboardKit content */
+.halq-panels {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Ensure HALQ panel-layout fills the space ── */
+.panel-layout {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.view-panel {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Dark theme overrides for DashboardKit ── */
+body[data-theme="dark"] .pc-header {
+  background: #1c232f;
+  border-bottom: 1px solid #2a3d50;
+  color: #ced4dc;
+}
+
+body[data-theme="dark"] .pc-header .pc-head-link {
+  color: #ced4dc;
+}
+
+body[data-theme="dark"] .pc-header .pc-head-link:hover {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+body[data-theme="dark"] .pc-header .dropdown-menu {
+  background: #1c232f;
+  border-color: #2a3d50;
+  color: #ced4dc;
+}
+
+body[data-theme="dark"] .pc-header .dropdown-item {
+  color: #ced4dc;
+}
+
+body[data-theme="dark"] .pc-header .dropdown-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+body[data-theme="dark"] .pc-header .dropdown-header {
+  border-bottom-color: #2a3d50;
+  color: #fff;
+}
+
+body[data-theme="dark"] .pc-header .dropdown-header h4 {
+  color: #fff;
+}
+
+/* ── Hide the legacy titlebar/sidebar rules since those elements are gone ── */
+/* (These elements no longer exist in the DOM, so their rules are harmless,
+   but we override any global body styles from app.css that might conflict.) */
+
+/* ── Fix HALQ bottombar inside DashboardKit layout ── */
+.bottombar {
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+/* ── Ensure HALQ dropdowns and modals stay above DashboardKit ── */
+.followup-dropdown,
+.cat-dropdown,
+.wo-ctx-menu,
+.upload-overlay,
+.pin-overlay,
+.settings-overlay,
+.catmgr-overlay {
+  z-index: 9999;
+}
+
+/* ── Fix HALQ search/input styles inside Bootstrap context ── */
+.wo-search {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.wo-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91, 156, 246, 0.2);
+}
+
+/* ── Ensure HALQ buttons keep their styling ── */
+.btn {
+  /* Prevent Bootstrap from overriding HALQ's .btn */
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 6px 14px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  font-family: var(--app-font) !important;
+  white-space: nowrap !important;
+  border: 1px solid transparent !important;
+  line-height: 1.5 !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-primary {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent2) !important;
+}
+
+.btn-primary:hover {
+  background: var(--accent2) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+  color: #fff !important;
+}
+
+.btn-ghost {
+  background: var(--surface2) !important;
+  color: var(--text2) !important;
+  border-color: var(--border2) !important;
+}
+
+.btn-ghost:hover {
+  background: var(--surface3) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Focus states */
+.btn:focus-visible,
+.btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(91, 156, 246, 0.3) !important;
+}
+
+/* Prevent Bootstrap active/focus overrides */
+.btn-primary:active,
+.btn-primary:focus {
+  background: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+  color: #fff !important;
+}
+
+.btn-primary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── Responsive: mobile sidebar ── */
+@media (max-width: 1024px) {
+  .pc-container {
+    margin-left: 0;
+  }
+  .pc-sidebar {
+    transform: translateX(-100%);
+  }
+  .pc-sidebar.active {
+    transform: translateX(0);
+  }
+  .pc-sidebar.collapsed + .pc-header + .pc-container {
+    margin-left: 0;
+  }
+}
+
+/* ── Loader hide after init ── */
+.loader-bg {
+  z-index: 99999;
+}
+
+/* ── Sidebar active nav item highlight ── */
+.pc-item.active .pc-link {
+  color: var(--bs-primary);
+  background: var(--pc-active-background);
+}
+
+.pc-item.active .pc-micon i {
+  color: var(--bs-primary);
+}
+
+/* ── Ensure HALQ detail drawer doesn't get clipped ── */
+.wo-detail {
+  z-index: 100;
+}
+
+/* ── HALQ content color overrides inside DashboardKit ── */
+body[data-theme="dark"] .pc-content {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body[data-theme="light"] .pc-content {
+  background: var(--bg);
+  color: var(--text);
+}
