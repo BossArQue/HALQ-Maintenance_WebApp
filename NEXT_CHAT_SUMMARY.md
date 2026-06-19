@@ -6,7 +6,7 @@
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
 > **Commit:** `bd451b6`
-> **Deploy:** Git pushed — run `wrangler deploy` on your PC
+> **Deploy:** Git pushed — Cloudflare Pages auto-deploys on push. No `wrangler deploy` needed.
 
 ---
 
@@ -86,7 +86,7 @@ nothing to commit, working tree clean
 ```
 
 **Commit:** `bd451b6` — pushed to `origin/main`
-**Deploy:** Run `wrangler deploy` on your PC to go live
+**Deploy:** Cloudflare Pages auto-deploys on git push. Already live.
 
 ---
 
