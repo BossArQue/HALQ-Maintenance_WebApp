@@ -1,13 +1,9 @@
 /* ============================================
-   FILE: auth.js
-   PATH: functions/api/auth.js
-   VERSION: 2.0.0
-   DESCRIPTION: Single-user auth API — PBKDF2 password hashing, HMAC-SHA256 JWT, httpOnly cookie.
+   FILE: [[path]].js
+   PATH: functions/api/auth/[[path]].js
+   VERSION: 2.3.2
+   DESCRIPTION: Auth catch-all route — handles /api/auth/login, /api/auth/logout, /api/auth/me, /api/auth/setup.
    ============================================ */
-
-const JWT_SECRET = 'HALQ_JWT_SECRET'; // Change via wrangler secret
-
-// ── Helpers ──
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -68,12 +64,9 @@ async function pbkdf2Hash(password, salt) {
   return b64urlEncode(bits);
 }
 
-// ── Endpoints ──
-
 export async function onRequest(context) {
   const { request, env } = context;
-  const url = new URL(request.url);
-  const path = url.pathname;
+  const path = context.params.path || '';
 
   // CORS
   const cors = {
@@ -86,7 +79,7 @@ export async function onRequest(context) {
   }
 
   // ── POST /api/auth/login ──
-  if (path === '/api/auth/login' && request.method === 'POST') {
+  if (path === 'login' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { username, password, remember } = body;
@@ -109,8 +102,7 @@ export async function onRequest(context) {
         return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
       }
 
-      // Issue JWT
-      const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
+      const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
       const token = await signJWT({ sub: user.username, iat: Math.floor(Date.now() / 1000) }, env);
 
       const response = jsonResponse({ ok: true, data: { token, username: user.username } });
@@ -124,7 +116,7 @@ export async function onRequest(context) {
   }
 
   // ── POST /api/auth/logout ──
-  if (path === '/api/auth/logout' && request.method === 'POST') {
+  if (path === 'logout' && request.method === 'POST') {
     const response = jsonResponse({ ok: true, data: { message: 'Logged out' } });
     response.headers.set('Set-Cookie', 'halq_auth=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
     Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
@@ -132,7 +124,7 @@ export async function onRequest(context) {
   }
 
   // ── GET /api/auth/me ──
-  if (path === '/api/auth/me' && request.method === 'GET') {
+  if (path === 'me' && request.method === 'GET') {
     try {
       const cookie = request.headers.get('Cookie') || '';
       const match = cookie.match(/halq_auth=([^;]+)/);
@@ -147,8 +139,8 @@ export async function onRequest(context) {
     }
   }
 
-  // ── POST /api/auth/setup (one-time user creation) ──
-  if (path === '/api/auth/setup' && request.method === 'POST') {
+  // ── POST /api/auth/setup ──
+  if (path === 'setup' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { username, password } = body;
