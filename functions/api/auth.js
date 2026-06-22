@@ -138,5 +138,27 @@ export async function onRequest(context) {
     }
   }
 
+  // ── TEMPORARY DEBUG: GET /api/auth?action=debug ──
+  if (action === 'debug' && request.method === 'GET') {
+    try {
+      const db = env.DB;
+      const users = await db.prepare('SELECT username, created_at FROM users').all();
+      return jsonResponse({ ok: true, data: { users: users.results || [] } });
+    } catch (err) {
+      return jsonResponse({ ok: false, error: 'Debug failed' }, 500);
+    }
+  }
+
+  // ── TEMPORARY RESET: POST /api/auth?action=reset ──
+  if (action === 'reset' && request.method === 'POST') {
+    try {
+      const db = env.DB;
+      await db.prepare('DELETE FROM users').run();
+      return jsonResponse({ ok: true, data: { message: 'All users deleted. You can now create a new account.' } });
+    } catch (err) {
+      return jsonResponse({ ok: false, error: 'Reset failed' }, 500);
+    }
+  }
+
   return jsonResponse({ ok: false, error: 'Invalid action' }, 400);
 }
