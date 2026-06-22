@@ -1,7 +1,7 @@
 /* ============================================
    FILE: _middleware.js
    PATH: functions/_middleware.js
-   VERSION: 2.3.3
+   VERSION: 2.3.4
    DESCRIPTION: Auth middleware for HALQ v2 — protects routes, redirects unauthenticated users to login.
    ============================================ */
 
@@ -30,18 +30,14 @@ export async function onRequest(context) {
 
     // ── NEVER redirect if already at login ──
     if (path === '/login.html' || path === '/login' || path.startsWith('/login.')) {
-      const response = await next();
-      response.headers.set('X-HALQ-Auth', 'public-login');
-      return response;
+      return await next();
     }
 
     // ── Public paths ──
     const publicPaths = ['/favicon', '/assets/', '/api/auth', '/api/auth/'];
     const isPublic = publicPaths.some(p => path.startsWith(p));
     if (isPublic) {
-      const response = await next();
-      response.headers.set('X-HALQ-Auth', 'public');
-      return response;
+      return await next();
     }
 
     // CORS headers
@@ -60,33 +56,25 @@ export async function onRequest(context) {
     const cookie = request.headers.get('Cookie') || '';
     const match = cookie.match(/halq_auth=([^;]+)/);
     let isAuthenticated = false;
-    let authDebug = { hasCookie: !!match, hasSecret: !!env.HALQ_JWT_SECRET, path };
 
     if (match) {
       try {
         const payload = await verifyJWT(match[1], env);
         isAuthenticated = !!(payload && payload.sub);
-        authDebug.payload = payload;
-      } catch (e) {
-        authDebug.error = e.message;
-      }
+      } catch (e) {}
     }
 
     if (!isAuthenticated) {
       if (path.startsWith('/api/')) {
         return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
           status: 401,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders, 'X-HALQ-Auth-Debug': JSON.stringify(authDebug) }
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
       }
-      const response = Response.redirect(`${url.origin}/login.html`, 302);
-      response.headers.set('X-HALQ-Auth-Debug', JSON.stringify(authDebug));
-      return response;
+      return Response.redirect(`${url.origin}/login.html`, 302);
     }
 
-    const response = await next();
-    Object.entries(corsHeaders).forEach(([key, val]) => response.headers.set(key, val));
-    return response;
+    return await next();
   } catch (err) {
     return new Response(JSON.stringify({ ok: false, error: 'Middleware error: ' + err.message }), {
       status: 500,
