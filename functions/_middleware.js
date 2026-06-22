@@ -1,8 +1,8 @@
 /* ============================================
    FILE: _middleware.js
    PATH: functions/_middleware.js
-   VERSION: 2.3.4
-   DESCRIPTION: Auth middleware for HALQ v2 — protects routes, redirects unauthenticated users to login.
+   VERSION: 2.3.5
+   DESCRIPTION: Auth middleware — lightweight cookie check (no JWT verify), API handles full verification.
    ============================================ */
 
 function b64urlDecode(str) {
@@ -11,74 +11,62 @@ function b64urlDecode(str) {
   return Uint8Array.from(atob(str), c => c.charCodeAt(0));
 }
 
-async function verifyJWT(token, env) {
+function decodeJWT(token) {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
-  const secret = env.HALQ_JWT_SECRET;
-  if (!secret) return null;
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-  const valid = await crypto.subtle.verify('HMAC', key, b64urlDecode(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
-  if (!valid) return null;
-  try { return JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1]))); } catch (e) { return null; }
+  try {
+    return JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
+  } catch (e) { return null; }
 }
 
 export async function onRequest(context) {
-  try {
-    const { request, next, env } = context;
-    const url = new URL(request.url);
-    const path = url.pathname;
+  const { request, next } = context;
+  const url = new URL(request.url);
+  const path = url.pathname;
 
-    // ── NEVER redirect if already at login ──
-    if (path === '/login.html' || path === '/login' || path.startsWith('/login.')) {
-      return await next();
-    }
-
-    // ── Public paths ──
-    const publicPaths = ['/favicon', '/assets/', '/api/auth', '/api/auth/'];
-    const isPublic = publicPaths.some(p => path.startsWith(p));
-    if (isPublic) {
-      return await next();
-    }
-
-    // CORS headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    };
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    // ── Auth check ──
-    const cookie = request.headers.get('Cookie') || '';
-    const match = cookie.match(/halq_auth=([^;]+)/);
-    let isAuthenticated = false;
-
-    if (match) {
-      try {
-        const payload = await verifyJWT(match[1], env);
-        isAuthenticated = !!(payload && payload.sub);
-      } catch (e) {}
-    }
-
-    if (!isAuthenticated) {
-      if (path.startsWith('/api/')) {
-        return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
-      }
-      return Response.redirect(`${url.origin}/login.html`, 302);
-    }
-
+  // ── NEVER redirect if already at login ──
+  if (path === '/login.html' || path === '/login' || path.startsWith('/login.')) {
     return await next();
-  } catch (err) {
-    return new Response(JSON.stringify({ ok: false, error: 'Middleware error: ' + err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
   }
+
+  // ── Public paths ──
+  const publicPaths = ['/favicon', '/assets/', '/api/auth', '/api/auth/'];
+  const isPublic = publicPaths.some(p => path.startsWith(p));
+  if (isPublic) {
+    return await next();
+  }
+
+  // CORS headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // ── Auth check: cookie exists + looks like a JWT with 'sub' ──
+  const cookie = request.headers.get('Cookie') || '';
+  const match = cookie.match(/halq_auth=([^;]+)/);
+  let isAuthenticated = false;
+
+  if (match) {
+    const payload = decodeJWT(match[1]);
+    isAuthenticated = !!(payload && payload.sub);
+  }
+
+  if (!isAuthenticated) {
+    if (path.startsWith('/api/')) {
+      return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+    return Response.redirect(`${url.origin}/login.html`, 302);
+  }
+
+  return await next();
 }
