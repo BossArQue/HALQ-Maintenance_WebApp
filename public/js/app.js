@@ -98,7 +98,7 @@ function init() {
   // ── Auth: fetch user, wire logout ──
   (async function initAuth() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth?action=me');
       const data = await res.json();
       if (data.ok && data.data?.authenticated) {
         const userDisplay = document.getElementById('user-display-name');
@@ -116,7 +116,7 @@ function init() {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         try {
-          await fetch('/api/auth/logout', { method: 'POST' });
+          await fetch('/api/auth?action=logout', { method: 'POST' });
         } catch (e) {}
         window.location.href = '/login.html';
       });

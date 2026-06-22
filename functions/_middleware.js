@@ -35,7 +35,7 @@ export async function onRequest(context) {
   }
 
   // ── Public paths ──
-  const publicPaths = ['/favicon', '/assets/', '/api/auth/'];
+  const publicPaths = ['/favicon', '/assets/', '/api/auth', '/api/auth/'];
   const isPublic = publicPaths.some(p => path.startsWith(p));
   if (isPublic) {
     const response = await next();

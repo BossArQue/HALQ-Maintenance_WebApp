@@ -1,8 +1,8 @@
 /* ============================================
-   FILE: [[path]].js
-   PATH: functions/api/auth/[[path]].js
-   VERSION: 2.3.2
-   DESCRIPTION: Auth catch-all route — handles /api/auth/login, /api/auth/logout, /api/auth/me, /api/auth/setup.
+   FILE: auth.js
+   PATH: functions/api/auth.js
+   VERSION: 2.3.3
+   DESCRIPTION: Single auth endpoint — uses ?action= query param to route login/logout/me/setup.
    ============================================ */
 
 function jsonResponse(data, status = 200) {
@@ -25,7 +25,7 @@ function b64urlDecode(str) {
 
 async function getSecret(env) {
   const secret = env.HALQ_JWT_SECRET;
-  if (!secret) throw new Error('HALQ_JWT_SECRET not set. Run: wrangler pages secret put HALQ_JWT_SECRET');
+  if (!secret) throw new Error('HALQ_JWT_SECRET not set');
   return crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']
@@ -51,11 +51,7 @@ async function verifyJWT(token, env) {
   );
   const valid = await crypto.subtle.verify('HMAC', key, b64urlDecode(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
   if (!valid) return null;
-  try {
-    return JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
-  } catch (e) {
-    return null;
-  }
+  try { return JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1]))); } catch (e) { return null; }
 }
 
 async function pbkdf2Hash(password, salt) {
@@ -66,9 +62,9 @@ async function pbkdf2Hash(password, salt) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const path = context.params.path || '';
+  const url = new URL(request.url);
+  const action = url.searchParams.get('action') || '';
 
-  // CORS
   const cors = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -78,94 +74,69 @@ export async function onRequest(context) {
     return new Response(null, { status: 204, headers: cors });
   }
 
-  // ── POST /api/auth/login ──
-  if (path === 'login' && request.method === 'POST') {
+  // ── POST /api/auth?action=login ──
+  if (action === 'login' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { username, password, remember } = body;
-
-      if (!username || !password) {
-        return jsonResponse({ ok: false, error: 'Username and password required' }, 400);
-      }
-
+      if (!username || !password) return jsonResponse({ ok: false, error: 'Username and password required' }, 400);
       const db = env.DB;
       const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
-
-      if (!user) {
-        return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
-      }
-
+      if (!user) return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
       const salt = b64urlDecode(user.salt);
       const hash = await pbkdf2Hash(password, salt);
-
-      if (hash !== user.password_hash) {
-        return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
-      }
-
+      if (hash !== user.password_hash) return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
       const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
       const token = await signJWT({ sub: user.username, iat: Math.floor(Date.now() / 1000) }, env);
-
       const response = jsonResponse({ ok: true, data: { token, username: user.username } });
       response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}`);
       Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
       return response;
-
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Login failed' }, 500);
     }
   }
 
-  // ── POST /api/auth/logout ──
-  if (path === 'logout' && request.method === 'POST') {
+  // ── POST /api/auth?action=logout ──
+  if (action === 'logout' && request.method === 'POST') {
     const response = jsonResponse({ ok: true, data: { message: 'Logged out' } });
     response.headers.set('Set-Cookie', 'halq_auth=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
     Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
     return response;
   }
 
-  // ── GET /api/auth/me ──
-  if (path === 'me' && request.method === 'GET') {
+  // ── GET /api/auth?action=me ──
+  if (action === 'me' && request.method === 'GET') {
     try {
       const cookie = request.headers.get('Cookie') || '';
       const match = cookie.match(/halq_auth=([^;]+)/);
       if (!match) return jsonResponse({ ok: true, data: { authenticated: false } });
-
       const payload = await verifyJWT(match[1], env);
       if (!payload) return jsonResponse({ ok: true, data: { authenticated: false } });
-
       return jsonResponse({ ok: true, data: { authenticated: true, username: payload.sub } });
     } catch (err) {
       return jsonResponse({ ok: true, data: { authenticated: false } });
     }
   }
 
-  // ── POST /api/auth/setup ──
-  if (path === 'setup' && request.method === 'POST') {
+  // ── POST /api/auth?action=setup ──
+  if (action === 'setup' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { username, password } = body;
-
-      if (!username || !password) {
-        return jsonResponse({ ok: false, error: 'Username and password required' }, 400);
-      }
-
+      if (!username || !password) return jsonResponse({ ok: false, error: 'Username and password required' }, 400);
       const db = env.DB;
       const existing = await db.prepare('SELECT id FROM users LIMIT 1').first();
-      if (existing) {
-        return jsonResponse({ ok: false, error: 'User already exists. Use login.' }, 409);
-      }
-
+      if (existing) return jsonResponse({ ok: false, error: 'User already exists. Use login.' }, 409);
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const hash = await pbkdf2Hash(password, salt);
-
       await db.prepare('INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)')
         .bind(username, hash, b64urlEncode(salt)).run();
-
       return jsonResponse({ ok: true, data: { message: 'User created', username } });
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Setup failed' }, 500);
     }
   }
 
-  return jsonResponse({ ok: false, error: 'Not found' }, 404);
+  return jsonResponse({ ok: false, error: 'Invalid action' }, 400);
 }
