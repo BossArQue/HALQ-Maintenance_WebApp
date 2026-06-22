@@ -89,7 +89,7 @@ export async function onRequest(context) {
       const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
       const token = await signJWT({ sub: user.username, iat: Math.floor(Date.now() / 1000) }, env);
       const response = jsonResponse({ ok: true, data: { token, username: user.username } });
-      response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}`);
+      response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`);
       Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
       return response;
     } catch (err) {
@@ -135,28 +135,6 @@ export async function onRequest(context) {
       return jsonResponse({ ok: true, data: { message: 'User created', username } });
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Setup failed' }, 500);
-    }
-  }
-
-  // ── TEMPORARY DEBUG: GET /api/auth?action=debug ──
-  if (action === 'debug' && request.method === 'GET') {
-    try {
-      const db = env.DB;
-      const users = await db.prepare('SELECT username, created_at FROM users').all();
-      return jsonResponse({ ok: true, data: { users: users.results || [] } });
-    } catch (err) {
-      return jsonResponse({ ok: false, error: 'Debug failed' }, 500);
-    }
-  }
-
-  // ── TEMPORARY RESET: POST /api/auth?action=reset ──
-  if (action === 'reset' && request.method === 'POST') {
-    try {
-      const db = env.DB;
-      await db.prepare('DELETE FROM users').run();
-      return jsonResponse({ ok: true, data: { message: 'All users deleted. You can now create a new account.' } });
-    } catch (err) {
-      return jsonResponse({ ok: false, error: 'Reset failed' }, 500);
     }
   }
 

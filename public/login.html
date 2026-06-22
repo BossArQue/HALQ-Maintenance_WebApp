@@ -469,7 +469,7 @@
       // Check if already logged in
       (async function checkAuth() {
         try {
-          const res = await fetch('/api/auth?action=me');
+          const res = await fetch('/api/auth?action=me', { credentials: 'include' });
           const data = await res.json();
           if (data.ok && data.data?.authenticated) {
             window.location.href = '/';
@@ -550,6 +550,7 @@
         try {
           const res = await fetch('/api/auth?action=login', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, remember })
           });
@@ -603,6 +604,7 @@
         try {
           const res = await fetch('/api/auth?action=setup', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
           });
