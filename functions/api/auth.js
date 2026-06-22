@@ -89,7 +89,7 @@ export async function onRequest(context) {
       const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
       const token = await signJWT({ sub: user.username, iat: Math.floor(Date.now() / 1000) }, env);
       const response = jsonResponse({ ok: true, data: { token, username: user.username } });
-      response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`);
+      response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`);
       Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
       return response;
     } catch (err) {
@@ -100,7 +100,7 @@ export async function onRequest(context) {
   // ── POST /api/auth?action=logout ──
   if (action === 'logout' && request.method === 'POST') {
     const response = jsonResponse({ ok: true, data: { message: 'Logged out' } });
-    response.headers.set('Set-Cookie', 'halq_auth=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+    response.headers.set('Set-Cookie', 'halq_auth=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0');
     Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
     return response;
   }
