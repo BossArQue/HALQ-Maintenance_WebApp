@@ -103,12 +103,12 @@ export async function onRequest(context) {
     try {
       const authHeader = request.headers.get('Authorization') || '';
       const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-      if (!token) return jsonResponse({ ok: true, data: { authenticated: false } });
+      if (!token) return jsonResponse({ ok: true, data: { authenticated: false, reason: 'no token' } });
       const payload = await verifyJWT(token, env);
-      if (!payload) return jsonResponse({ ok: true, data: { authenticated: false } });
+      if (!payload) return jsonResponse({ ok: true, data: { authenticated: false, reason: 'verify failed', hasSecret: !!env.HALQ_JWT_SECRET } });
       return jsonResponse({ ok: true, data: { authenticated: true, username: payload.sub } });
     } catch (err) {
-      return jsonResponse({ ok: true, data: { authenticated: false } });
+      return jsonResponse({ ok: true, data: { authenticated: false, reason: 'error', error: err.message } });
     }
   }
 
