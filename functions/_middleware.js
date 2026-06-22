@@ -59,20 +59,28 @@ export async function onRequest(context) {
   const cookie = request.headers.get('Cookie') || '';
   const match = cookie.match(/halq_auth=([^;]+)/);
   let isAuthenticated = false;
+  let authDebug = { hasCookie: !!match, hasSecret: !!env.HALQ_JWT_SECRET, path };
 
   if (match) {
-    const payload = await verifyJWT(match[1], env);
-    isAuthenticated = !!(payload && payload.sub);
+    try {
+      const payload = await verifyJWT(match[1], env);
+      isAuthenticated = !!(payload && payload.sub);
+      authDebug.payload = payload;
+    } catch (e) {
+      authDebug.error = e.message;
+    }
   }
 
   if (!isAuthenticated) {
     if (path.startsWith('/api/')) {
       return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders, 'X-HALQ-Auth-Debug': JSON.stringify(authDebug) }
       });
     }
-    return Response.redirect(`${url.origin}/login.html`, 302);
+    const response = Response.redirect(`${url.origin}/login.html`, 302);
+    response.headers.set('X-HALQ-Auth-Debug', JSON.stringify(authDebug));
+    return response;
   }
 
   const response = await next();
