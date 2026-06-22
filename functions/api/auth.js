@@ -1,8 +1,8 @@
 /* ============================================
    FILE: auth.js
    PATH: functions/api/auth.js
-   VERSION: 2.3.3
-   DESCRIPTION: Single auth endpoint — uses ?action= query param to route login/logout/me/setup.
+   VERSION: 2.4.0
+   DESCRIPTION: Single auth endpoint — uses ?action= query param. Returns JWT in JSON body (no cookies).
    ============================================ */
 
 function jsonResponse(data, status = 200) {
@@ -78,7 +78,7 @@ export async function onRequest(context) {
   if (action === 'login' && request.method === 'POST') {
     try {
       const body = await request.json();
-      const { username, password, remember } = body;
+      const { username, password } = body;
       if (!username || !password) return jsonResponse({ ok: false, error: 'Username and password required' }, 400);
       const db = env.DB;
       const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
@@ -86,12 +86,8 @@ export async function onRequest(context) {
       const salt = b64urlDecode(user.salt);
       const hash = await pbkdf2Hash(password, salt);
       if (hash !== user.password_hash) return jsonResponse({ ok: false, error: 'Invalid credentials' }, 401);
-      const maxAge = remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
       const token = await signJWT({ sub: user.username, iat: Math.floor(Date.now() / 1000) }, env);
-      const response = jsonResponse({ ok: true, data: { token, username: user.username } });
-      response.headers.set('Set-Cookie', `halq_auth=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`);
-      Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
-      return response;
+      return jsonResponse({ ok: true, data: { token, username: user.username } });
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Login failed' }, 500);
     }
@@ -99,19 +95,16 @@ export async function onRequest(context) {
 
   // ── POST /api/auth?action=logout ──
   if (action === 'logout' && request.method === 'POST') {
-    const response = jsonResponse({ ok: true, data: { message: 'Logged out' } });
-    response.headers.set('Set-Cookie', 'halq_auth=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0');
-    Object.entries(cors).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    return jsonResponse({ ok: true, data: { message: 'Logged out' } });
   }
 
   // ── GET /api/auth?action=me ──
   if (action === 'me' && request.method === 'GET') {
     try {
-      const cookie = request.headers.get('Cookie') || '';
-      const match = cookie.match(/halq_auth=([^;]+)/);
-      if (!match) return jsonResponse({ ok: true, data: { authenticated: false } });
-      const payload = await verifyJWT(match[1], env);
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      if (!token) return jsonResponse({ ok: true, data: { authenticated: false } });
+      const payload = await verifyJWT(token, env);
       if (!payload) return jsonResponse({ ok: true, data: { authenticated: false } });
       return jsonResponse({ ok: true, data: { authenticated: true, username: payload.sub } });
     } catch (err) {

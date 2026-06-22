@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.3.4
+   VERSION: 2.4.0
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.3.4';
+const APP_VERSION = '2.4.0';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -40,23 +40,32 @@ let _navMode = 'sidebar';
 // =====================
 
 async function apiGet(endpoint) {
-  const res = await fetch(`/api${endpoint}`);
+  const token = localStorage.getItem('halq_token');
+  const res = await fetch(`/api${endpoint}`, {
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+  });
   return res.json();
 }
 
 async function apiPost(endpoint, body) {
+  const token = localStorage.getItem('halq_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(`/api${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   });
   return res.json();
 }
 
 async function apiPut(endpoint, body) {
+  const token = localStorage.getItem('halq_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(`/api${endpoint}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   });
   const contentType = res.headers.get('content-type');
@@ -72,7 +81,11 @@ async function apiPut(endpoint, body) {
 }
 
 async function apiDelete(endpoint) {
-  const res = await fetch(`/api${endpoint}`, { method: 'DELETE' });
+  const token = localStorage.getItem('halq_token');
+  const res = await fetch(`/api${endpoint}`, {
+    method: 'DELETE',
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+  });
   return res.json();
 }
 
@@ -98,26 +111,32 @@ function init() {
   // ── Auth: fetch user, wire logout ──
   (async function initAuth() {
     try {
-      const res = await fetch('/api/auth?action=me', { credentials: 'include' });
+      const token = localStorage.getItem('halq_token');
+      const res = await fetch('/api/auth?action=me', {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
       const data = await res.json();
       if (data.ok && data.data?.authenticated) {
         const userDisplay = document.getElementById('user-display-name');
         if (userDisplay) userDisplay.textContent = data.data.username || 'User';
       } else {
-        // Not authenticated — middleware will redirect, but this catches edge cases
+        localStorage.removeItem('halq_token');
         window.location.href = '/login.html';
         return;
       }
     } catch (e) {
-      // If API is unreachable, let middleware handle it
+      localStorage.removeItem('halq_token');
+      window.location.href = '/login.html';
+      return;
     }
 
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         try {
-          await fetch('/api/auth?action=logout', { method: 'POST', credentials: 'include' });
+          await fetch('/api/auth?action=logout', { method: 'POST' });
         } catch (e) {}
+        localStorage.removeItem('halq_token');
         window.location.href = '/login.html';
       });
     }

@@ -469,7 +469,10 @@
       // Check if already logged in
       (async function checkAuth() {
         try {
-          const res = await fetch('/api/auth?action=me', { credentials: 'include' });
+          const token = localStorage.getItem('halq_token');
+          const res = await fetch('/api/auth?action=me', {
+            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+          });
           const data = await res.json();
           if (data.ok && data.data?.authenticated) {
             window.location.href = '/';
@@ -550,13 +553,13 @@
         try {
           const res = await fetch('/api/auth?action=login', {
             method: 'POST',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, remember })
           });
           const data = await res.json();
 
           if (data.ok && data.data?.token) {
+            localStorage.setItem('halq_token', data.data.token);
             showToast('Welcome back! Redirecting...', 'success');
             setTimeout(() => window.location.href = '/', 600);
           } else {
@@ -604,7 +607,6 @@
         try {
           const res = await fetch('/api/auth?action=setup', {
             method: 'POST',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
           });
