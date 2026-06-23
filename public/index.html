@@ -238,19 +238,22 @@
               <button class="browser-nav-btn" id="browser-open-new" title="Open in New Tab">↗</button>
             </div>
             <div class="browser-viewport">
-              <div class="browser-remote" id="browser-remote">
-                <div class="browser-remote-icon">🌐</div>
-                <div class="browser-remote-title" id="browser-remote-title">AppFolio</div>
-                <div class="browser-remote-status" id="browser-status">Closed</div>
-                <div class="browser-remote-url" id="browser-remote-url">—</div>
-                <div class="browser-remote-actions">
-                  <button class="btn btn-primary" id="browser-remote-open">Open AppFolio</button>
-                  <button class="btn btn-ghost" id="browser-remote-search">Search WO</button>
-                  <button class="btn btn-ghost" id="browser-remote-copy">Copy URL</button>
-                  <button class="btn btn-ghost" id="browser-remote-close">Close Tab</button>
-                </div>
-                <div style="margin-top:20px;font-size:11px;color:var(--text3);max-width:280px;text-align:center;line-height:1.5">
-                  💡 <strong>One-click workflow:</strong> Install the <a href="#" id="tm-setup-link" style="color:var(--accent)">Tampermonkey script</a> to auto-click WO results in AppFolio.
+              <iframe class="browser-iframe" id="browser-iframe" src="about:blank" title="AppFolio Browser"></iframe>
+              <div class="browser-extension-overlay" id="browser-extension-overlay" style="display:none">
+                <div class="browser-extension-box">
+                  <div style="font-size:32px;margin-bottom:8px">🔒</div>
+                  <div style="font-weight:600;font-size:14px;margin-bottom:4px">AppFolio blocked</div>
+                  <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:12px">
+                    The HALQ browser extension removes the header that blocks AppFolio from loading in an iframe.
+                  </div>
+                  <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:12px;text-align:left">
+                    <strong>Install:</strong><br>
+                    1. Open chrome://extensions/<br>
+                    2. Enable Developer mode<br>
+                    3. Click Load unpacked<br>
+                    4. Select the <code>extension/</code> folder
+                  </div>
+                  <button class="btn btn-primary" id="btn-dismiss-extension-overlay" style="font-size:12px">Open in New Tab Instead</button>
                 </div>
               </div>
             </div>
@@ -603,10 +606,20 @@
           </div>
           <div class="settings-section">
             <div class="settings-section-title">One-Click Setup</div>
-            <div class="settings-info">
-              Install the Tampermonkey browser extension, then add the HALQ script to auto-click WO results in AppFolio.
+            <div class="settings-info" style="margin-bottom:10px">
+              <strong>Step 1:</strong> Install the HALQ browser extension to allow AppFolio inside the iframe.
             </div>
-            <button class="btn btn-primary" id="btn-copy-tampermonkey" style="margin-top:10px">📋 Copy Tampermonkey Script</button>
+            <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:10px">
+              1. Open Chrome → <code>chrome://extensions/</code><br>
+              2. Enable <strong>Developer mode</strong> (top-right toggle)<br>
+              3. Click <strong>Load unpacked</strong><br>
+              4. Select the <code>extension/</code> folder from this project<br>
+              5. Reload HALQ page
+            </div>
+            <div class="settings-info" style="margin-bottom:10px;margin-top:12px">
+              <strong>Step 2 (optional):</strong> Install Tampermonkey for auto-clicking WO results.
+            </div>
+            <button class="btn btn-primary" id="btn-copy-tampermonkey" style="font-size:12px">📋 Copy Tampermonkey Script</button>
             <div class="creds-status" id="tm-status"></div>
           </div>
         </div>
