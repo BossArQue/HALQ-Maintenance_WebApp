@@ -173,21 +173,12 @@
             <button class="btn btn-primary btn-sm" id="btn-upload-excel">📤 Upload Excel</button>
           </li>
 
-          <!-- User dropdown -->
-          <li class="dropdown pc-h-item">
-            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-              <i class="ti ti-user"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
-              <div class="dropdown-header d-flex align-items-center justify-content-between">
-                <h5 class="m-0" id="user-display-name">User</h5>
-              </div>
-              <div class="dropdown-body">
-                <a class="dropdown-item" href="javascript:void(0)" id="btn-logout">
-                  <i class="ti ti-power me-2"></i> Logout
-                </a>
-              </div>
-            </div>
+          <!-- User info + Logout -->
+          <li class="pc-h-item">
+            <span class="me-2" id="user-display-name" style="font-weight:600;color:var(--pc-sidebar-color)">User</span>
+            <button class="btn btn-danger btn-sm" id="btn-logout">
+              <i class="ti ti-power"></i> Logout
+            </button>
           </li>
         </ul>
       </div>
