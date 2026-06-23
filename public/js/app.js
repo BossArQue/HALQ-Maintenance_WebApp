@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.4.0
+   VERSION: 2.4.1
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
    ============================================ */
 
@@ -112,30 +112,14 @@ function init() {
   (async function initAuth() {
     try {
       const token = localStorage.getItem('halq_token');
-      console.log('Token from localStorage:', token ? 'exists' : 'missing');
       const res = await fetch('/api/auth?action=me', {
         headers: token ? { 'Authorization': 'Bearer ' + token } : {}
       });
       const data = await res.json();
-      console.log('Auth check response:', data);
       if (data.ok && data.data?.authenticated) {
         const userDisplay = document.getElementById('user-display-name');
-        if (userDisplay) userDisplay.textContent = data.data.username || 'User';
+        if (userDisplay) userDisplay.innerHTML = `<i class="ti ti-user me-1"></i>${data.data.username || 'User'}`;
       } else {
-        console.error('Auth failed:', data);
-        alert('Auth failed: ' + JSON.stringify(data) + '\nToken: ' + (token ? 'exists' : 'missing'));
-        localStorage.removeItem('halq_token');
-        // Don't redirect immediately so user can see the error
-        setTimeout(() => { window.location.href = '/login.html'; }, 5000);
-        return;
-      }
-    } catch (e) {
-      console.error('Auth error:', e);
-      alert('Auth error: ' + e.message);
-      localStorage.removeItem('halq_token');
-      setTimeout(() => { window.location.href = '/login.html'; }, 5000);
-      return;
-    }
 
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {

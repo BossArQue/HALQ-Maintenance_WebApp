@@ -1,7 +1,7 @@
 /* ============================================
    FILE: auth.js
    PATH: functions/api/auth.js
-   VERSION: 2.4.0
+   VERSION: 2.4.1
    DESCRIPTION: Single auth endpoint — uses ?action= query param. Returns JWT in JSON body (no cookies).
    ============================================ */
 
@@ -104,12 +104,12 @@ export async function onRequest(context) {
     try {
       const authHeader = request.headers.get('Authorization') || '';
       const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-      if (!token) return jsonResponse({ ok: true, data: { authenticated: false, reason: 'no token' } });
+      if (!token) return jsonResponse({ ok: true, data: { authenticated: false } });
       const payload = await verifyJWT(token, env);
-      if (!payload) return jsonResponse({ ok: true, data: { authenticated: false, reason: 'verify failed', hasSecret: !!env.HALQ_JWT_SECRET } });
+      if (!payload) return jsonResponse({ ok: true, data: { authenticated: false } });
       return jsonResponse({ ok: true, data: { authenticated: true, username: payload.sub } });
     } catch (err) {
-      return jsonResponse({ ok: true, data: { authenticated: false, reason: 'error', error: err.message } });
+      return jsonResponse({ ok: true, data: { authenticated: false } });
     }
   }
 
@@ -129,26 +129,6 @@ export async function onRequest(context) {
       return jsonResponse({ ok: true, data: { message: 'User created', username } });
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Setup failed' }, 500);
-    }
-  }
-
-  // ── GET /api/auth?action=test ──
-  if (action === 'test' && request.method === 'GET') {
-    try {
-      const testPayload = { sub: 'test', iat: Math.floor(Date.now() / 1000) };
-      const testToken = await signJWT(testPayload, env);
-      const verifiedPayload = await verifyJWT(testToken, env);
-      return jsonResponse({ 
-        ok: true, 
-        data: { 
-          signed: testToken, 
-          verified: !!verifiedPayload,
-          payload: verifiedPayload,
-          secretLength: env.HALQ_JWT_SECRET?.length || 0
-        } 
-      });
-    } catch (err) {
-      return jsonResponse({ ok: false, error: err.message });
     }
   }
 

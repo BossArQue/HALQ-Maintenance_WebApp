@@ -168,16 +168,13 @@
             </div>
           </li>
 
-          <!-- Topbar Actions (injected by app.js) -->
-          <li class="pc-h-item" id="topbar-actions">
-            <button class="btn btn-primary btn-sm" id="btn-upload-excel">📤 Upload Excel</button>
-          </li>
-
           <!-- User info + Logout -->
-          <li class="pc-h-item">
-            <span class="me-2" id="user-display-name" style="font-weight:600;color:var(--pc-sidebar-color)">User</span>
-            <button class="btn btn-danger btn-sm" id="btn-logout">
-              <i class="ti ti-power"></i> Logout
+          <li class="pc-h-item d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border" id="user-display-name" style="font-weight:600;font-size:13px;padding:6px 12px">
+              <i class="ti ti-user me-1"></i>User
+            </span>
+            <button class="btn btn-danger btn-sm" id="btn-logout" title="Logout">
+              <i class="ti ti-power"></i>
             </button>
           </li>
         </ul>
