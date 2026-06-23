@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.4.1';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -136,11 +136,6 @@ function init() {
         try {
           await fetch('/api/auth?action=logout', { method: 'POST' });
         } catch (e) {}
-        localStorage.removeItem('halq_token');
-        window.location.href = '/login.html';
-      });
-    }
-  })();
         localStorage.removeItem('halq_token');
         window.location.href = '/login.html';
       });
