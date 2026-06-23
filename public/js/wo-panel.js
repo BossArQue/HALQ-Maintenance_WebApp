@@ -632,11 +632,11 @@
     const autoSearchOn = !$.prefAutoSearch || $.prefAutoSearch.classList.contains('on');
     if (autoSearchOn) HALQ.af.autoSearchWO(S.selected);
 
-    $.detail.classList.add('open');
+    $.detail.classList.remove('hidden');
   }
 
   function toggleDetail() {
-    $.detail?.classList.toggle('open');
+    $.detail?.classList.toggle('hidden');
   }
 
   async function saveDetail() {

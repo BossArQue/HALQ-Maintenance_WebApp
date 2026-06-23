@@ -221,8 +221,45 @@
 
           <div class="resize-divider" id="wo-resize-divider"></div>
 
+          <!-- BROWSER PANEL -->
+          <div class="browser-panel" id="browser-panel">
+            <div class="browser-tabs-wrap">
+              <div class="browser-tabs" id="browser-tabs">
+                <div class="browser-tab active" data-name="appfolio" data-url="https://talley.appfolio.com/search/advanced_search">AppFolio</div>
+                <div class="browser-tab" data-name="outlook" data-url="https://outlook.office.com/mail">Outlook</div>
+              </div>
+            </div>
+            <div class="browser-toolbar">
+              <button class="browser-nav-btn" id="browser-back" title="Back">←</button>
+              <button class="browser-nav-btn" id="browser-forward" title="Forward">→</button>
+              <button class="browser-nav-btn" id="browser-reload" title="Reload">↻</button>
+              <input type="text" class="browser-url" id="browser-url" placeholder="Enter URL...">
+              <button class="browser-go-btn" id="browser-go">Go</button>
+              <button class="browser-nav-btn" id="browser-open-new" title="Open in New Tab">↗</button>
+            </div>
+            <div class="browser-viewport">
+              <div class="browser-remote" id="browser-remote">
+                <div class="browser-remote-icon">🌐</div>
+                <div class="browser-remote-title" id="browser-remote-title">AppFolio</div>
+                <div class="browser-remote-status" id="browser-status">Closed</div>
+                <div class="browser-remote-url" id="browser-remote-url">—</div>
+                <div class="browser-remote-actions">
+                  <button class="btn btn-primary" id="browser-remote-open">Open AppFolio</button>
+                  <button class="btn btn-ghost" id="browser-remote-search">Search WO</button>
+                  <button class="btn btn-ghost" id="browser-remote-copy">Copy URL</button>
+                  <button class="btn btn-ghost" id="browser-remote-close">Close Tab</button>
+                </div>
+                <div style="margin-top:20px;font-size:11px;color:var(--text3);max-width:280px;text-align:center;line-height:1.5">
+                  💡 <strong>One-click workflow:</strong> Install the <a href="#" id="tm-setup-link" style="color:var(--accent)">Tampermonkey script</a> to auto-click WO results in AppFolio.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="resize-divider" id="browser-resize-divider"></div>
+
           <!-- DETAIL DRAWER -->
-          <div class="wo-detail" id="wo-detail">
+          <div class="wo-detail hidden" id="wo-detail">
             <div class="wo-detail-header">
               <div class="wo-detail-title">Work Order Detail</div>
               <div class="wo-detail-close" id="wo-detail-close">✕</div>
@@ -378,6 +415,7 @@
         <button class="settings-tab" data-tab="preferences">Preferences</button>
         <button class="settings-tab" data-tab="bridge">Bridge Config</button>
         <button class="settings-tab" data-tab="messages">Messages</button>
+        <button class="settings-tab" data-tab="accounts">Accounts</button>
       </div>
       <div class="settings-body">
         <div class="settings-tab-panel" data-panel="appearance">
@@ -553,6 +591,23 @@
               </table>
             </div>
             <div id="vendor-dir-count" style="font-size:10px;color:var(--text3);margin-top:6px;text-align:right"></div>
+          </div>
+        </div>
+        <div class="settings-tab-panel hidden" data-panel="accounts">
+          <div class="settings-section">
+            <div class="settings-section-title">AppFolio URL</div>
+            <div class="settings-info">Enter your AppFolio search URL for one-click WO lookup.</div>
+            <input type="url" class="settings-input" id="appfolio-url-input" placeholder="https://talley.appfolio.com/search/advanced_search">
+            <button class="btn btn-primary" id="btn-save-appfolio-url" style="margin-top:10px">💾 Save</button>
+            <div class="creds-status" id="appfolio-url-status"></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">One-Click Setup</div>
+            <div class="settings-info">
+              Install the Tampermonkey browser extension, then add the HALQ script to auto-click WO results in AppFolio.
+            </div>
+            <button class="btn btn-primary" id="btn-copy-tampermonkey" style="margin-top:10px">📋 Copy Tampermonkey Script</button>
+            <div class="creds-status" id="tm-status"></div>
           </div>
         </div>
       </div>

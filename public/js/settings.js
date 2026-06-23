@@ -70,6 +70,10 @@
     // Bridge config
     document.getElementById('bridge-save-btn')?.addEventListener('click', saveBridgeConfig);
 
+    // Accounts — AppFolio URL
+    document.getElementById('btn-save-appfolio-url')?.addEventListener('click', saveAppfolioUrl);
+    document.getElementById('btn-copy-tampermonkey')?.addEventListener('click', copyTampermonkeyScript);
+
     // Excel browse (hidden file input)
     const browseBtn = document.getElementById('btn-browse-excel');
     const fileInput = document.getElementById('excel-file-input');
@@ -337,6 +341,9 @@
                 if (apiInput) apiInput.value = cfg.apiUrl || '';
               }
               break;
+            case 'af_baseurl':
+              if (s.value) localStorage.setItem('halq_af_baseurl', s.value);
+              break;
           }
         });
         // Re-apply after API sync
@@ -391,6 +398,11 @@
       if (el) el.classList.toggle('on', val);
     });
     applyBottomBar();
+
+    // AppFolio URL
+    const afUrl = localStorage.getItem('halq_af_baseurl') || '';
+    const afInput = document.getElementById('appfolio-url-input');
+    if (afInput) afInput.value = afUrl;
   }
 
   /* ---------- Theme ---------- */
@@ -508,6 +520,66 @@
     setTimeout(() => { el.textContent = ''; el.className = 'bridge-status'; }, 3000);
   }
 
+  /* ---------- Accounts / AppFolio ---------- */
+  async function saveAppfolioUrl() {
+    const urlInput = document.getElementById('appfolio-url-input');
+    const status = document.getElementById('appfolio-url-status');
+    const url = urlInput?.value?.trim() || '';
+
+    localStorage.setItem('halq_af_baseurl', url);
+    if (HALQ.af) HALQ.af.baseUrl = url;
+
+    try {
+      const res = await HALQ.apiPost('/settings', { key: 'af_baseurl', value: url });
+      if (res.ok) {
+        if (status) { status.textContent = '✓ Saved'; status.className = 'creds-status ok'; }
+      } else {
+        if (status) { status.textContent = '✗ ' + (res.error || 'Failed'); status.className = 'creds-status err'; }
+      }
+    } catch (e) {
+      if (status) { status.textContent = '✗ Saved locally (API offline)'; status.className = 'creds-status ok'; }
+    }
+    setTimeout(() => { if (status) { status.textContent = ''; status.className = 'creds-status'; } }, 3000);
+  }
+
+  async function copyTampermonkeyScript() {
+    const status = document.getElementById('tm-status');
+    const script = `// ==UserScript==
+// @name         HALQ AppFolio Auto-Click
+// @namespace    halq
+// @version      1.0
+// @description  Auto-click the first WO result when HALQ opens AppFolio search
+// @match        *://talley.appfolio.com/search/advanced_search*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+  'use strict';
+  const url = new URL(window.location.href);
+  const search = url.searchParams.get('full_text_search');
+  if (!search) return;
+
+  const observer = new MutationObserver(() => {
+    const link = document.querySelector('a[href*="/service_requests/"]');
+    if (link) { link.click(); observer.disconnect(); }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  setTimeout(() => {
+    const link = document.querySelector('a[href*="/service_requests/"]');
+    if (link) link.click();
+  }, 5000);
+})();`;
+
+    try {
+      await navigator.clipboard.writeText(script);
+      if (status) { status.textContent = '✓ Script copied to clipboard'; status.className = 'creds-status ok'; }
+    } catch (e) {
+      if (status) { status.textContent = '✗ Copy failed — select and copy manually'; status.className = 'creds-status err'; }
+    }
+    setTimeout(() => { if (status) { status.textContent = ''; status.className = 'creds-status'; } }, 3000);
+  }
+
   /* ---------- Public API ---------- */
   HALQ.settings = {
     init,
@@ -522,6 +594,8 @@
     togglePref,
     saveBridgeConfig,
     showBridgeStatus,
+    saveAppfolioUrl,
+    copyTampermonkeyScript,
     loadSettingsToUI,
 
     // PIN (legacy compat)

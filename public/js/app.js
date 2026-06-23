@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.5.0';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -146,6 +146,13 @@ function init() {
   document.querySelectorAll('[data-view]').forEach(el => {
     el.addEventListener('click', () => switchView(el.dataset.view));
   });
+
+  // Resizable dividers (3-panel layout)
+  const woPanel = document.querySelector('.wo-panel');
+  const browserPanel = document.getElementById('browser-panel');
+  const detailPanel = document.getElementById('wo-detail');
+  if (woPanel && browserPanel) initResizeDivider('wo-resize-divider', woPanel, browserPanel, 'v');
+  if (browserPanel && detailPanel) initResizeDivider('browser-resize-divider', browserPanel, detailPanel, 'v');
 
   // Settings button — delegate to settings.js if available
   const settingsBtn = document.getElementById('tb-nav-settings');
