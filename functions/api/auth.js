@@ -18,7 +18,8 @@ function b64urlEncode(buf) {
 }
 
 function b64urlDecode(str) {
-  str += new Array(5 - str.length % 4).join('=');
+  const padding = (4 - str.length % 4) % 4;
+  str += '='.repeat(padding);
   str = str.replace(/\-/g, '+').replace(/\_/g, '/');
   return Uint8Array.from(atob(str), c => c.charCodeAt(0));
 }
@@ -128,6 +129,26 @@ export async function onRequest(context) {
       return jsonResponse({ ok: true, data: { message: 'User created', username } });
     } catch (err) {
       return jsonResponse({ ok: false, error: 'Setup failed' }, 500);
+    }
+  }
+
+  // ── GET /api/auth?action=test ──
+  if (action === 'test' && request.method === 'GET') {
+    try {
+      const testPayload = { sub: 'test', iat: Math.floor(Date.now() / 1000) };
+      const testToken = await signJWT(testPayload, env);
+      const verifiedPayload = await verifyJWT(testToken, env);
+      return jsonResponse({ 
+        ok: true, 
+        data: { 
+          signed: testToken, 
+          verified: !!verifiedPayload,
+          payload: verifiedPayload,
+          secretLength: env.HALQ_JWT_SECRET?.length || 0
+        } 
+      });
+    } catch (err) {
+      return jsonResponse({ ok: false, error: err.message });
     }
   }
 
