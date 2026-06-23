@@ -419,15 +419,13 @@
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
-  overflow: hidden;
 }
 
-.wo-detail.hidden {
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
-  border-left: none;
+.wo-detail.open {
+  transform: translateX(0);
 }
 
 .wo-detail-header {
@@ -831,10 +829,7 @@
     transform: translateX(100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .wo-detail.hidden {
-    transform: translateX(100%);
-  }
-  .wo-detail:not(.hidden) {
+  .wo-detail.open {
     transform: translateX(0);
   }
 }
