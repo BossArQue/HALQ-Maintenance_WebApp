@@ -120,6 +120,15 @@ function init() {
         const userDisplay = document.getElementById('user-display-name');
         if (userDisplay) userDisplay.innerHTML = `<i class="ti ti-user me-1"></i>${data.data.username || 'User'}`;
       } else {
+        localStorage.removeItem('halq_token');
+        window.location.href = '/login.html';
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem('halq_token');
+      window.location.href = '/login.html';
+      return;
+    }
 
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
@@ -127,6 +136,11 @@ function init() {
         try {
           await fetch('/api/auth?action=logout', { method: 'POST' });
         } catch (e) {}
+        localStorage.removeItem('halq_token');
+        window.location.href = '/login.html';
+      });
+    }
+  })();
         localStorage.removeItem('halq_token');
         window.location.href = '/login.html';
       });
