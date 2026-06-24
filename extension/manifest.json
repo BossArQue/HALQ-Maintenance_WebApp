@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HALQ AppFolio Bridge",
-  "version": "1.0.4",
-  "description": "Allow AppFolio to load inside HALQ's embedded browser panel. Removes X-Frame-Options and CSP headers, and patches client-side iframe-busting.",
+  "version": "1.0.5",
+  "description": "HALQ Bridge: removes X-Frame-Options/CSP headers for iframe embedding, and enables cross-tab navigation for split view workflow.",
   "declarative_net_request": {
     "rule_resources": [{
       "id": "ruleset_1",
@@ -10,18 +10,29 @@
       "path": "rules.json"
     }]
   },
-  "permissions": ["declarativeNetRequest"],
+  "permissions": ["declarativeNetRequest", "tabs"],
   "host_permissions": [
     "*://*.appfolio.com/*",
     "*://outlook.office.com/*",
     "*://outlook.live.com/*"
   ],
+  "externally_connectable": {
+    "matches": ["https://halq-maintenance-webapp.pages.dev/*"]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["*://*.appfolio.com/*"],
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["https://halq-maintenance-webapp.pages.dev/*"],
+      "js": ["content-halq.js"],
+      "run_at": "document_start"
     }
   ]
 }

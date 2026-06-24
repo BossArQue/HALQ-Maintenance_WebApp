@@ -1,8 +1,8 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.5.6
-   DESCRIPTION: SPA shell with DashboardKit layout. v2.5.6: Split view support — named window mode for AppFolio.
+   VERSION: 2.5.7
+   DESCRIPTION: SPA shell with DashboardKit layout. v2.5.7: Extension bridge for cross-tab navigation in Chrome Split View.
    ============================================ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -21,12 +21,12 @@
   <link rel="stylesheet" href="/assets/dashboardkit/css/style-preset.css">
 
   <!-- [HALQ CSS] -->
-  <link rel="stylesheet" href="/css/app.css?v=2.5.6">
-  <link rel="stylesheet" href="/css/wo-panel.css?v=2.5.6">
-  <link rel="stylesheet" href="/css/category-manager.css?v=2.5.6">
-  <link rel="stylesheet" href="/css/context-menu.css?v=2.5.6">
-  <link rel="stylesheet" href="/css/settings.css?v=2.5.6">
-  <link rel="stylesheet" href="/css/dashboardkit-compat.css?v=2.5.6">
+  <link rel="stylesheet" href="/css/app.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/wo-panel.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/category-manager.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/context-menu.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/settings.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/dashboardkit-compat.css?v=2.5.7">
 
   <!-- SheetJS for browser-side Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -118,7 +118,7 @@
       </div>
       <div class="navbar-content" style="margin-top:auto;padding:12px 20px;font-size:11px;color:var(--pc-sidebar-color);opacity:0.6;border-top:1px solid rgba(255,255,255,0.05);">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-          <span id="bb-version">v2.5.6</span>
+          <span id="bb-version">v2.5.7</span>
           <span id="bridge-status" style="display:flex;align-items:center;gap:6px">
             <span class="bridge-status-dot" id="bridge-status-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block"></span>
             <span id="bridge-status-text">Bridge —</span>
@@ -837,20 +837,20 @@
   <script src="/assets/dashboardkit/js/pcoded.js"></script>
 
   <!-- 2. Core app (registers namespace, utilities) -->
-  <script src="/js/app.js?v=2.5.6"></script>
+  <script src="/js/app.js?v=2.5.7"></script>
 
   <!-- 3. Feature panels (depend on HALQ.app) -->
-  <script src="/js/wo-panel.js?v=2.5.6"></script>
-  <script src="/js/af-panel.js?v=2.5.6"></script>
-  <script src="/js/email-panel.js?v=2.5.6"></script>
-  <script src="/js/notes-panel.js?v=2.5.6"></script>
+  <script src="/js/wo-panel.js?v=2.5.7"></script>
+  <script src="/js/af-panel.js?v=2.5.7"></script>
+  <script src="/js/email-panel.js?v=2.5.7"></script>
+  <script src="/js/notes-panel.js?v=2.5.7"></script>
 
   <!-- 4. Shared services (used by panels + settings) -->
-  <script src="/js/messages.js?v=2.5.6"></script>
-  <script src="/js/categories.js?v=2.5.6"></script>
+  <script src="/js/messages.js?v=2.5.7"></script>
+  <script src="/js/categories.js?v=2.5.7"></script>
 
   <!-- 5. Settings (depends on everything above) -->
-  <script src="/js/settings.js?v=2.5.6"></script>
+  <script src="/js/settings.js?v=2.5.7"></script>
 
   <!-- 6. Bootstrap -->
   <script>

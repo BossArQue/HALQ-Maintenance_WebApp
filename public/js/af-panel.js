@@ -1,8 +1,8 @@
 /* ============================================
    FILE: af-panel.js
    PATH: public/js/af-panel.js
-   VERSION: 2.5.6
-   DESCRIPTION: Browser panel — named window mode for split view. v2.5.6: iframe disabled, uses window.open('appfolio') for SSO compatibility.
+   VERSION: 2.5.7
+   DESCRIPTION: Browser panel — extension bridge for split view. v2.5.7: Uses chrome.runtime.sendMessage to extension for cross-tab navigation in split views.
    ============================================ */
 (function () {
   'use strict';
@@ -11,7 +11,7 @@
   const S = {
     baseUrl: '',
     activeTab: 'appfolio',
-    useIframe: false,   // v2.5.6: iframe is dead for SSO; use named window.open()
+    useIframe: false,
     currentWONote: null
   };
 
@@ -47,13 +47,38 @@
 
   HALQ.af = API;
 
+  // ── Extension Bridge ──
+  function sendToExtension(url, target) {
+    const extId = window.__halqExtensionId;
+    if (!extId) {
+      console.log('[HALQ AF] Extension not found, falling back to window.open');
+      window.open(url, '_blank');
+      return;
+    }
+    chrome.runtime.sendMessage(extId, {
+      action: 'navigate',
+      data: { url: url, target: target || 'appfolio' }
+    }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[HALQ AF] Extension error:', chrome.runtime.lastError.message);
+        window.open(url, '_blank');
+        return;
+      }
+      if (res && res.ok) {
+        console.log('[HALQ AF] Extension navigated tab', res.tabId, res.created ? '(created)' : '(updated)');
+      } else {
+        console.error('[HALQ AF] Extension failed:', res?.error);
+        window.open(url, '_blank');
+      }
+    });
+  }
+
   // ── Init ──
   function init() {
     cache();
     _load();
     attachListeners();
 
-    // Check if extension is installed by trying a test load
     if ($.overlay) {
       setTimeout(() => {
         if ($.iframe && $.iframe.src !== 'about:blank') {
@@ -62,7 +87,6 @@
       }, 2000);
     }
 
-    // Watch for iframe blanking (AppFolio iframe-busting)
     startIframeMonitor();
   }
 
@@ -78,41 +102,34 @@
   }
 
   function attachListeners() {
-    // URL bar
     if ($.urlBar) {
       $.urlBar.addEventListener('keydown', e => {
         if (e.key === 'Enter') navTo($.urlBar.value);
       });
     }
 
-    // Go button
     if ($.btnGo) {
       $.btnGo.addEventListener('click', () => navTo($.urlBar.value));
     }
 
-    // Open in new tab (named window for split view reuse)
     if ($.btnOpenNew) {
       $.btnOpenNew.addEventListener('click', () => {
         const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
-        const winName = S.activeTab === 'appfolio' ? 'appfolio' : S.activeTab === 'outlook' ? 'outlook' : 'appfolio';
-        window.open(url, winName);
+        sendToExtension(url, S.activeTab);
       });
     }
 
-    // Dismiss overlay → fallback to window.open mode
     if ($.btnDismiss) {
       $.btnDismiss.addEventListener('click', () => {
-        S.useIframe = false;
         hideOverlay();
         const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
-        window.open(url, 'appfolio');
+        window.open(url, '_blank');
       });
     }
 
-    // Back / Forward / Reload
     if ($.btnBack) {
       $.btnBack.addEventListener('click', () => {
-        if (S.activeTab === 'notes') return; // no-op for notes tab
+        if (S.activeTab === 'notes') return;
         if ($.iframe) {
           try { $.iframe.contentWindow.history.back(); } catch (e) {}
         }
@@ -136,7 +153,6 @@
       });
     }
 
-    // Tab switching
     $.tabs?.forEach(tab => {
       tab.addEventListener('click', () => {
         $.tabs.forEach(t => t.classList.remove('active'));
@@ -156,21 +172,10 @@
           if ($.urlBar) $.urlBar.value = url;
         }
 
-        // v2.5.6: Use named window instead of iframe (SSO dead)
-        if (!S.useIframe) {
-          const winName = S.activeTab === 'appfolio' ? 'appfolio' : S.activeTab;
-          if (winName) window.open(url || 'about:blank', winName);
-          return;
-        }
-
-        if ($.iframe) {
-          $.iframe.src = url || 'about:blank';
-          hideOverlay();
-        }
+        sendToExtension(url || 'about:blank', S.activeTab);
       });
     });
 
-    // Edit button in notes preview → open full Notes view
     if ($.previewEdit) {
       $.previewEdit.addEventListener('click', () => {
         HALQ.app.switchView('notes');
@@ -180,10 +185,6 @@
       });
     }
   }
-
-  // =====================
-  // TAB DISPLAY
-  // =====================
 
   function showBrowser() {
     if ($.iframe) $.iframe.style.display = '';
@@ -199,23 +200,13 @@
     if ($.urlBar) $.urlBar.disabled = true;
   }
 
-  // =====================
-  // NAVIGATION
-  // =====================
-
   function navTo(url) {
     if (!url) return;
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     S.baseUrl = url;
     _persist();
     if ($.urlBar) $.urlBar.value = url;
-
-    if (S.useIframe && $.iframe) {
-      $.iframe.src = url;
-      hideOverlay();
-    } else {
-      window.open(url, 'appfolio');
-    }
+    sendToExtension(url, S.activeTab);
   }
 
   function navReload() {
@@ -227,10 +218,6 @@
       }
     }
   }
-
-  // =====================
-  // AUTO-SEARCH WO
-  // =====================
 
   function autoSearchWO(wo) {
     if (!wo) return;
@@ -246,26 +233,14 @@
       _persist();
     }
 
-    // v2.5.6: iframe is dead; always use named window.open
-    if (S.useIframe && $.iframe) {
-      $.iframe.src = url;
-      hideOverlay();
-    } else {
-      window.open(url, 'appfolio');
-    }
+    sendToExtension(url, 'appfolio');
   }
-
-  // =====================
-  // WO NOTE PREVIEW
-  // =====================
 
   async function showWONote(woNum) {
     if (!woNum) return;
     S.currentWONote = woNum;
 
-    // Ensure notes preview is visible
     showNotesPreview();
-    // Activate notes tab
     $.tabs?.forEach(t => t.classList.remove('active'));
     const notesTab = document.querySelector('.browser-tab[data-name="notes"]');
     if (notesTab) notesTab.classList.add('active');
@@ -294,10 +269,6 @@
     }
   }
 
-  // =====================
-  // OVERLAY
-  // =====================
-
   function showOverlay() {
     if ($.overlay) $.overlay.style.display = '';
   }
@@ -310,28 +281,21 @@
     showOverlay();
     const box = $.overlay.querySelector('.browser-extension-box');
     if (!box) return;
-    // Find the message area and replace with custom message
     const paragraphs = box.querySelectorAll('div');
-    // The 3rd div (index 2) is the main message, index 3 is the install steps
     if (paragraphs[2]) {
       paragraphs[2].innerHTML = message;
     }
-    // Hide the install steps
     if (paragraphs[3]) paragraphs[3].style.display = 'none';
-    // Change button text
     const btn = document.getElementById('btn-dismiss-extension-overlay');
     if (btn) {
       btn.textContent = 'Open AppFolio in New Tab';
       btn.onclick = () => {
         const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
-        window.open(url, 'appfolio');
+        window.open(url, '_blank');
       };
     }
   }
 
-  // =====================
-  // IFRAME HEALTH MONITOR
-  // =====================
   function startIframeMonitor() {
     if (!$.iframe) return;
     let lastSrc = $.iframe.src;
@@ -341,7 +305,6 @@
     const iv = setInterval(() => {
       if (!$.iframe) { clearInterval(iv); return; }
 
-      // Check 1: src changed to about:blank after having content
       const current = $.iframe.src;
       if (current === 'about:blank' && lastSrc !== 'about:blank') {
         blankCount++;
@@ -355,7 +318,6 @@
       }
       lastSrc = current;
 
-      // Check 2: Chrome net-error page (ERR_TOO_MANY_REDIRECTS)
       try {
         const iframeDoc = $.iframe.contentDocument || $.iframe.contentWindow?.document;
         if (iframeDoc) {
@@ -377,9 +339,7 @@
             }
           }
         }
-      } catch (e) {
-        // cross-origin access error — expected for AppFolio before extension strips headers
-      }
+      } catch (e) {}
     }, 1500);
   }
 

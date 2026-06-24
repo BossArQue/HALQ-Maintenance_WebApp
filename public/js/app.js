@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.5.6';
+const APP_VERSION = '2.5.7';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
