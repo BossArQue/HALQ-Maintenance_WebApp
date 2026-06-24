@@ -1,11 +1,9 @@
 // background.js — Extension service worker for HALQ tab navigation bridge
-// v1.0.5e: Clear old tracking on startup. Track tab IDs in chrome.storage.local.
+// v1.0.5f: Update the AppFolio tab in the SAME window as HALQ (handles split view).
+// When a user manually splits HALQ with AppFolio, both tabs are in the same window.
+// Querying by windowId ensures we update the correct tab.
 
 const STORAGE_KEY = 'halq_tab_map';
-
-// Clear old tracking on startup (fresh start after extension reload)
-chrome.storage.local.remove(STORAGE_KEY);
-console.log('[HALQ Bridge BG] Cleared old tab tracking on startup');
 
 async function getTabMap() {
   const res = await chrome.storage.local.get(STORAGE_KEY);
@@ -16,22 +14,24 @@ async function setTabMap(map) {
   await chrome.storage.local.set({ [STORAGE_KEY]: map });
 }
 
-async function updateTab(target, url, sendResponse) {
+async function updateTab(target, url, windowId, sendResponse) {
   const map = await getTabMap();
-  const existingId = map[target];
+  const key = target + ':' + windowId;
+  const existingId = map[key];
 
   if (existingId) {
     chrome.tabs.get(existingId, (tab) => {
       if (chrome.runtime.lastError) {
         console.log('[HALQ Bridge BG] Tracked tab', existingId, 'gone. Creating new.');
-        setTabMap({}).then(() => createTab(target, url, sendResponse));
+        delete map[key];
+        setTabMap(map).then(() => createTab(target, url, windowId, sendResponse));
       } else {
         chrome.tabs.update(existingId, {url: url, active: false}, () => {
           if (chrome.runtime.lastError) {
             console.error('[HALQ Bridge BG] tabs.update failed:', chrome.runtime.lastError.message);
             sendResponse({ok: false, error: chrome.runtime.lastError.message});
           } else {
-            console.log('[HALQ Bridge BG] Updated tracked tab', existingId);
+            console.log('[HALQ Bridge BG] Updated tracked tab', existingId, 'in window', windowId);
             sendResponse({ok: true, tabId: existingId, updated: true});
           }
         });
@@ -40,19 +40,20 @@ async function updateTab(target, url, sendResponse) {
     return;
   }
 
-  createTab(target, url, sendResponse);
+  createTab(target, url, windowId, sendResponse);
 }
 
-async function createTab(target, url, sendResponse) {
-  chrome.tabs.create({url: url, active: false}, (newTab) => {
+async function createTab(target, url, windowId, sendResponse) {
+  chrome.tabs.create({url: url, active: false, windowId: windowId}, (newTab) => {
     if (chrome.runtime.lastError) {
       console.error('[HALQ Bridge BG] tabs.create failed:', chrome.runtime.lastError.message);
       sendResponse({ok: false, error: chrome.runtime.lastError.message});
     } else {
       const map = {};
-      map[target] = newTab.id;
+      const key = target + ':' + windowId;
+      map[key] = newTab.id;
       setTabMap(map).then(() => {
-        console.log('[HALQ Bridge BG] Created new tab', newTab.id, 'for target', target);
+        console.log('[HALQ Bridge BG] Created new tab', newTab.id, 'for target', target, 'in window', windowId);
         sendResponse({ok: true, tabId: newTab.id, created: true});
       });
     }
@@ -76,7 +77,14 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
       return false;
     }
 
-    updateTab(target, url, sendResponse);
+    const windowId = sender?.tab?.windowId;
+    if (!windowId) {
+      console.warn('[HALQ Bridge BG] No windowId from sender, falling back to create in current window');
+      createTab(target, url, undefined, sendResponse);
+      return true;
+    }
+
+    updateTab(target, url, windowId, sendResponse);
     return true; // async response
   }
 
