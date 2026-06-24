@@ -17,7 +17,11 @@
     "*://outlook.live.com/*"
   ],
   "externally_connectable": {
-    "matches": ["https://halq-maintenance-webapp.pages.dev/*"]
+    "matches": [
+      "https://halq-maintenance-webapp.pages.dev/*",
+      "http://localhost:8788/*",
+      "http://127.0.0.1:8788/*"
+    ]
   },
   "background": {
     "service_worker": "background.js"
@@ -30,7 +34,11 @@
       "all_frames": true
     },
     {
-      "matches": ["https://halq-maintenance-webapp.pages.dev/*"],
+      "matches": [
+        "https://halq-maintenance-webapp.pages.dev/*",
+        "http://localhost:8788/*",
+        "http://127.0.0.1:8788/*"
+      ],
       "js": ["content-halq.js"],
       "run_at": "document_start"
     }

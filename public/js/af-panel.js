@@ -12,7 +12,8 @@
     baseUrl: '',
     activeTab: 'appfolio',
     useIframe: false,
-    currentWONote: null
+    currentWONote: null,
+    extId: null
   };
 
   // ── DOM refs ──
@@ -48,13 +49,23 @@
   HALQ.af = API;
 
   // ── Extension Bridge ──
+  function detectExtension() {
+    const id = window.__halqExtensionId;
+    if (id && id !== S.extId) {
+      S.extId = id;
+      console.log('[HALQ AF] Extension detected, ID:', S.extId);
+    }
+    return S.extId;
+  }
+
   function sendToExtension(url, target) {
-    const extId = window.__halqExtensionId;
+    const extId = detectExtension();
     if (!extId) {
       console.log('[HALQ AF] Extension not found, falling back to window.open');
       window.open(url, '_blank');
       return;
     }
+    console.log('[HALQ AF] Sending to extension:', extId, 'url:', url, 'target:', target);
     chrome.runtime.sendMessage(extId, {
       action: 'navigate',
       data: { url: url, target: target || 'appfolio' }
@@ -64,6 +75,7 @@
         window.open(url, '_blank');
         return;
       }
+      console.log('[HALQ AF] Extension response:', res);
       if (res && res.ok) {
         console.log('[HALQ AF] Extension navigated tab', res.tabId, res.created ? '(created)' : '(updated)');
       } else {
@@ -78,6 +90,15 @@
     cache();
     _load();
     attachListeners();
+
+    // Poll for extension ID (in case extension loads after page)
+    detectExtension();
+    const poll = setInterval(() => {
+      if (detectExtension()) {
+        clearInterval(poll);
+      }
+    }, 500);
+    setTimeout(() => clearInterval(poll), 10000);
 
     if ($.overlay) {
       setTimeout(() => {
