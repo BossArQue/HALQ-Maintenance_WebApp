@@ -10,7 +10,7 @@
       "path": "rules.json"
     }]
   },
-  "permissions": ["declarativeNetRequest", "tabs"],
+  "permissions": ["declarativeNetRequest", "tabs", "storage"],
   "host_permissions": [
     "*://*.appfolio.com/*",
     "*://outlook.office.com/*",
