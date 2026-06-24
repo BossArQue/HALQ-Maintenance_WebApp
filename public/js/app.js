@@ -172,6 +172,9 @@ function init() {
     if (HALQ.wo.init) HALQ.wo.init();
   });
 
+  // Init browser panel (af-panel.js)
+  if (HALQ.af && HALQ.af.init) HALQ.af.init();
+
   // Bridge status
   updateBridgeStatus();
   setInterval(updateBridgeStatus, 30000);
@@ -573,9 +576,13 @@ HALQ.updateSearchClear = function (input) {
 };
 
 // =====================
-// APPFOLIO AUTO-SEARCH (v2 — new tab, no webview)
+// APPFOLIO AUTO-SEARCH (handled by af-panel.js)
 // =====================
-HALQ.af.autoSearchWO = function (wo) {
+// NOTE: af-panel.js loads after app.js and provides HALQ.af.autoSearchWO
+// which navigates the iframe. The fallback below is kept only if af-panel.js
+// fails to load for some reason.
+HALQ.af = HALQ.af || {};
+HALQ.af.autoSearchWO = HALQ.af.autoSearchWO || function (wo) {
   if (!wo || !wo.wo) return;
   const woSearch = wo.wo.split('-')[0];
   const baseUrl = 'https://talley.appfolio.com';
