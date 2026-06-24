@@ -526,3 +526,59 @@ HALQ.showDebug = showDebug;
 HALQ.showErrorDialog = showErrorDialog;
 HALQ.showFieldStatus = showFieldStatus;
 HALQ.updateBridgeStatus = updateBridgeStatus;
+
+// =====================
+// FIX: Attach utility functions to HALQ root namespace
+// so wo-panel.js and other modules can access them directly
+// =====================
+HALQ.fmtDate = fmtDate;
+HALQ.fmtDateISO = fmtDateISO;
+HALQ.nextBizDay = nextBizDay;
+HALQ.nextNextBizDay = nextNextBizDay;
+HALQ.getNextFriday = getNextFriday;
+HALQ.getWeekStart = getWeekStart;
+HALQ.calendarAgeToBizDays = calendarAgeToBizDays;
+HALQ.skipWeekend = skipWeekend;
+HALQ.escapeHtml = escapeHtml;
+
+// =====================
+// PROMPT DATE HELPER
+// =====================
+HALQ.promptDate = function (label, callback) {
+  const inp = document.createElement('input');
+  inp.type = 'date';
+  inp.style.cssText = 'width:100%;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;outline:none';
+  inp.onchange = () => {
+    if (inp.value) { callback(inp.value); overlay.remove(); }
+  };
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;width:280px;box-shadow:var(--shadow-modal)';
+  box.innerHTML = `<div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text)">${label}</div>`;
+  box.appendChild(inp);
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  inp.focus();
+  inp.showPicker?.();
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+};
+
+// =====================
+// SEARCH CLEAR HELPER
+// =====================
+HALQ.updateSearchClear = function (input) {
+  const btn = document.getElementById('wo-search-clear');
+  if (btn) btn.classList.toggle('visible', input.value.length > 0);
+};
+
+// =====================
+// APPFOLIO AUTO-SEARCH (v2 — new tab, no webview)
+// =====================
+HALQ.af.autoSearchWO = function (wo) {
+  if (!wo || !wo.wo) return;
+  const woSearch = wo.wo.split('-')[0];
+  const baseUrl = 'https://talley.appfolio.com';
+  const url = `${baseUrl}/search/advanced_search?full_text_search=${encodeURIComponent(woSearch)}&section_keys=work_orders`;
+  window.open(url, '_blank');
+};
