@@ -281,7 +281,6 @@
 
 .email-compose-btn:hover {
   background: var(--accent2);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 

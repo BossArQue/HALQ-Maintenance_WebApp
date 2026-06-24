@@ -114,12 +114,11 @@
   border-radius: 5px;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   position: relative;
 }
 
 .catmgr-color-swatch:hover {
-  transform: scale(1.15);
   border-color: var(--text);
 }
 

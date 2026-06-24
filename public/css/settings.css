@@ -341,11 +341,6 @@
 
 #bridge-save-btn:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-#bridge-save-btn:active {
-  transform: translateY(0);
 }
 
 /* ── Bridge Info / Hint Text ── */

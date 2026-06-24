@@ -510,11 +510,11 @@
   border-radius: 50%;
   border: 2px solid var(--border);
   cursor: pointer;
-  transition: transform 0.12s ease;
+  transition: opacity 0.12s ease;
 }
 
 .notes-draw-color:hover {
-  transform: scale(1.2);
+  opacity: 0.8;
 }
 
 .notes-draw-color.active {
