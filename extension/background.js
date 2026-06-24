@@ -1,8 +1,11 @@
 // background.js — Extension service worker for HALQ tab navigation bridge
-// v1.0.5d: Track specific tab IDs per target in chrome.storage.local.
-// Never query existing tabs — always update the tracked tab. If gone, create new.
+// v1.0.5e: Clear old tracking on startup. Track tab IDs in chrome.storage.local.
 
 const STORAGE_KEY = 'halq_tab_map';
+
+// Clear old tracking on startup (fresh start after extension reload)
+chrome.storage.local.remove(STORAGE_KEY);
+console.log('[HALQ Bridge BG] Cleared old tab tracking on startup');
 
 async function getTabMap() {
   const res = await chrome.storage.local.get(STORAGE_KEY);
@@ -18,14 +21,20 @@ async function updateTab(target, url, sendResponse) {
   const existingId = map[target];
 
   if (existingId) {
-    chrome.tabs.update(existingId, {url: url, active: false}, (tab) => {
+    chrome.tabs.get(existingId, (tab) => {
       if (chrome.runtime.lastError) {
         console.log('[HALQ Bridge BG] Tracked tab', existingId, 'gone. Creating new.');
-        delete map[target];
-        setTabMap(map).then(() => createTab(target, url, sendResponse));
+        setTabMap({}).then(() => createTab(target, url, sendResponse));
       } else {
-        console.log('[HALQ Bridge BG] Updated tracked tab', existingId);
-        sendResponse({ok: true, tabId: existingId, updated: true});
+        chrome.tabs.update(existingId, {url: url, active: false}, () => {
+          if (chrome.runtime.lastError) {
+            console.error('[HALQ Bridge BG] tabs.update failed:', chrome.runtime.lastError.message);
+            sendResponse({ok: false, error: chrome.runtime.lastError.message});
+          } else {
+            console.log('[HALQ Bridge BG] Updated tracked tab', existingId);
+            sendResponse({ok: true, tabId: existingId, updated: true});
+          }
+        });
       }
     });
     return;
