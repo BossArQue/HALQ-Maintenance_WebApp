@@ -5,6 +5,11 @@
    DESCRIPTION: Settings overlay tabs, toggles, theme/font picker styling extensions.
    ============================================ */
 
+/* ── Pin Overlay (disabled — feature removed) ── */
+.pin-overlay {
+  display: none !important;
+}
+
 /* ── Settings Overlay Extensions ── */
 .settings-overlay {
   backdrop-filter: blur(6px);

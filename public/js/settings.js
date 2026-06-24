@@ -283,11 +283,7 @@
 
   /* ---------- Open / Close ---------- */
   function open() {
-    const stored = localStorage.getItem('halq_pin');
-    if (stored) {
-      openPin();
-      return;
-    }
+    // PIN auto-lock disabled — feature was unreliable and caused unexpected overlays
     loadSettingsToUI();
     _overlay?.classList.add('open');
   }
