@@ -627,9 +627,14 @@
     else S.selectedCatIds = [];
     updateCatTrigger();
 
-    // Auto-search in Appfolio (v2 — new tab)
+    // Auto-search in Appfolio only if AppFolio tab is already active
     const autoSearchOn = !$.prefAutoSearch || $.prefAutoSearch.classList.contains('on');
-    if (autoSearchOn) HALQ.af.autoSearchWO(S.selected);
+    if (autoSearchOn) {
+      const afTab = document.querySelector('.browser-tab[data-name="appfolio"]');
+      if (afTab && afTab.classList.contains('active')) {
+        HALQ.af.autoSearchWO(S.selected);
+      }
+    }
 
     // If Notes tab is active, show WO note preview
     if (HALQ.af && HALQ.af.showWONote) {

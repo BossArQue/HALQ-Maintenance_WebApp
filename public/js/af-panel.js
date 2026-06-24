@@ -61,6 +61,9 @@
         }
       }, 2000);
     }
+
+    // Watch for iframe blanking (AppFolio iframe-busting)
+    startIframeMonitor();
   }
 
   function _persist() {
@@ -297,6 +300,31 @@
 
   function hideOverlay() {
     if ($.overlay) $.overlay.style.display = 'none';
+  }
+
+  // =====================
+  // IFRAME HEALTH MONITOR
+  // =====================
+  function startIframeMonitor() {
+    if (!$.iframe) return;
+    let lastSrc = $.iframe.src;
+    let blankCount = 0;
+
+    const iv = setInterval(() => {
+      if (!$.iframe) { clearInterval(iv); return; }
+      const current = $.iframe.src;
+      if (current === 'about:blank' && lastSrc !== 'about:blank') {
+        blankCount++;
+        if (blankCount >= 2) {
+          // Iframe went blank after having content — AppFolio probably broke out
+          showOverlay();
+          clearInterval(iv);
+        }
+      } else if (current !== 'about:blank') {
+        blankCount = 0;
+      }
+      lastSrc = current;
+    }, 1500);
   }
 
 })();
