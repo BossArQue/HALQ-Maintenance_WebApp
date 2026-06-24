@@ -50,10 +50,11 @@
 
   // ── Extension Bridge ──
   function detectExtension() {
-    const id = window.__halqExtensionId;
+    const el = document.getElementById('halq-extension-data');
+    const id = el?.dataset.extensionId;
     if (id && id !== S.extId) {
       S.extId = id;
-      console.log('[HALQ AF] Extension detected, ID:', S.extId);
+      console.log('[HALQ AF] Extension detected from DOM, ID:', S.extId);
     }
     return S.extId;
   }

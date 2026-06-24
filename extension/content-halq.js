@@ -1,16 +1,21 @@
-// content-halq.js — Injected into HALQ page to expose extension ID to page scripts
-// v1.0.5: Must inject into main world (isolated world vars are NOT visible to page JS)
+// content-halq.js — Injected into HALQ page to expose extension ID
+// v1.0.5b: DOM element approach (bypasses CSP). Content script creates a hidden div
+// with data-extension-id, page reads it. No script injection needed.
 (function() {
   'use strict';
 
-  const extId = chrome.runtime.id;
+  function inject() {
+    const el = document.createElement('div');
+    el.id = 'halq-extension-data';
+    el.style.display = 'none';
+    el.dataset.extensionId = chrome.runtime.id;
+    (document.body || document.documentElement).appendChild(el);
+    console.log('[HALQ Bridge] Extension ID set in DOM:', chrome.runtime.id);
+  }
 
-  // Inject a script tag into the page's main world so window.__halqExtensionId
-  // is visible to HALQ's af-panel.js
-  const script = document.createElement('script');
-  script.textContent = `window.__halqExtensionId = '${extId}'; console.log('[HALQ Bridge] Extension ID exposed in main world:', '${extId}');`;
-  (document.head || document.documentElement).appendChild(script);
-  script.onload = () => script.remove();
-
-  console.log('[HALQ Bridge] content-halq.js injected main-world script, extId:', extId);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inject);
+  } else {
+    inject();
+  }
 })();
