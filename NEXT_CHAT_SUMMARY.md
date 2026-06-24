@@ -1,170 +1,95 @@
 # HALQ — Next Chat Summary
 
-> **Session:** 2026-06-17
-> **Version:** v2.4.1
-> **Status:** Login + Auth System ✅ Working in production
-> **Ponytail:** ON (default full) — Laziest solution that works. See Rule 8 in HALQ_ONE_TRUE_FILE.md.
+> **Session:** 2026-06-24
+> **Version:** v2.5.5
+> **Status:** Browser panel dead → Rebuilding as WO Context Panel
+> **Ponytail:** ON — Laziest solution that works. See Rule 8 in HALQ_ONE_TRUE_FILE.md.
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
-> **Commit:** `8d26fbd`
+> **Commit:** `3badd0b` (PIN fix) + `2.5.5` bump pending push
 > **Deploy:** Cloudflare Pages auto-deploys on push.
 
 ---
 
 ## What Was Done
 
-### v2.4.1 — Auth System Stable
+### v2.5.3 → v2.5.5 — Browser Panel Fix Attempt
 
-**Final auth architecture: `localStorage` JWT + `Authorization` Bearer header**
+**Goal:** Make the embedded browser panel (middle panel) load AppFolio inside an iframe.
+
+**Result:** FAILED. Chrome's third-party cookie blocking makes SSO login impossible in a cross-origin iframe. The iframe loads AppFolio but enters an infinite redirect loop (`ERR_TOO_MANY_REDIRECTS`) because the login session cookie is blocked.
+
+**What was tried (all failed):**
+
+| Attempt | What | Why It Failed |
+|---------|------|---------------|
+| 1 | Extension strips `X-Frame-Options` and `CSP` headers | AppFolio redirects to `account.appfolio.com` for SSO; the extension only covered `talley.appfolio.com` |
+| 2 | Extension broadened to `*.appfolio.com` | Extension works, but Chrome blocks third-party cookies in cross-origin iframes. AppFolio sets session cookie on login → redirect back → cookie missing → redirect to login again → infinite loop |
+| 3 | Content script patches `window.self`, `window.parent`, `window.frameElement` | AppFolio's JavaScript iframe-busting was patched, but the redirect loop is a **cookie policy issue**, not a JavaScript issue |
+| 4 | Content script + MutationObserver + aggressive CSS | Same root cause: cookies blocked |
+| 5 | Net-error detection in `af-panel.js` | Shows overlay with "Open in New Tab" button. This is the honest fallback, but the iframe itself still doesn't work for SSO sites |
+| 6 | Cache-busting query params (`?v=2.5.4`) | Ensures browsers load fresh JS. Didn't fix the fundamental issue |
+
+**The Real Problem:** Chrome's third-party cookie blocking is a **deliberate security feature**. No extension, no script, no hack can bypass it for SSO login flows. The iframe approach is fundamentally incompatible with modern SaaS platforms that use OAuth/SSO.
+
+**Lesson:** Don't try to embed SSO sites in iframes. Use a launcher or integrate at the data level instead.
+
+---
+
+### v2.5.5 — PIN Overlay Removed
+
+**Bug:** Broken PIN lock overlay appeared as raw unstyled HTML in random positions when clicking work orders. The PIN had no CSS styling and the auto-lock logic was unreliable.
+
+**Fix:** Removed auto-lock behavior from `settings.js`. Added `display: none !important` to `.pin-overlay` in CSS. The PIN feature can be re-implemented properly later if needed.
+
+---
+
+## Current State (Before Context Panel Rebuild)
+
+| Panel | Status | Purpose |
+|-------|--------|---------|
+| **Left** | ✅ Working | WO list, search, filters, categories |
+| **Middle** | ❌ Dead | Browser iframe — white screen for AppFolio (SSO redirect loop) |
+| **Right** | ✅ Working | Detail drawer — edit follow-up, categories, save |
+
+---
+
+## What We're Building Now
+
+**The middle panel is being rebuilt as a "Work Order Context Panel."**
+
+When you click a work order, instead of a useless white iframe, the middle panel shows:
+
+1. **WO Summary** — Property, resident, vendor, status, job summary (read-only)
+2. **Quick Actions** — Open AppFolio (new tab), email vendor, set follow-up
+3. **Notes Preview** — The selected WO's Obsidian note, fetched from API
+
+The detail drawer on the right stays for editing (follow-up dates, categories, save button).
+
+**Why this works:**
+- No cross-origin iframe issues
+- No SSO cookie problems
+- Notes come from HALQ's own API (same origin)
+- AppFolio opens in a new tab (honest, no iframe lie)
+- Actually useful information at a glance
+
+---
+
+## Files Changed in This Session
 
 | File | Change |
 |------|--------|
-| `public/login.html` | Purple overlay login page. Setup form for first-time account creation. Stores JWT in `localStorage` after login. |
-| `functions/api/auth.js` | v2.4.1 — Single endpoint with `?action=` query param. PBKDF2 + HMAC-SHA256 JWT. Returns token in JSON body (no cookies). Endpoints: `login`, `logout`, `me`, `setup`. |
-| `functions/_middleware.js` | v2.4.1 — CORS only. No auth redirect (SPA handles auth in `app.js`). |
-| `db/schema.sql` | v2.1.0 — Added `users` table. |
-| `public/js/app.js` | v2.4.1 — All API helpers send `Authorization: Bearer <token>` header. `initAuth` checks token on page load. Logout clears `localStorage`. Version bump. |
-| `public/index.html` | v2.4.1 — Username badge + logout button in top-right. Removed duplicate upload button. |
-
----
-
-## Auth Flow (Final)
-
-```
-1. First visit → /login.html
-   └─ If no user exists → "First time? Create account" → setup form
-   └─ If user exists → sign in with username/password
-
-2. On login → POST /api/auth?action=login
-   └─ PBKDF2 verifies password against stored hash
-   └─ Issues JWT signed with HMAC-SHA256
-   └─ Returns token in JSON response
-   └─ Frontend stores token in localStorage
-   └─ Redirects to /
-
-3. On every page load → app.js checks token
-   └─ Sends GET /api/auth?action=me with Authorization header
-   └─ Valid → shows app
-   └─ Invalid/missing → redirects to /login.html
-
-4. On every API call → Authorization: Bearer <token> header
-   └─ API endpoints verify JWT signature
-   └─ Invalid → returns 401
-
-5. Logout → clears localStorage → redirects to /login.html
-```
-
----
-
-## ⚠️ Lessons Learned / Mistakes Made
-
-### 1. Cookie-Based Auth Failed on Cloudflare Pages
-
-**Attempted:** `httpOnly` cookie with `SameSite=Strict` → `SameSite=Lax` → `SameSite=None; Secure`
-
-**Why it failed:**
-- `fetch()` with `credentials: 'include'` sends cookies on AJAX calls
-- But **browser navigation** (redirect to `/`) does NOT send cookies the same way
-- `SameSite=None` requires `Secure` (HTTPS), but Pages handles this differently
-- The cookie was set but never sent on the `/` page request
-- **Result:** Infinite redirect loop — login succeeds, redirect to `/`, middleware sees no cookie, redirects back to login
-
-**Lesson:** For SPAs on Pages, use `localStorage` + `Authorization` header instead of cookies.
-
-### 2. Pages Dynamic Routing Doesn't Work for Subpaths
-
-**Attempted:** `functions/api/auth/[[path]].js` to catch `/api/auth/login`, `/api/auth/me`, etc.
-
-**Why it failed:** Pages couldn't route `/api/auth/setup` to the catch-all. Returns 404.
-
-**Fix:** Use query parameters instead: `/api/auth?action=login`, `/api/auth?action=me`, etc.
-
-### 3. `b64urlDecode` Padding Bug
-
-**Bug:** `new Array(5 - str.length % 4).join('=')` adds wrong padding when length is multiple of 4.
-
-**Fix:** `const padding = (4 - str.length % 4) % 4; str += '='.repeat(padding);`
-
-**Result:** JWT verification was failing for all tokens. Adding `?action=test` endpoint revealed the crypto worked for freshly signed tokens, but the old token was corrupted.
-
-### 4. Middleware `Response.redirect()` Has Immutable Headers
-
-**Bug:** Called `response.headers.set('X-HALQ-Auth-Debug', ...)` on `Response.redirect()` — throws "Can't modify immutable headers" in Workers.
-
-**Fix:** Don't modify redirect response headers. Return redirect directly.
-
-### 5. Wrangler Commands for Pages vs Workers Are Different
-
-**Wrong:** `wrangler secret put HALQ_JWT_SECRET` → errors with "Workers-specific command in Pages project"
-**Right:** `wrangler pages secret put HALQ_JWT_SECRET`
-
----
-
-## Required Setup
-
-### 1. Set JWT Secret (Pages command)
-```bash
-wrangler pages secret put HALQ_JWT_SECRET
-# Enter a strong random string
-```
-
-### 2. Run D1 Migration
-```bash
-wrangler d1 execute halq-prod --file=db/schema.sql --remote
-```
-
-### 3. Create Your Account
-1. Visit `https://your-domain.com/login.html`
-2. Click "First time? Create account"
-3. Set username and password (min 6 chars)
-4. Sign in
-
----
-
-## Outstanding Priorities (User-Selected)
-
-### 1. Bridge Auto-Wizard (Deferred)
-- First-time GUI setup in browser
-- Auto-detects OneDrive paths (already done in config.js)
-- Shows: Excel path, Vault path, API URL → [Next] → [Done]
-
-### 2. Settings Panel Rebuild (From OTF Gap Analysis)
-- Legacy v1 had 4 tabs: Accounts, Appearance, Preferences, Messages
-- Current v2 only has Appearance (theme + font)
-- Messages tab (templates + vendor directory) is completely missing
-
----
-
-## UI Refresh — DashboardKit Integration (5 Phases)
-
-| Phase | Goal | Status |
-|-------|------|--------|
-| 1. Foundation | Shell looks professional | ✅ Done (login page + topbar) |
-| 2. Core Pages | Rich WO table, card detail | Not started |
-| 3. Dashboard | Command Center stats + charts | Not started |
-| 4. Polish | Upload page, notifications, customizer | Not started |
-| 5. Advanced | Mobile view, live Obsidian pane | Not started |
-
----
-
-## Open Decisions
-
-| # | Question | Status |
-|---|----------|--------|
-| Auth method | **RESOLVED: Custom username/password with PBKDF2 + JWT + localStorage** |
-| Token storage | **RESOLVED: localStorage + Authorization Bearer header** |
-| Admin features | **RESOLVED: Single user, no roles needed** |
-
----
-
-## Files to Reference in Next Chat
-
-- **OTF:** `HALQ_ONE_TRUE_FILE.md` (updated with v2.4.1 changelog)
-- **Login:** `public/login.html`, `functions/api/auth.js`
-- **Middleware:** `functions/_middleware.js` (CORS only)
-- **Schema:** `db/schema.sql` (users table)
-- **App shell:** `public/index.html`, `public/js/app.js`
-- **UI Template:** `Sample Template/bootstrap/dist/` (CSS, layouts, fonts, JS plugins)
+| `public/js/app.js` | Added `HALQ.af.init()` call; version bump to `2.5.5` |
+| `public/js/af-panel.js` | Added `showExtensionOverlay()`, `startIframeMonitor()`, net-error detection |
+| `public/js/wo-panel.js` | Auto-search only if AppFolio tab already active (protects login flow) |
+| `public/js/settings.js` | Removed PIN auto-lock behavior |
+| `public/css/settings.css` | Added `display: none !important` for `.pin-overlay` |
+| `public/index.html` | Cache-busting `?v=2.5.4` on all JS/CSS assets; version bump |
+| `extension/manifest.json` | Added `host_permissions`, `content_scripts`, `web_accessible_resources` |
+| `extension/rules.json` | Broadened `urlFilter` to `||appfolio.com` (all subdomains) |
+| `extension/content.js` | Content script patches for iframe-busting (ultimately unnecessary) |
+| `extension/patch.js` | Inline script patches (unused, removed in later commit) |
+| `extension/README.md` | Documented SSO iframe limitation and "Open in New Tab" workaround |
 
 ---
 
@@ -174,12 +99,15 @@ wrangler d1 execute halq-prod --file=db/schema.sql --remote
 On branch main
 Your branch is up to date with 'origin/main'.
 
-nothing to commit, working tree clean
+Changes not staged for commit:
+  modified:   public/js/app.js (version bump 2.5.5)
+
+Untracked files:
+  dev-server.js
 ```
 
-**Commit:** `8d26fbd` — pushed to `origin/main`
-**Deploy:** Cloudflare Pages auto-deploys on git push.
+**Next commit:** Context panel rebuild (replaces browser iframe with WO details + notes + actions).
 
 ---
 
-*End of summary. Start next chat with: "build Phase 2" or any other priority.*
+*End of summary. Start next chat with the context panel rebuild or any other priority.*
