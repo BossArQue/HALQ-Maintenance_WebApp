@@ -11,7 +11,7 @@
       ]
     },
     "condition": {
-      "urlFilter": "||talley.appfolio.com",
+      "urlFilter": "||appfolio.com",
       "resourceTypes": ["main_frame", "sub_frame"]
     }
   },

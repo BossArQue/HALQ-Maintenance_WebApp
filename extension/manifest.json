@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HALQ AppFolio Bridge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Allow AppFolio to load inside HALQ's embedded browser panel. Removes X-Frame-Options and CSP headers from talley.appfolio.com.",
   "declarative_net_request": {
     "rule_resources": [{
@@ -12,7 +12,7 @@
   },
   "permissions": ["declarativeNetRequest"],
   "host_permissions": [
-    "*://talley.appfolio.com/*",
+    "*://*.appfolio.com/*",
     "*://outlook.office.com/*",
     "*://outlook.live.com/*"
   ]
