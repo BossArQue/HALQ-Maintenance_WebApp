@@ -1,8 +1,8 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.5.3
-   DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu. Triggers Notes preview on WO select.
+   VERSION: 2.5.6
+   DESCRIPTION: WO list, filtering, detail drawer. v2.5.6: autoSearch always triggers; active-tab check removed for split-view workflow.
    ============================================ */
 
 (function () {
@@ -627,13 +627,10 @@
     else S.selectedCatIds = [];
     updateCatTrigger();
 
-    // Auto-search in Appfolio only if AppFolio tab is already active
+    // Auto-search in AppFolio (v2.5.6: always trigger, named window handles tab reuse)
     const autoSearchOn = !$.prefAutoSearch || $.prefAutoSearch.classList.contains('on');
-    if (autoSearchOn) {
-      const afTab = document.querySelector('.browser-tab[data-name="appfolio"]');
-      if (afTab && afTab.classList.contains('active')) {
-        HALQ.af.autoSearchWO(S.selected);
-      }
+    if (autoSearchOn && HALQ.af && HALQ.af.autoSearchWO) {
+      HALQ.af.autoSearchWO(S.selected);
     }
 
     // If Notes tab is active, show WO note preview

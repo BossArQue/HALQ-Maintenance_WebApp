@@ -1,8 +1,8 @@
 /* ============================================
    FILE: af-panel.js
    PATH: public/js/af-panel.js
-   VERSION: 2.5.3
-   DESCRIPTION: Browser panel — iframe-based with extension support. Tab switching (AppFolio/Outlook/Notes). WO note preview in middle panel.
+   VERSION: 2.5.6
+   DESCRIPTION: Browser panel — named window mode for split view. v2.5.6: iframe disabled, uses window.open('appfolio') for SSO compatibility.
    ============================================ */
 (function () {
   'use strict';
@@ -11,7 +11,7 @@
   const S = {
     baseUrl: '',
     activeTab: 'appfolio',
-    useIframe: true,
+    useIframe: false,   // v2.5.6: iframe is dead for SSO; use named window.open()
     currentWONote: null
   };
 
@@ -90,11 +90,12 @@
       $.btnGo.addEventListener('click', () => navTo($.urlBar.value));
     }
 
-    // Open in new tab
+    // Open in new tab (named window for split view reuse)
     if ($.btnOpenNew) {
       $.btnOpenNew.addEventListener('click', () => {
         const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
-        window.open(url, '_blank');
+        const winName = S.activeTab === 'appfolio' ? 'appfolio' : S.activeTab === 'outlook' ? 'outlook' : 'appfolio';
+        window.open(url, winName);
       });
     }
 
@@ -154,6 +155,14 @@
           _persist();
           if ($.urlBar) $.urlBar.value = url;
         }
+
+        // v2.5.6: Use named window instead of iframe (SSO dead)
+        if (!S.useIframe) {
+          const winName = S.activeTab === 'appfolio' ? 'appfolio' : S.activeTab;
+          if (winName) window.open(url || 'about:blank', winName);
+          return;
+        }
+
         if ($.iframe) {
           $.iframe.src = url || 'about:blank';
           hideOverlay();
@@ -237,12 +246,7 @@
       _persist();
     }
 
-    // Switch to AppFolio tab if not already there
-    const afTab = document.querySelector('.browser-tab[data-name="appfolio"]');
-    if (afTab && S.activeTab !== 'appfolio') {
-      afTab.click();
-    }
-
+    // v2.5.6: iframe is dead; always use named window.open
     if (S.useIframe && $.iframe) {
       $.iframe.src = url;
       hideOverlay();
@@ -320,7 +324,7 @@
       btn.textContent = 'Open AppFolio in New Tab';
       btn.onclick = () => {
         const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
-        window.open(url, '_blank');
+        window.open(url, 'appfolio');
       };
     }
   }
