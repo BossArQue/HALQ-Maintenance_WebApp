@@ -302,6 +302,29 @@
     if ($.overlay) $.overlay.style.display = 'none';
   }
 
+  function showExtensionOverlay(message) {
+    showOverlay();
+    const box = $.overlay.querySelector('.browser-extension-box');
+    if (!box) return;
+    // Find the message area and replace with custom message
+    const paragraphs = box.querySelectorAll('div');
+    // The 3rd div (index 2) is the main message, index 3 is the install steps
+    if (paragraphs[2]) {
+      paragraphs[2].innerHTML = message;
+    }
+    // Hide the install steps
+    if (paragraphs[3]) paragraphs[3].style.display = 'none';
+    // Change button text
+    const btn = document.getElementById('btn-dismiss-extension-overlay');
+    if (btn) {
+      btn.textContent = 'Open AppFolio in New Tab';
+      btn.onclick = () => {
+        const url = S.baseUrl || 'https://talley.appfolio.com/search/advanced_search';
+        window.open(url, '_blank');
+      };
+    }
+  }
+
   // =====================
   // IFRAME HEALTH MONITOR
   // =====================
@@ -309,21 +332,50 @@
     if (!$.iframe) return;
     let lastSrc = $.iframe.src;
     let blankCount = 0;
+    let redirectLoopDetected = false;
 
     const iv = setInterval(() => {
       if (!$.iframe) { clearInterval(iv); return; }
+
+      // Check 1: src changed to about:blank after having content
       const current = $.iframe.src;
       if (current === 'about:blank' && lastSrc !== 'about:blank') {
         blankCount++;
         if (blankCount >= 2) {
-          // Iframe went blank after having content — AppFolio probably broke out
-          showOverlay();
+          showExtensionOverlay('AppFolio blocked the iframe. SSO login in iframes is limited by modern browser security.');
           clearInterval(iv);
+          return;
         }
       } else if (current !== 'about:blank') {
         blankCount = 0;
       }
       lastSrc = current;
+
+      // Check 2: Chrome net-error page (ERR_TOO_MANY_REDIRECTS)
+      try {
+        const iframeDoc = $.iframe.contentDocument || $.iframe.contentWindow?.document;
+        if (iframeDoc) {
+          const body = iframeDoc.body;
+          if (body && body.classList.contains('neterror')) {
+            const errorCode = iframeDoc.querySelector('.error-code');
+            const errorText = errorCode ? errorCode.textContent : '';
+            if (!redirectLoopDetected) {
+              redirectLoopDetected = true;
+              console.log('[HALQ AF] Detected Chrome net-error:', errorText);
+              showExtensionOverlay(
+                '<strong>AppFolio login requires a new tab</strong><br>' +
+                '<span style="font-size:11px">' +
+                'Chrome blocks third-party cookies in iframes, causing a redirect loop.<br>' +
+                'Open AppFolio in a new tab, log in, then return here.' +
+                '</span>'
+              );
+              clearInterval(iv);
+            }
+          }
+        }
+      } catch (e) {
+        // cross-origin access error — expected for AppFolio before extension strips headers
+      }
     }, 1500);
   }
 
