@@ -1,8 +1,8 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.4.1
-   DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router.
+   VERSION: 2.5.3
+   DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router, Bridge status.
    ============================================ */
 
 window.HALQ = {
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.5.2';
+const APP_VERSION = '2.5.3';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -49,11 +49,12 @@ async function apiGet(endpoint) {
 
 async function apiPost(endpoint, body) {
   const token = localStorage.getItem('halq_token');
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(`/api${endpoint}`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+    },
     body: JSON.stringify(body)
   });
   return res.json();
@@ -61,22 +62,14 @@ async function apiPost(endpoint, body) {
 
 async function apiPut(endpoint, body) {
   const token = localStorage.getItem('halq_token');
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(`/api${endpoint}`, {
     method: 'PUT',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+    },
     body: JSON.stringify(body)
   });
-  const contentType = res.headers.get('content-type');
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText || 'Unknown error'}`);
-  }
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await res.text();
-    throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
-  }
   return res.json();
 }
 
@@ -89,7 +82,6 @@ async function apiDelete(endpoint) {
   return res.json();
 }
 
-// Attach to namespace for module access
 HALQ.apiGet = apiGet;
 HALQ.apiPost = apiPost;
 HALQ.apiPut = apiPut;
@@ -180,6 +172,10 @@ function init() {
     if (HALQ.wo.init) HALQ.wo.init();
   });
 
+  // Bridge status
+  updateBridgeStatus();
+  setInterval(updateBridgeStatus, 30000);
+
   // Drag/drop prevent default on body (upload handled by wo-panel)
   document.body.addEventListener('dragover', e => e.preventDefault());
   document.body.addEventListener('drop', e => e.preventDefault());
@@ -194,82 +190,74 @@ function init() {
 }
 
 // =====================
+// BRIDGE STATUS
+// =====================
+
+async function updateBridgeStatus() {
+  try {
+    const res = await apiGet('/bridge/status');
+    const dot = document.getElementById('bridge-status-dot');
+    const text = document.getElementById('bridge-status-text');
+    if (!dot || !text) return;
+
+    if (res.ok && res.connected) {
+      dot.style.background = '#34c759';
+      text.textContent = 'Bridge ' + (res.secondsAgo < 60 ? 'Connected' : 'Idle');
+    } else {
+      dot.style.background = '#ff453a';
+      text.textContent = 'Bridge —';
+    }
+  } catch (e) {
+    const dot = document.getElementById('bridge-status-dot');
+    const text = document.getElementById('bridge-status-text');
+    if (dot) dot.style.background = 'var(--text3)';
+    if (text) text.textContent = 'Bridge —';
+  }
+}
+
+// =====================
 // VIEW ROUTER
 // =====================
 
 function switchView(view) {
   _currentView = view;
+  const isWO = view === 'wo';
   const isNotes = view === 'notes';
   const isEmail = view === 'email';
-  const isWO = view === 'wo';
 
-  const pl = document.getElementById('panel-layout');
-  const np = document.getElementById('notes-panel');
-  const ep = document.getElementById('email-panel');
-  if (pl) pl.style.display = isWO ? 'flex' : 'none';
-  if (np) np.style.display = isNotes ? 'flex' : 'none';
-  if (ep) ep.style.display = isEmail ? 'flex' : 'none';
-
-  const meta = {
-    wo: { title: 'Work Orders', icon: '📋' },
-    email: { title: 'Email', icon: '✉' },
-    notes: { title: 'Notes', icon: '📝' }
-  };
-  const m = meta[view] || meta.wo;
+  document.getElementById('panel-layout').style.display = isWO ? 'flex' : 'none';
+  document.getElementById('notes-panel').style.display = isNotes ? 'flex' : 'none';
+  document.getElementById('email-panel').style.display = isEmail ? 'flex' : 'none';
 
   const titleEl = document.getElementById('topbar-title');
-  if (titleEl) titleEl.textContent = m.title;
-
-  const actionsEl = document.getElementById('topbar-actions');
-  if (actionsEl) {
-    if (isWO) actionsEl.innerHTML = `<button class="btn btn-primary" id="btn-upload-excel">📤 Upload Excel</button>`;
-    else if (isEmail) actionsEl.innerHTML = `<button class="btn btn-ghost" id="btn-open-outlook" title="Open Outlook">✉ Outlook</button>`;
-    else actionsEl.innerHTML = '';
-
-    // Re-attach listeners to new buttons
-    const uploadBtn = document.getElementById('btn-upload-excel');
-    if (uploadBtn) uploadBtn.addEventListener('click', () => HALQ.wo.uploadExcel?.());
-
-    const outlookBtn = document.getElementById('btn-open-outlook');
-    if (outlookBtn) outlookBtn.addEventListener('click', () => HALQ.email.openOutlook?.());
-  }
+  if (titleEl) titleEl.textContent = isWO ? 'Work Orders' : isNotes ? 'Notes' : 'Email';
 
   // Nav active states
-  ['wo', 'email', 'notes'].forEach(v => {
-    document.getElementById('nav-' + v)?.classList.toggle('active', v === view);
-    document.getElementById('tb-nav-' + v)?.classList.toggle('active', v === view);
+  ['wo', 'notes', 'email'].forEach(v => {
+    const nav = document.getElementById('nav-' + v);
+    if (nav) nav.classList.toggle('active', v === view);
   });
-  // Home nav uses 'wo' view
-  const navHome = document.getElementById('nav-home');
-  if (navHome) navHome.classList.toggle('active', view === 'wo');
 
-  if (isNotes && HALQ.notes.renderInPanel) HALQ.notes.renderInPanel();
-  if (isEmail && HALQ.email.init) HALQ.email.init();
+  if (isNotes && HALQ.notes && HALQ.notes.renderInPanel) {
+    HALQ.notes.renderInPanel();
+  }
+  if (isEmail && HALQ.email && HALQ.email.init) {
+    HALQ.email.init();
+  }
 }
 
 // =====================
-// CATEGORIES (v2 — Fetch API)
+// CATEGORIES
 // =====================
 
 async function loadCategories() {
   try {
-    const result = await apiGet('/categories');
-    if (result.ok && result.data) {
-      HALQ.cat.list = result.data;
-      console.log('[CAT] loaded', HALQ.cat.list.length, 'categories from API');
+    const res = await apiGet('/categories');
+    if (res.ok && Array.isArray(res.data)) {
+      HALQ.cat.list = res.data;
     }
   } catch (e) {
-    console.error('[CAT] load error:', e);
-    // Fallback to defaults if API fails (Phase 0 dev mode)
-    HALQ.cat.list = [
-      { id: 1, name: 'Follow-up', color: '#5b9cf6' },
-      { id: 2, name: 'Urgent', color: '#ff453a' },
-      { id: 3, name: 'Waiting on Vendor', color: '#ff9f0a' },
-      { id: 4, name: 'Waiting on Tenant', color: '#34c759' },
-      { id: 5, name: 'Waiting on Owner', color: '#bf5af2' },
-      { id: 6, name: 'Inspection', color: '#00c7be' },
-      { id: 7, name: 'Recurring', color: '#ffd93d' }
-    ];
+    console.error('[CAT] load failed:', e);
   }
 }
 
@@ -277,11 +265,11 @@ async function loadCategories() {
 // THEME
 // =====================
 
-function setTheme(theme, el) {
+function setTheme(theme) {
   document.body.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+  const el = document.querySelector(`.theme-option[data-theme="${theme}"]`);
   if (el) el.classList.add('active');
-  // Persist to API (non-blocking)
   apiPost('/settings', { key: 'theme', value: theme }).catch(() => {});
 }
 
@@ -512,115 +500,29 @@ function showErrorDialog(title, message) {
   overlay.innerHTML = `
     <div style="background:var(--surface);border:1px solid var(--red);border-radius:10px;padding:20px 24px;width:480px;max-width:90vw;display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="color:var(--red);font-weight:600;font-size:13px">✗ ${escapeHtml(title)}</span>
-        <span id="err-dialog-close" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
+        <span style="color:var(--red);font-weight:600;font-size:13px">✗ ${title}</span>
+        <span onclick="document.getElementById('halq-error-dialog').remove()" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</span>
       </div>
-      <textarea readonly style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:monospace;font-size:11px;padding:10px;width:100%;height:120px;resize:none;outline:none;user-select:text">${escapeHtml(message)}</textarea>
+      <textarea readonly style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:monospace;font-size:11px;padding:10px;width:100%;height:120px;resize:none;outline:none;user-select:text">${message}</textarea>
       <div style="font-size:10px;color:var(--text3)">Click inside and Ctrl+A, then Ctrl+C</div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="err-dialog-copy" data-msg="${escapeHtml(message)}" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Copy</button>
-        <button id="err-dialog-close-btn" style="background:var(--red);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Close</button>
+        <button onclick="navigator.clipboard.writeText('${message.replace(/'/g, "\\'")}').then(()=>this.textContent='✓ Copied')" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Copy</button>
+        <button onclick="document.getElementById('halq-error-dialog').remove()" style="background:var(--red);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px">Close</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
-
-  // Attach listeners
-  overlay.querySelector('#err-dialog-close')?.addEventListener('click', () => overlay.remove());
-  overlay.querySelector('#err-dialog-close-btn')?.addEventListener('click', () => overlay.remove());
-  overlay.querySelector('#err-dialog-copy')?.addEventListener('click', function() {
-    navigator.clipboard.writeText(this.dataset.msg).then(() => this.textContent = '✓ Copied');
-  });
-
   setTimeout(() => { const ta = overlay.querySelector('textarea'); if (ta) { ta.focus(); ta.select(); } }, 50);
 }
 
-// =====================
-// PROMPT DATE HELPER
-// =====================
+function showFieldStatus(el, msg, ok) {
+  if (typeof el === 'string') el = document.getElementById(el);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'creds-status ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'creds-status'; }, 3500);
+}
 
-HALQ.promptDate = function (label, callback) {
-  const inp = document.createElement('input');
-  inp.type = 'date';
-  inp.style.cssText = 'width:100%;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;outline:none';
-  inp.onchange = () => {
-    if (inp.value) { callback(inp.value); overlay.remove(); }
-  };
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:20px 22px;width:320px">
-      <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:10px">${escapeHtml(label)}</div>
-    </div>
-  `;
-  overlay.firstElementChild.appendChild(inp);
-  const btns = document.createElement('div');
-  btns.style.cssText = 'display:flex;gap:8px;margin-top:12px;justify-content:flex-end';
-  const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.style.cssText = 'background:none;border:1px solid var(--border2);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px';
-  cancelBtn.addEventListener('click', () => overlay.remove());
-  btns.appendChild(cancelBtn);
-  overlay.firstElementChild.appendChild(btns);
-  document.body.appendChild(overlay);
-  setTimeout(() => { try { inp.showPicker(); } catch (_) {} inp.focus(); }, 60);
-};
-
-// =====================
-// SEARCH CLEAR HELPER
-// =====================
-
-HALQ.updateSearchClear = function (input) {
-  const btn = document.getElementById('wo-search-clear');
-  if (btn) btn.classList.toggle('visible', input.value.length > 0);
-};
-
-// =====================
-// APPFOLIO AUTO-SEARCH (v2 — new tab, no webview)
-// =====================
-
-HALQ.af.autoSearchWO = function (wo) {
-  if (!wo || !wo.wo) return;
-  const woSearch = wo.wo.split('-')[0];
-  const baseUrl = 'https://talley.appfolio.com';
-  const url = `${baseUrl}/search/advanced_search?full_text_search=${encodeURIComponent(woSearch)}&section_keys=work_orders`;
-  window.open(url, '_blank');
-};
-
-// =====================
-// APPFOLIO PANEL (v2 — minimal new-tab launcher)
-// =====================
-
-HALQ.af.navTo = function (url) {
-  if (!url) return;
-  if (!url.startsWith('http')) url = 'https://' + url;
-  window.open(url, '_blank');
-};
-
-HALQ.af.applyUrl = function (url) {
-  if (!url) return;
-  HALQ.af.baseUrl = url;
-};
-
-// =====================
-// EMAIL PANEL (v2 — minimal new-tab launcher)
-// =====================
-
-HALQ.email.openOutlook = function () {
-  window.open('https://outlook.office.com/mail', '_blank');
-};
-
-// =====================
-// FIX: Attach utility functions to HALQ root namespace
-// so wo-panel.js and other modules can access them directly
-// =====================
-HALQ.fmtDate = fmtDate;
-HALQ.fmtDateISO = fmtDateISO;
-HALQ.nextBizDay = nextBizDay;
-HALQ.nextNextBizDay = nextNextBizDay;
-HALQ.getNextFriday = getNextFriday;
-HALQ.getWeekStart = getWeekStart;
-HALQ.calendarAgeToBizDays = calendarAgeToBizDays;
-HALQ.skipWeekend = skipWeekend;
-HALQ.escapeHtml = escapeHtml;
 HALQ.showDebug = showDebug;
 HALQ.showErrorDialog = showErrorDialog;
+HALQ.showFieldStatus = showFieldStatus;
+HALQ.updateBridgeStatus = updateBridgeStatus;

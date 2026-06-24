@@ -1,8 +1,8 @@
 /* ============================================
    FILE: notes.js
    PATH: functions/api/notes.js
-   VERSION: 2.1.0
-   DESCRIPTION: Notes API — notebook tree, page CRUD, asset inline, export.
+   VERSION: 2.5.3
+   DESCRIPTION: Notes API — notebook tree, page CRUD, asset inline, export, WO-linked notes.
    ============================================ */
 
 export async function onRequest(context) {
@@ -21,6 +21,12 @@ export async function onRequest(context) {
     if (method === 'POST' && path.endsWith('/meta')) {
       const body = await request.json();
       return await saveMeta(env.DB, body);
+    }
+
+    // ── GET /api/notes/wo/:wo_number ──
+    if (method === 'GET' && path.includes('/wo/')) {
+      const woNum = path.split('/wo/').pop();
+      return await getWONote(env.DB, woNum);
     }
 
     // ── GET /api/notes/pages/:id ──
@@ -67,6 +73,62 @@ function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// =====================
+// GET WO NOTE — Find or create page for WO
+// =====================
+
+async function getWONote(db, woNum) {
+  if (!woNum) {
+    return jsonResponse({ ok: false, error: 'wo_number required' }, 400);
+  }
+
+  // Find or create "Work Orders" notebook
+  let nb = await db.prepare(
+    `SELECT id FROM notebooks WHERE name = ?`
+  ).bind('Work Orders').first();
+
+  if (!nb) {
+    const insert = await db.prepare(
+      `INSERT INTO notebooks (name, open) VALUES (?, ?)`
+    ).bind('Work Orders', 1).run();
+    nb = { id: insert.meta.last_row_id };
+  }
+
+  // Find or create "Active" section
+  let sec = await db.prepare(
+    `SELECT id FROM sections WHERE notebook_id = ? AND name = ?`
+  ).bind(nb.id, 'Active').first();
+
+  if (!sec) {
+    const insert = await db.prepare(
+      `INSERT INTO sections (notebook_id, name, color, open, sort_order) VALUES (?, ?, ?, ?, ?)`
+    ).bind(nb.id, 'Active', '#5b9cf6', 1, 0).run();
+    sec = { id: insert.meta.last_row_id };
+  }
+
+  // Find page by title = WO number
+  let pg = await db.prepare(
+    `SELECT id, title, content FROM pages WHERE section_id = ? AND title = ?`
+  ).bind(sec.id, woNum).first();
+
+  if (!pg) {
+    // Create empty page for this WO
+    const insert = await db.prepare(
+      `INSERT INTO pages (section_id, title, content, sort_order) VALUES (?, ?, ?, ?)`
+    ).bind(sec.id, woNum, '', 0).run();
+    pg = { id: insert.meta.last_row_id, title: woNum, content: '' };
+  }
+
+  return jsonResponse({
+    ok: true,
+    data: {
+      pageId: String(pg.id),
+      title: pg.title,
+      content: pg.content || ''
+    }
   });
 }
 

@@ -1,9 +1,8 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.2.6
-   DESCRIPTION: WO list, filtering, detail drawer, Excel upload (Active + Closed sheets), context menu.
-                All events via addEventListener (no inline onclick).
+   VERSION: 2.5.3
+   DESCRIPTION: WO list, filtering, detail drawer, Excel upload, context menu. Triggers Notes preview on WO select.
    ============================================ */
 
 (function () {
@@ -631,6 +630,14 @@
     // Auto-search in Appfolio (v2 — new tab)
     const autoSearchOn = !$.prefAutoSearch || $.prefAutoSearch.classList.contains('on');
     if (autoSearchOn) HALQ.af.autoSearchWO(S.selected);
+
+    // If Notes tab is active, show WO note preview
+    if (HALQ.af && HALQ.af.showWONote) {
+      const notesTab = document.querySelector('.browser-tab[data-name="notes"]');
+      if (notesTab && notesTab.classList.contains('active')) {
+        HALQ.af.showWONote(S.selected.wo);
+      }
+    }
 
     $.detail.classList.add('open');
   }

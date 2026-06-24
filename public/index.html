@@ -1,8 +1,8 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.3.0
-   DESCRIPTION: SPA shell with DashboardKit layout.
+   VERSION: 2.5.3
+   DESCRIPTION: SPA shell with DashboardKit layout. v2.5.3: Notes preview in browser panel, full Notes template, Bridge status.
    ============================================ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -117,7 +117,13 @@
         </div>
       </div>
       <div class="navbar-content" style="margin-top:auto;padding:12px 20px;font-size:11px;color:var(--pc-sidebar-color);opacity:0.6;border-top:1px solid rgba(255,255,255,0.05);">
-        <span id="bb-version">v2.2.3</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <span id="bb-version">v2.5.3</span>
+          <span id="bridge-status" style="display:flex;align-items:center;gap:6px">
+            <span class="bridge-status-dot" id="bridge-status-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block"></span>
+            <span id="bridge-status-text">Bridge —</span>
+          </span>
+        </div>
       </div>
     </div>
   </nav>
@@ -227,6 +233,7 @@
               <div class="browser-tabs" id="browser-tabs">
                 <div class="browser-tab active" data-name="appfolio" data-url="https://talley.appfolio.com/search/advanced_search">AppFolio</div>
                 <div class="browser-tab" data-name="outlook" data-url="https://outlook.office.com/mail">Outlook</div>
+                <div class="browser-tab" data-name="notes" id="browser-tab-notes">📝 Notes</div>
               </div>
             </div>
             <div class="browser-toolbar">
@@ -254,6 +261,15 @@
                     4. Select the <code>extension/</code> folder
                   </div>
                   <button class="btn btn-primary" id="btn-dismiss-extension-overlay" style="font-size:12px">Open in New Tab Instead</button>
+                </div>
+              </div>
+              <div class="browser-notes-preview" id="browser-notes-preview" style="display:none">
+                <div class="bn-preview-hd">
+                  <span class="bn-preview-title" id="bn-preview-title">Select a work order</span>
+                  <button class="bn-preview-edit" id="bn-preview-edit" title="Open in Notes">✎</button>
+                </div>
+                <div class="bn-preview-body" id="bn-preview-body">
+                  <div class="bn-preview-empty">Click a work order to view its note</div>
                 </div>
               </div>
             </div>
@@ -320,13 +336,8 @@
           </div>
         </div>
 
-        <!-- NOTES VIEW (placeholder) -->
-        <div id="notes-panel" class="view-panel" style="display:none">
-          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);flex-direction:column;gap:12px">
-            <div style="font-size:48px">📝</div>
-            <div style="font-size:14px">Notes panel coming in Phase 2</div>
-          </div>
-        </div>
+        <!-- NOTES VIEW -->
+        <div id="notes-panel" class="view-panel" style="display:none"></div>
 
         <!-- EMAIL VIEW (placeholder) -->
         <div id="email-panel" class="view-panel" style="display:none">
@@ -653,6 +664,167 @@
         <button class="catmgr-btn primary" id="btn-catmgr-add">Add</button>
       </div>
       <div class="catmgr-status" id="catmgr-status"></div>
+    </div>
+  </div>
+
+  <!-- NOTES TEMPLATE (injected into #notes-panel by notes-panel.js) -->
+  <div id="notes-body-wrap-template" style="display:none">
+    <div class="notes-body-wrap" id="notes-body-wrap">
+      <div class="notes-nb-panel" id="notes-nb-panel">
+        <div class="notes-nb-hd">
+          <span class="notes-nb-hd-title">Notebooks</span>
+          <button class="ntree-btn" title="New Notebook" style="font-size:15px;font-weight:bold" id="btn-add-nb">+</button>
+        </div>
+        <div class="notes-tree" id="notes-tree"></div>
+      </div>
+      <div class="resize-divider" id="notes-divider-1"></div>
+      <div class="notes-pg-panel" id="notes-pg-panel">
+        <div class="notes-pg-hd">
+          <span class="notes-pg-hd-title" id="notes-pg-hd-title">Pages</span>
+          <button class="ntree-btn" id="notes-add-pg-btn" title="New Page" style="font-size:15px;font-weight:bold;display:none">+</button>
+        </div>
+        <div class="notes-pg-list" id="notes-pg-list">
+          <div class="notes-pg-empty">Select a section</div>
+        </div>
+      </div>
+      <div class="resize-divider" id="notes-divider-2"></div>
+      <div class="notes-editor">
+        <div class="notes-tb" id="notes-tb">
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-fmt="bold"><b>B</b></button>
+            <button class="nbt" data-fmt="italic"><i>I</i></button>
+            <button class="nbt" data-fmt="underline"><u>U</u></button>
+            <button class="nbt" data-fmt="strikeThrough"><s>S</s></button>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-block="h1">H1</button>
+            <button class="nbt" data-block="h2">H2</button>
+            <button class="nbt" data-block="h3">H3</button>
+            <button class="nbt" data-block="p">¶</button>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-list="ul">• List</button>
+            <button class="nbt" data-list="ol">1. List</button>
+            <button class="nbt" data-checklist>☑ Check</button>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-table>⊞ Table</button>
+            <button class="nbt" data-image>🖼 Image</button>
+            <button class="nbt" data-file>📎 File</button>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" id="nbt-draw" data-draw>✏️ Draw</button>
+            <select class="nbt-sel" id="draw-color" title="Text Color">
+              <option value="#000000">Black</option>
+              <option value="#e5e7eb">Gray</option>
+              <option value="#5b9cf6">Blue</option>
+              <option value="#34c759">Green</option>
+              <option value="#ff9f0a">Orange</option>
+              <option value="#ff453a">Red</option>
+              <option value="#bf5af2">Purple</option>
+            </select>
+            <select class="nbt-sel" id="draw-size" title="Size">
+              <option value="1">Small</option>
+              <option value="3" selected>Normal</option>
+              <option value="5">Large</option>
+              <option value="8">Huge</option>
+            </select>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-align="justifyLeft">⬅</button>
+            <button class="nbt" data-align="justifyCenter">↔</button>
+            <button class="nbt" data-align="justifyRight">➡</button>
+          </div>
+          <div class="notes-tb-sep"></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nbt" data-undo>↩</button>
+            <button class="nbt" data-redo>↪</button>
+          </div>
+          <div class="notes-draw-bar" id="notes-draw-bar">
+            <input type="color" id="draw-color-picker" value="#5b9cf6" title="Pen Color">
+            <input type="range" id="draw-size-picker" min="1" max="20" value="3" title="Size">
+            <button class="nbt" id="draw-eraser">⌫ Eraser</button>
+            <button class="nbt" id="draw-clear">🗑 Clear</button>
+            <button class="nbt" id="draw-save">💾 Save</button>
+          </div>
+        </div>
+        <div class="notes-page-area" id="notes-page-area">
+          <div class="notes-empty" id="notes-empty">
+            <div style="font-size:40px">📝</div>
+            <div style="font-size:14px;color:#999">Select a page or create one</div>
+          </div>
+          <div id="notes-page-inner" class="notes-page-inner" style="display:none">
+            <input class="notes-pg-title" id="notes-pg-title"
+                   placeholder="Page title...">
+            <div class="notes-canvas-wrap" id="notes-canvas-wrap">
+              <canvas id="notes-canvas"></canvas>
+            </div>
+            <div class="notes-body" id="notes-body"
+                 contenteditable="true"
+                 spellcheck="true">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES PROMPT MODAL -->
+  <div class="nt-prompt-overlay" id="nt-prompt-overlay">
+    <div class="nt-prompt-box">
+      <div class="nt-prompt-label" id="nt-prompt-label"></div>
+      <input class="nt-prompt-input" id="nt-prompt-input" type="text">
+      <div class="nt-prompt-btns">
+        <button class="nt-prompt-cancel" id="nt-prompt-cancel">Cancel</button>
+        <button class="nt-prompt-ok" id="nt-prompt-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES CONFIRM MODAL -->
+  <div class="nt-prompt-overlay" id="nt-confirm-overlay">
+    <div class="nt-prompt-box">
+      <div class="nt-prompt-label" id="nt-confirm-msg" style="white-space:pre-wrap;text-align:center"></div>
+      <div class="nt-prompt-btns" style="margin-top:4px">
+        <button class="nt-prompt-cancel" id="nt-confirm-cancel">Cancel</button>
+        <button class="nt-prompt-ok" style="background:var(--red)" id="nt-confirm-ok">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES EXPORT MODAL -->
+  <div class="nt-export-overlay" id="nt-export-overlay">
+    <div class="nt-export-box">
+      <div class="nt-export-ttl">⬇ Export Notes</div>
+      <div class="nt-export-row">
+        <div class="nt-export-lbl">What to export</div>
+        <div class="nt-export-scope">
+          <button class="nt-scope-btn on" id="exp-scope-nb">Notebook</button>
+          <button class="nt-scope-btn" id="exp-scope-sec">Section</button>
+          <button class="nt-scope-btn" id="exp-scope-pg">Page</button>
+        </div>
+      </div>
+      <div class="nt-export-row">
+        <div class="nt-export-lbl">Notebook</div>
+        <select class="nt-export-sel" id="exp-sel-nb"></select>
+      </div>
+      <div class="nt-export-row" id="exp-row-sec" style="display:none">
+        <div class="nt-export-lbl">Section</div>
+        <select class="nt-export-sel" id="exp-sel-sec"></select>
+      </div>
+      <div class="nt-export-row" id="exp-row-pg" style="display:none">
+        <div class="nt-export-lbl">Page</div>
+        <select class="nt-export-sel" id="exp-sel-pg"></select>
+      </div>
+      <div class="nt-export-footer">
+        <button class="nt-exp-cancel" id="nt-exp-cancel">Cancel</button>
+        <button class="nt-exp-ok" id="nt-exp-ok">Export</button>
+      </div>
     </div>
   </div>
 

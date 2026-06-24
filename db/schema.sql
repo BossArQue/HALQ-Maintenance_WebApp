@@ -1,7 +1,7 @@
 -- ============================================
 -- FILE: schema.sql
 -- PATH: db/schema.sql
--- VERSION: 2.1.0
+-- VERSION: 2.5.3
 -- DESCRIPTION: D1 database schema for HALQ v2 — all tables.
 -- ============================================
 
@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bridge Heartbeats — sync status
+CREATE TABLE IF NOT EXISTS bridge_heartbeats (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    last_seen TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Seed default categories
 INSERT OR IGNORE INTO categories (id, name, color, sort_order) VALUES
 (1, 'Follow-up', '#5b9cf6', 1),
@@ -158,31 +164,11 @@ INSERT OR IGNORE INTO categories (id, name, color, sort_order) VALUES
 
 -- Seed default message templates
 INSERT OR IGNORE INTO message_templates (group_name, type, name, body, sort_order) VALUES
-('tenant', 'email', 'Not heard from contractor', 'Hello {res},
-
-If you have not heard from our contractor, please call them directly to schedule your repair.
-
-{vendor_details}
-
-', 1),
-('tenant', 'email', 'Vendor trying to reach you', 'Hello {res},
-
-Our vendor is trying to reach you. Please call them directly to schedule your repair.
-
-{vendor_details}
-
-', 2),
+('tenant', 'email', 'Not heard from contractor', 'Hello {res},\n\nIf you have not heard from our contractor, please call them directly to schedule your repair.\n\n{vendor_details}\n\n', 1),
+('tenant', 'email', 'Vendor trying to reach you', 'Hello {res},\n\nOur vendor is trying to reach you. Please call them directly to schedule your repair.\n\n{vendor_details}\n\n', 2),
 ('tenant', 'text', 'Not heard from contractor', 'Hi {res}, if you have not heard from our contractor please call them directly: {vendor_details}', 1),
 ('tenant', 'text', 'Vendor trying to reach you', 'Hi {res}, our vendor is trying to reach you. Please call them: {vendor_details}', 2),
-('vendor', 'email', 'Follow up', 'Hello,
-
-What is the update on WO #{wo} — {prop}?
-
-', 1),
-('vendor', 'email', 'Invoice', 'Hello,
-
-Please send your invoice for WO #{wo} — {prop}.
-
-', 2),
+('vendor', 'email', 'Follow up', 'Hello,\n\nWhat is the update on WO #{wo} — {prop}?\n\n', 1),
+('vendor', 'email', 'Invoice', 'Hello,\n\nPlease send your invoice for WO #{wo} — {prop}.\n\n', 2),
 ('vendor', 'text', 'Follow up', 'Hi, what is the update on WO #{wo} at {prop}?', 1),
 ('vendor', 'text', 'Invoice', 'Hi, please send your invoice for WO #{wo} at {prop}.', 2);

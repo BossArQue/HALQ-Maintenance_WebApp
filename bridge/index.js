@@ -1,8 +1,8 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.2.4
-   DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown.
+   VERSION: 2.5.3
+   DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown. Added /api/bridge/ping on sync loop.
                 Excel → Webapp → Obsidian. Webapp is the source of truth for Obsidian sync.
    ============================================ */
 
@@ -217,6 +217,8 @@ async function _syncLoop() {
   try {
     // Sync from webapp (source of truth) — NOT from Excel
     await _syncToObsidian(cfg.vaultPath);
+    // Ping HALQ webapp so it knows Bridge is alive
+    await api.apiPost('/bridge/ping', {});
   } catch (e) {
     // Silent fail on poll — API may be down
   }

@@ -1,8 +1,8 @@
 /* ============================================
    FILE: notes-panel.js
    PATH: public/js/notes-panel.js
-   VERSION: 2.1.0
-   DESCRIPTION: Notes panel — tree, editor, canvas, export. Fetch API replaces IPC.
+   VERSION: 2.5.3
+   DESCRIPTION: Notes panel — tree, editor, canvas, export. Fetch API replaces IPC. WO note opener. Toolbar event delegation.
    ============================================ */
 (function () {
   'use strict'
@@ -71,6 +71,7 @@
     openPage,
     savePage,
     showEmpty: _showEmpty,
+    openWO,
 
     // Toolbar
     toolbar: {
@@ -208,15 +209,121 @@
     $.drawColor    = document.getElementById('draw-color')
     $.drawSize     = document.getElementById('draw-size')
     $.drawEraserBtn= document.getElementById('draw-eraser')
+    _attachToolbarListeners()
+  }
+
+  function _attachToolbarListeners () {
+    // Toolbar format buttons
+    document.querySelectorAll('.nbt[data-fmt]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cmd = btn.dataset.fmt
+        const val = btn.dataset.val || null
+        nFmt(cmd, val)
+      })
+    })
+    // Block buttons
+    document.querySelectorAll('.nbt[data-block]').forEach(btn => {
+      btn.addEventListener('click', () => nBlock(btn.dataset.block))
+    })
+    // List buttons
+    document.querySelectorAll('.nbt[data-list]').forEach(btn => {
+      btn.addEventListener('click', () => nList(btn.dataset.list))
+    })
+    // Checklist button
+    const chkBtn = document.querySelector('.nbt[data-checklist]')
+    if (chkBtn) chkBtn.addEventListener('click', nChecklist)
+    // Table button
+    const tblBtn = document.querySelector('.nbt[data-table]')
+    if (tblBtn) tblBtn.addEventListener('click', nTable)
+    // Image button
+    const imgBtn = document.querySelector('.nbt[data-image]')
+    if (imgBtn) imgBtn.addEventListener('click', nImage)
+    // File button
+    const fileBtn = document.querySelector('.nbt[data-file]')
+    if (fileBtn) fileBtn.addEventListener('click', nFile)
+    // Draw button
+    const drawBtn = document.getElementById('nbt-draw')
+    if (drawBtn) drawBtn.addEventListener('click', nToggleDraw)
+    // Align buttons
+    document.querySelectorAll('.nbt[data-align]').forEach(btn => {
+      btn.addEventListener('click', () => nFmt(btn.dataset.align))
+    })
+    // Undo / redo
+    const undoBtn = document.querySelector('.nbt[data-undo]')
+    if (undoBtn) undoBtn.addEventListener('click', () => nFmt('undo'))
+    const redoBtn = document.querySelector('.nbt[data-redo]')
+    if (redoBtn) redoBtn.addEventListener('click', () => nFmt('redo'))
+    // Draw bar buttons
+    const eraserBtn = document.getElementById('draw-eraser')
+    if (eraserBtn) eraserBtn.addEventListener('click', nDrawEraser)
+    const clearBtn = document.getElementById('draw-clear')
+    if (clearBtn) clearBtn.addEventListener('click', nDrawClear)
+    const saveDrawBtn = document.getElementById('draw-save')
+    if (saveDrawBtn) saveDrawBtn.addEventListener('click', nSaveDrawing)
+    // Add notebook button
+    const addNbBtn = document.getElementById('btn-add-nb')
+    if (addNbBtn) addNbBtn.addEventListener('click', addNotebook)
+    // Prompt / confirm modal buttons
+    const promptOk = document.getElementById('nt-prompt-ok')
+    if (promptOk) promptOk.addEventListener('click', _promptOK)
+    const promptCancel = document.getElementById('nt-prompt-cancel')
+    if (promptCancel) promptCancel.addEventListener('click', _promptCancel)
+    const confirmOk = document.getElementById('nt-confirm-ok')
+    if (confirmOk) confirmOk.addEventListener('click', _confirmOK)
+    const confirmCancel = document.getElementById('nt-confirm-cancel')
+    if (confirmCancel) confirmCancel.addEventListener('click', _confirmCancel)
+    // Export modal buttons
+    const expScopeNb = document.getElementById('exp-scope-nb')
+    if (expScopeNb) expScopeNb.addEventListener('click', () => ntExportSetScope('notebook'))
+    const expScopeSec = document.getElementById('exp-scope-sec')
+    if (expScopeSec) expScopeSec.addEventListener('click', () => ntExportSetScope('section'))
+    const expScopePg = document.getElementById('exp-scope-pg')
+    if (expScopePg) expScopePg.addEventListener('click', () => ntExportSetScope('page'))
+    const expCancel = document.getElementById('nt-exp-cancel')
+    if (expCancel) expCancel.addEventListener('click', ntExportClose)
+    const expOk = document.getElementById('nt-exp-ok')
+    if (expOk) expOk.addEventListener('click', ntExportRun)
+    // Page title / body input listeners
+    if ($.pgTitle) {
+      $.pgTitle.addEventListener('input', _markDirty)
+      $.pgTitle.addEventListener('blur', savePage)
+    }
+    if ($.body) {
+      $.body.addEventListener('input', _markDirty)
+      $.body.addEventListener('paste', ntPaste)
+      $.body.addEventListener('drop', ntDrop)
+      $.body.addEventListener('dragover', e => e.preventDefault())
+    }
   }
 
   async function init () {
+    if (S._initialized) return
+    S._initialized = true
     cache()
     const res = await _apiGetNotesMeta()
     if (res.ok) S.meta = res.data
     if (!S.meta.notebooks) S.meta = { notebooks: [] }
     renderTree()
   }
+
+  // =====================
+  // OPEN WO NOTE
+  // =====================
+
+  async function openWO (woNum) {
+    if (!woNum) return
+    await init()
+    const nb = S.meta.notebooks.find(n => n.name === 'Work Orders')
+    if (!nb) return
+    const sec = nb.sections?.find(s => s.name === 'Active')
+    if (!sec) return
+    const pg = sec.pages?.find(p => p.title === woNum)
+    if (pg) {
+      selectSection(nb.id, sec.id)
+      openPage(nb.id, sec.id, pg.id)
+    }
+  }
+  API.openWO = openWO
 
   // =====================
   // TREE RENDER
