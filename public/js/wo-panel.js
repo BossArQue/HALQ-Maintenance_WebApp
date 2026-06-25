@@ -375,6 +375,7 @@
   }
 
   function renderList(data) {
+    if (!$.list) return;
     if (!data) data = getFilteredWOs();
     if (!data.length) {
       $.list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No work orders found</div>';
@@ -598,26 +599,28 @@
 
   function select(woNum) {
     S.selected = S.wos.find(w => w.wo === woNum);
-    if (!S.selected) return;
+    if (!S.selected || !$.detail) return;
 
     document.querySelectorAll('.wo-item').forEach(el => {
       el.classList.toggle('active', el.dataset.wo === woNum);
     });
 
-    $.dWO.textContent = S.selected.wo;
-    $.dProp.textContent = S.selected.prop + (S.selected.unit ? ' · ' + S.selected.unit : '');
-    $.dRes.textContent = S.selected.res || '—';
-    $.dVendor.textContent = S.selected.vendor || '—';
-    $.dStatus.textContent = S.selected.status;
-    $.dAge.textContent = S.selected.age + ' days';
-    $.dJob.textContent = S.selected.job || '—';
+    if ($.dWO) $.dWO.textContent = S.selected.wo;
+    if ($.dProp) $.dProp.textContent = S.selected.prop + (S.selected.unit ? ' · ' + S.selected.unit : '');
+    if ($.dRes) $.dRes.textContent = S.selected.res || '—';
+    if ($.dVendor) $.dVendor.textContent = S.selected.vendor || '—';
+    if ($.dStatus) $.dStatus.textContent = S.selected.status;
+    if ($.dAge) $.dAge.textContent = S.selected.age + ' days';
+    if ($.dJob) $.dJob.textContent = S.selected.job || '—';
 
     S.currentFollowup = S.selected._followup || null;
-    if (S.currentFollowup) {
-      try { $.followupVal.textContent = HALQ.fmtDate(new Date(S.currentFollowup + 'T00:00:00')); }
-      catch (_) { $.followupVal.textContent = S.currentFollowup; }
-    } else {
-      $.followupVal.textContent = '— Not set —';
+    if ($.followupVal) {
+      if (S.currentFollowup) {
+        try { $.followupVal.textContent = HALQ.fmtDate(new Date(S.currentFollowup + 'T00:00:00')); }
+        catch (_) { $.followupVal.textContent = S.currentFollowup; }
+      } else {
+        $.followupVal.textContent = '— Not set —';
+      }
     }
     document.querySelectorAll('.followup-opt').forEach(o => o.classList.remove('active'));
 
@@ -691,6 +694,7 @@
   }
 
   function toggleFollowup() {
+    if (!$.followupDD || !$.followupTrigger) return;
     const isOpen = $.followupDD.classList.contains('open');
     HALQ.app.closeAllDropdowns();
     if (!isOpen) {
@@ -760,6 +764,7 @@
   }
 
   function toggleCatDropdown() {
+    if (!$.catDropdown || !$.catTrigger) return;
     const isOpen = $.catDropdown.classList.contains('open');
     HALQ.app.closeAllDropdowns();
     if (!isOpen) {
@@ -798,6 +803,7 @@
   }
 
   function updateCatTrigger() {
+    if (!$.catTriggerStrips || !$.catTriggerLabel) return;
     const cats = S.selectedCatIds.map(id => HALQ.cat.getById(id)).filter(Boolean);
     if (cats.length) {
       $.catTriggerStrips.innerHTML = cats.map(c =>
@@ -829,6 +835,7 @@
   // =====================
 
   function initCtxDelegation() {
+    if (!$.list) return;
     if ($.list._ctxDelegated) return;
     $.list._ctxDelegated = true;
     $.list.addEventListener('contextmenu', e => {
@@ -934,6 +941,7 @@
       html += `<div class="wo-ctx-item has-flyout">🏷 Category${categoryFlyout}</div>`;
     }
 
+    if (!$.ctxMenu) return;
     $.ctxMenu.innerHTML = html;
     $.ctxMenu.style.display = 'block';
 

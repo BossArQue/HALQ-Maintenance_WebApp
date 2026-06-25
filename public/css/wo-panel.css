@@ -411,20 +411,21 @@
 
 /* ── Detail Drawer ── */
 .wo-detail {
-  width: 340px;
-  min-width: 280px;
+  width: 0;
+  min-width: 0;
   max-width: 480px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
 
 .wo-detail.open {
-  transform: translateX(0);
+  width: 340px;
+  min-width: 280px;
 }
 
 .wo-detail-header {
@@ -821,14 +822,14 @@
     right: 0;
     top: 80px;
     bottom: 0;
-    width: 100%;
+    width: 0;
     max-width: 380px;
     z-index: 100;
     box-shadow: var(--shadow-lg);
-    transform: translateX(100%);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .wo-detail.open {
-    transform: translateX(0);
+    width: 100%;
   }
 }

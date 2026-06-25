@@ -352,7 +352,7 @@
 
   function applySettingsToUI() {
     // Theme
-    const theme = localStorage.getItem('halq_theme') || 'dark';
+    const theme = localStorage.getItem('halq_theme') || 'light';
     document.body.setAttribute('data-theme', theme);
     document.querySelectorAll('.theme-option').forEach(el => {
       el.classList.toggle('active', el.getAttribute('data-theme') === theme);
