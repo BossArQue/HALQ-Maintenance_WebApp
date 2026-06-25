@@ -809,10 +809,9 @@
       HALQ.settings.init();
       // Initialize feather icons
       if (typeof feather !== 'undefined') feather.replace();
-      // DashboardKit layout init
+      // DashboardKit layout init (remove change_box_container — crashes on missing .footer-wrapper)
       layout_change('light');
       layout_sidebar_change('dark');
-      change_box_container('false');
       layout_caption_change('true');
       layout_rtl_change('false');
       preset_change('preset-1');
