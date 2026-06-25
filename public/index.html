@@ -1,8 +1,8 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.5.7
-   DESCRIPTION: SPA shell with DashboardKit layout. v2.5.7: Extension bridge for cross-tab navigation in Chrome Split View.
+   VERSION: 2.5.8
+   DESCRIPTION: SPA shell with DashboardKit layout. v2.5.8: Removed dead browser panel; extension bridge for split view is the workflow.
    ============================================ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -21,12 +21,12 @@
   <link rel="stylesheet" href="/assets/dashboardkit/css/style-preset.css">
 
   <!-- [HALQ CSS] -->
-  <link rel="stylesheet" href="/css/app.css?v=2.5.7">
-  <link rel="stylesheet" href="/css/wo-panel.css?v=2.5.7">
-  <link rel="stylesheet" href="/css/category-manager.css?v=2.5.7">
-  <link rel="stylesheet" href="/css/context-menu.css?v=2.5.7">
-  <link rel="stylesheet" href="/css/settings.css?v=2.5.7">
-  <link rel="stylesheet" href="/css/dashboardkit-compat.css?v=2.5.7">
+  <link rel="stylesheet" href="/css/app.css?v=2.5.8">
+  <link rel="stylesheet" href="/css/wo-panel.css?v=2.5.8">
+  <link rel="stylesheet" href="/css/category-manager.css?v=2.5.8">
+  <link rel="stylesheet" href="/css/context-menu.css?v=2.5.8">
+  <link rel="stylesheet" href="/css/settings.css?v=2.5.8">
+  <link rel="stylesheet" href="/css/dashboardkit-compat.css?v=2.5.8">
 
   <!-- SheetJS for browser-side Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -118,7 +118,7 @@
       </div>
       <div class="navbar-content" style="margin-top:auto;padding:12px 20px;font-size:11px;color:var(--pc-sidebar-color);opacity:0.6;border-top:1px solid rgba(255,255,255,0.05);">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-          <span id="bb-version">v2.5.7</span>
+          <span id="bb-version">v2.5.8</span>
           <span id="bridge-status" style="display:flex;align-items:center;gap:6px">
             <span class="bridge-status-dot" id="bridge-status-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block"></span>
             <span id="bridge-status-text">Bridge —</span>
@@ -225,57 +225,7 @@
             </div>
           </div>
 
-          <div class="resize-divider" id="wo-resize-divider"></div>
-
-          <!-- BROWSER PANEL -->
-          <div class="browser-panel" id="browser-panel">
-            <div class="browser-tabs-wrap">
-              <div class="browser-tabs" id="browser-tabs">
-                <div class="browser-tab active" data-name="appfolio" data-url="https://talley.appfolio.com/search/advanced_search">AppFolio</div>
-                <div class="browser-tab" data-name="outlook" data-url="https://outlook.office.com/mail">Outlook</div>
-                <div class="browser-tab" data-name="notes" id="browser-tab-notes">📝 Notes</div>
-              </div>
-            </div>
-            <div class="browser-toolbar">
-              <button class="browser-nav-btn" id="browser-back" title="Back">←</button>
-              <button class="browser-nav-btn" id="browser-forward" title="Forward">→</button>
-              <button class="browser-nav-btn" id="browser-reload" title="Reload">↻</button>
-              <input type="text" class="browser-url" id="browser-url" placeholder="Enter URL...">
-              <button class="browser-go-btn" id="browser-go">Go</button>
-              <button class="browser-nav-btn" id="browser-open-new" title="Open in New Tab">↗</button>
-            </div>
-            <div class="browser-viewport">
-              <iframe class="browser-iframe" id="browser-iframe" src="about:blank" title="AppFolio Browser"></iframe>
-              <div class="browser-extension-overlay" id="browser-extension-overlay" style="display:none">
-                <div class="browser-extension-box">
-                  <div style="font-size:32px;margin-bottom:8px">🔒</div>
-                  <div style="font-weight:600;font-size:14px;margin-bottom:4px">AppFolio blocked</div>
-                  <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:12px">
-                    The HALQ browser extension removes the header that blocks AppFolio from loading in an iframe.
-                  </div>
-                  <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:12px;text-align:left">
-                    <strong>Install:</strong><br>
-                    1. Open chrome://extensions/<br>
-                    2. Enable Developer mode<br>
-                    3. Click Load unpacked<br>
-                    4. Select the <code>extension/</code> folder
-                  </div>
-                  <button class="btn btn-primary" id="btn-dismiss-extension-overlay" style="font-size:12px">Open in New Tab Instead</button>
-                </div>
-              </div>
-              <div class="browser-notes-preview" id="browser-notes-preview" style="display:none">
-                <div class="bn-preview-hd">
-                  <span class="bn-preview-title" id="bn-preview-title">Select a work order</span>
-                  <button class="bn-preview-edit" id="bn-preview-edit" title="Open in Notes">✎</button>
-                </div>
-                <div class="bn-preview-body" id="bn-preview-body">
-                  <div class="bn-preview-empty">Click a work order to view its note</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- DETAIL DRAWER -->
+          <!-- DETAIL DRAWER (right side) -->
           <div class="wo-detail" id="wo-detail">
             <div class="wo-detail-header">
               <div class="wo-detail-title">Work Order Detail</div>
@@ -837,20 +787,20 @@
   <script src="/assets/dashboardkit/js/pcoded.js"></script>
 
   <!-- 2. Core app (registers namespace, utilities) -->
-  <script src="/js/app.js?v=2.5.7"></script>
+  <script src="/js/app.js?v=2.5.8"></script>
 
   <!-- 3. Feature panels (depend on HALQ.app) -->
-  <script src="/js/wo-panel.js?v=2.5.7"></script>
-  <script src="/js/af-panel.js?v=2.5.7"></script>
-  <script src="/js/email-panel.js?v=2.5.7"></script>
-  <script src="/js/notes-panel.js?v=2.5.7"></script>
+  <script src="/js/wo-panel.js?v=2.5.8"></script>
+  <script src="/js/af-panel.js?v=2.5.8"></script>
+  <script src="/js/email-panel.js?v=2.5.8"></script>
+  <script src="/js/notes-panel.js?v=2.5.8"></script>
 
   <!-- 4. Shared services (used by panels + settings) -->
-  <script src="/js/messages.js?v=2.5.7"></script>
-  <script src="/js/categories.js?v=2.5.7"></script>
+  <script src="/js/messages.js?v=2.5.8"></script>
+  <script src="/js/categories.js?v=2.5.8"></script>
 
   <!-- 5. Settings (depends on everything above) -->
-  <script src="/js/settings.js?v=2.5.7"></script>
+  <script src="/js/settings.js?v=2.5.8"></script>
 
   <!-- 6. Bootstrap -->
   <script>
