@@ -240,9 +240,9 @@ function switchView(view) {
     const nav = document.getElementById('nav-' + v);
     if (nav) nav.classList.toggle('active', v === view);
   });
-  // Dashboard shares the WO view — keep its active state in sync
+  // Dashboard shares the WO view — only highlight WO nav, not Dashboard
   const navHome = document.getElementById('nav-home');
-  if (navHome) navHome.classList.toggle('active', isWO);
+  if (navHome) navHome.classList.remove('active');
 
   if (isNotes && HALQ.notes && HALQ.notes.renderInPanel) {
     HALQ.notes.renderInPanel();
