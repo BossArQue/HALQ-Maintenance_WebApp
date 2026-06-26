@@ -1,7 +1,7 @@
 /* ============================================
    FILE: settings.js
    PATH: public/js/settings.js
-   VERSION: 2.2.3
+   VERSION: 2.5.9
    DESCRIPTION: Settings panel UI — theme, font, layout, nav, message templates, vendor directory, bridge config, PIN.
    ============================================ */
 
@@ -284,6 +284,8 @@
   /* ---------- Open / Close ---------- */
   function open() {
     // PIN auto-lock disabled — feature was unreliable and caused unexpected overlays
+    console.trace('=== SETTINGS.OPEN() CALLED ===');
+    console.log('Call stack above shows what triggered Settings open');
     loadSettingsToUI();
     _overlay?.classList.add('open');
   }

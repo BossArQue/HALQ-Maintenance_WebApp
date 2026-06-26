@@ -1,8 +1,8 @@
 /* ============================================
    FILE: wo-panel.js
    PATH: public/js/wo-panel.js
-   VERSION: 2.5.6
-   DESCRIPTION: WO list, filtering, detail drawer. v2.5.6: autoSearch always triggers; active-tab check removed for split-view workflow.
+   VERSION: 2.5.9
+   DESCRIPTION: WO list, filtering, detail drawer. v2.5.9: defensive null checks added.
    ============================================ */
 
 (function () {

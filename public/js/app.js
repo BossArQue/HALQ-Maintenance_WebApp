@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.5.3
+   VERSION: 2.5.9
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router, Bridge status.
    ============================================ */
 
