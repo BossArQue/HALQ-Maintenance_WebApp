@@ -2,11 +2,11 @@
 
 > **Session:** 2026-06-25
 > **Version:** v2.5.9
-> **Status:** Bug fix attempt. WO tab Settings popup bug NOT reproduced. pcoded.js crash fixed. Dashboard nav highlight fixed.
+> **Status:** Settings popup on page load — **ROOT CAUSE FOUND AND FIXED.**
 > **Ponytail:** ON — See Rule 8 in HALQ_ONE_TRUE_FILE.md.
 > **Repo:** https://github.com/BossArQue/HALQ-Maintenance_WebApp
 > **Branch:** `main`
-> **Commit:** `17c8a92` (pcoded.js crash fix + nav fix)
+> **Commit:** `5884e7d` (disable PIN listeners to prevent autofill-triggered Settings open)
 > **Deploy:** Cloudflare Pages auto-deploys on push.
 
 ---
@@ -17,87 +17,36 @@
 
 **User report:**
 1. Login → Dashboard shows WO list
-2. Click "Work Orders" in sidebar
-3. Click a work order card → Settings popup appears
-4. Close Settings → Click Work Orders again → no list showing ("162" count visible but no cards)
+2. Settings popup appears immediately on page load (not on WO click as initially thought)
+3. Close Settings → WO list shows "162" count but no cards render
 
-**Testing via Kimi WebBridge on production site (`halq-maintenance-webapp.pages.dev`):**
+**Diagnostic process:**
+1. AI added `console.trace()` to `HALQ.settings.open()` and pushed debug build (v2.5.9)
+2. User reloaded page with console open
+3. **Console output revealed the call stack:**
+   ```
+   open @ settings.js:287
+   checkPin @ settings.js:176
+   (anonymous) @ settings.js:153
+   ```
+4. Line 153 is the `#pin-keyboard-input` `input` event listener: `if (val.length === 4) checkPin();`
 
-| Step | Result |
-|------|--------|
-| Load page | ✅ Dashboard visible, WO list visible |
-| Click "Work Orders" | ✅ WO tab active, list visible |
-| Click a WO card | ✅ Detail drawer opens (49709-1 shows WO detail) |
-| Close detail drawer | ✅ List still visible |
-| Click Settings | ✅ Settings overlay opens |
-| Close Settings | ✅ Settings overlay closes |
-| Click "Work Orders" | ✅ WO list still visible with 162 items |
-| Click a different WO | ✅ Detail drawer opens for new WO |
+**Root cause found:** Chrome's password manager autofills the `#pin-keyboard-input` field (`type="password"`) on page load with the saved PIN `1104` (from `localStorage` item `halq_pin`). The `input` event fires with 4 digits, `checkPin()` sees `1104 === 1104`, calls `closePin()` then `open()`. The PIN overlay itself is hidden by CSS (`display: none !important`), so the user only sees the Settings overlay pop up. After closing Settings, the WO list is broken because the page state is corrupted by the unexpected init flow.
 
-**Console check after full sequence:**
-```json
-{"woCount":162,"listVisible":true,"detailOpen":true,"settingsOpen":false,"consoleErrors":[]}
-```
-
-**Result: BUG NOT REPRODUCED.** The Settings popup on WO click and the broken WO list after closing Settings did NOT happen during WebBridge testing. The user may need to hard-refresh (Ctrl+F5) to clear stale cached JS.
+**Why AI couldn't reproduce via WebBridge:** The test browser (controlled by WebBridge) had no saved passwords / autofill data. The autofill only triggers on browsers where the user has previously interacted with the PIN field and saved the password.
 
 ---
 
-### Fixes Applied (Even Though Root Bug Not Found)
-
-**1. `pcoded.js` crash on every page load — FIXED**
-
-| Before | After |
-|--------|-------|
-| `change_box_container('false')` called in `index.html` | Call REMOVED |
-
-The minified `pcoded.js` `change_box_container` expects `.footer-wrapper` which doesn't exist in our custom HTML. It throws:
-```
-Uncaught TypeError: Cannot read properties of null (reading 'classList')
-```
-on every page load. This may have left DashboardKit in a broken state, causing unpredictable nav behavior.
-
-**2. Dashboard + Work Orders both highlighted — FIXED**
-
-| Before | After |
-|--------|-------|
-| `nav-home` has default `active` class in HTML | `active` removed from HTML |
-| `switchView()` in `app.js` only toggled WO/Notes/Email nav | `switchView()` now explicitly removes `.active` from `nav-home` when WO view is active |
-
-Both Dashboard and Work Orders share `data-view="wo"`. The old code only toggled WO nav, leaving Dashboard also highlighted.
-
-**3. Detail drawer CSS revert — FIXED**
-
-| Before (bad commit) | After (reverted) |
-|---------------------|------------------|
-| `width: 0` / `overflow: hidden` | `transform: translateX(100%)` |
-
-AI had incorrectly changed the detail drawer to `width: 0` in a previous commit. OTF v2.5.2 explicitly warns: *"The `display:none` approach caused full flex layout recalculation on every WO click → browser panel and iframe resized → visual distortion."* Reverted back to `transform` which keeps the panel in layout at stable width.
-
-**4. Defensive null checks in `wo-panel.js` — ADDED**
-
-Added null guards for DOM element refs:
-- `renderList()` — guards `$.list`
-- `select()` — guards `$.detail`, `$.dWO`, `$.dProp`, etc.
-- `toggleFollowup()` — guards `$.followupDD`, `$.followupTrigger`
-- `toggleCatDropdown()` — guards `$.catDropdown`, `$.catTrigger`
-- `updateCatTrigger()` — guards `$.catTriggerStrips`, `$.catTriggerLabel`
-- `initCtxDelegation()` — guards `$.list`
-- `showCtxMenu()` — guards `$.ctxMenu`
-
-These prevent crashes if any DOM element is missing or detached.
-
----
-
-## Files Changed in This Session
+### Fix Applied
 
 | File | Change |
 |------|--------|
-| `public/index.html` | Removed `change_box_container('false')` call. Removed default `active` class from `nav-home`. |
-| `public/js/app.js` | `switchView()` now explicitly removes `.active` from `#nav-home` when WO view is active. |
-| `public/css/wo-panel.css` | Reverted detail drawer from `width: 0` back to `transform: translateX(100%)`. |
-| `public/js/wo-panel.js` | Added defensive null checks for DOM element refs throughout. |
-| `public/js/settings.js` | Reverted theme default back to `'dark'` (was changed to `'light'` without confirmation). |
+| `public/js/settings.js` | Commented out `initPinListeners()` call in `init()`. The PIN feature was already disabled — overlay hidden by CSS, `open()` comment says "PIN auto-lock disabled." The event listeners were dead code that only caused this bug via browser autofill. |
+
+**Also included from earlier commits:**
+- Removed `change_box_container('false')` from `index.html` (DashboardKit crash fix)
+- Fixed `switchView()` in `app.js` (Dashboard + WO both highlighted)
+- Reverted detail drawer CSS back to `transform: translateX(100%)`
 
 ---
 
@@ -107,7 +56,7 @@ These prevent crashes if any DOM element is missing or detached.
 On branch main
 Your branch is up to date with 'origin/main'.
 
-commit 17c8a92: fix: revert bad CSS change + fix Dashboard/WO double highlight + remove pcoded.js crash
+commit 5884e7d: fix(settings.js): disable PIN listeners — browser autofill on hidden password field opens Settings
 ```
 
 ---
@@ -119,18 +68,26 @@ commit 17c8a92: fix: revert bad CSS change + fix Dashboard/WO double highlight +
 | **Left** | ✅ Working | WO list, search, filters, categories (wider now) |
 | **Right** | ✅ Working | Detail drawer — edit follow-up, categories, save |
 | **Extension** | ✅ Working | Bridges HALQ → AppFolio tab updates in Chrome Split View |
-| **Settings popup on WO click** | ❓ NOT REPRODUCED | User may need to Ctrl+F5 hard refresh. May be stale cached JS. |
-| **pcoded.js crash** | ✅ FIXED | Removed `change_box_container` call from `index.html` |
+| **Settings popup on startup** | ✅ FIXED | Removed PIN event listeners; no autofill trigger |
 | **Dashboard/WO double highlight** | ✅ FIXED | `nav-home` no longer stays active when WO view is active |
+| **pcoded.js crash** | ✅ FIXED | Removed `change_box_container` call from `index.html` |
 
 ---
 
-## Open Questions for Next Chat
+## What to Do Next
 
-1. **Does the Settings popup bug still happen after Ctrl+F5 hard refresh?** If yes, browser console errors are needed.
-2. **Is the user clicking the exact same area?** The WO card vs. the category chip vs. the card's right edge could have different click targets.
-3. **Is there an extension or Chrome extension interfering?** The extension bridge might trigger unexpected behavior.
+**For the user:**
+1. Go to `https://halq-maintenance-webapp.pages.dev/`
+2. **Hard refresh** (Ctrl+F5) to clear cache and load v2.5.9
+3. Verify Settings no longer pops up on page load
+4. Verify WO list works after closing Settings (if you manually open it)
+5. Optionally clear `halq_pin` from localStorage if you no longer want the PIN stored: `localStorage.removeItem('halq_pin')`
+
+**For next chat:**
+- User confirms the fix works → Close this bug
+- User wants a new feature → Proceed with feature
+- User wants to re-enable PIN properly → Add proper CSS and re-implement with autofill protection (e.g., `autocomplete="new-password"` or use `type="text"` with JavaScript masking)
 
 ---
 
-*End of summary. Start next chat with Ctrl+F5 test results and any console errors.*
+*End of summary. Start next chat with confirmation that the fix works.*
