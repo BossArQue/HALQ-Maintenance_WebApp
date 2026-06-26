@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.css
    PATH: public/css/app.css
-   VERSION: 2.5.3
+   VERSION: 2.6.0
    DESCRIPTION: Root CSS variables, layout grid, shared components, modals, overlays. Notes preview + full Notes template styles + Bridge status.
    ============================================ */
 
@@ -1320,6 +1320,33 @@ body {
 /* ── Bridge Status Sidebar (v2.5.3) ── */
 .bridge-status-dot {
   transition: background 0.3s ease;
+}
+
+.bridge-toggle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text3);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: 2px;
+  transition: all 0.2s ease;
+}
+.bridge-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.bridge-toggle.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 /* ── Notes Panel Template Styles (v2.5.3) ── */

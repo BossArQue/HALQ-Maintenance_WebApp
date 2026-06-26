@@ -196,8 +196,10 @@ function init() {
 }
 
 // =====================
-// BRIDGE STATUS
+// BRIDGE STATUS + TOGGLE
 // =====================
+
+let _bridgeSyncRunning = false;
 
 async function updateBridgeStatus() {
   try {
@@ -209,17 +211,51 @@ async function updateBridgeStatus() {
     if (res.ok && res.connected) {
       dot.style.background = '#34c759';
       text.textContent = 'Bridge ' + (res.secondsAgo < 60 ? 'Connected' : 'Idle');
+      _bridgeSyncRunning = true;
     } else {
       dot.style.background = '#ff453a';
       text.textContent = 'Bridge —';
+      _bridgeSyncRunning = false;
     }
   } catch (e) {
     const dot = document.getElementById('bridge-status-dot');
     const text = document.getElementById('bridge-status-text');
     if (dot) dot.style.background = 'var(--text3)';
     if (text) text.textContent = 'Bridge —';
+    _bridgeSyncRunning = false;
+  }
+  _updateBridgeToggleUI();
+}
+
+function _updateBridgeToggleUI() {
+  const btn = document.getElementById('bridge-toggle-btn');
+  if (!btn) return;
+  btn.textContent = _bridgeSyncRunning ? '⏸' : '▶';
+  btn.classList.toggle('active', _bridgeSyncRunning);
+  btn.title = _bridgeSyncRunning ? 'Stop Bridge sync' : 'Start Bridge sync';
+}
+
+async function toggleBridgeSync() {
+  const btn = document.getElementById('bridge-toggle-btn');
+  const action = _bridgeSyncRunning ? 'stop' : 'start';
+  try {
+    const res = await fetch(`http://localhost:9876/${action}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      _bridgeSyncRunning = !_bridgeSyncRunning;
+      _updateBridgeToggleUI();
+    }
+  } catch (e) {
+    // Bridge not running locally
+    if (btn) btn.style.opacity = '0.4';
   }
 }
+
+// Wire toggle on init
+(function initBridgeToggle() {
+  const btn = document.getElementById('bridge-toggle-btn');
+  if (btn) btn.addEventListener('click', toggleBridgeSync);
+})();
 
 // =====================
 // VIEW ROUTER
