@@ -3,7 +3,7 @@
    PATH: bridge/index.js
    VERSION: 2.6.0
    DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown,
-                HTTP control server, Windows startup registration. Excel → Webapp → Obsidian.
+                HTTP control server for webapp toggle. Excel → Webapp → Obsidian.
    ============================================ */
 
 const chokidar = require('chokidar');
@@ -28,17 +28,6 @@ async function main() {
   console.log('║  HALQ Bridge v2.6.0                                  ║');
   console.log('║  Excel → Webapp → Obsidian Sync                      ║');
   console.log('╚══════════════════════════════════════════════════════╝');
-
-  // CLI flags
-  const args = process.argv.slice(2);
-  if (args.includes('--register-startup')) {
-    registerWindowsStartup();
-    return;
-  }
-  if (args.includes('--unregister-startup')) {
-    unregisterWindowsStartup();
-    return;
-  }
 
   // Load config
   const cfg = await config.load(process.env.HALQ_API_URL);
@@ -278,49 +267,6 @@ function startControlServer() {
   _controlServer.listen(CONTROL_PORT, () => {
     console.log(`[CONTROL] Server on http://localhost:${CONTROL_PORT}`);
   });
-}
-
-// ── Windows Startup Registration ──
-function registerWindowsStartup() {
-  const { exec } = require('child_process');
-  const shortcutPath = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'HALQ Bridge.lnk');
-  const targetPath = process.argv[0];
-  const args = `"${process.argv[1]}"`;
-  const workDir = __dirname;
-
-  const psCmd = `
-    $WshShell = New-Object -ComObject WScript.Shell;
-    $Shortcut = $WshShell.CreateShortcut('${shortcutPath.replace(/\\/g, '\\\\')}');
-    $Shortcut.TargetPath = '${targetPath.replace(/\\/g, '\\\\')}';
-    $Shortcut.Arguments = '${args}';
-    $Shortcut.WorkingDirectory = '${workDir.replace(/\\/g, '\\\\')}';
-    $Shortcut.IconLocation = '${path.join(__dirname, '.tray-icon.ico').replace(/\\/g, '\\\\')}';
-    $Shortcut.Save()
-  `.trim();
-
-  exec(`powershell -Command "${psCmd.replace(/"/g, '\\"')}"`, (err) => {
-    if (err) {
-      console.error('[STARTUP] Register failed:', err.message);
-      process.exit(1);
-    } else {
-      console.log('[STARTUP] Registered for Windows startup');
-      console.log('        Shortcut:', shortcutPath);
-      process.exit(0);
-    }
-  });
-}
-
-function unregisterWindowsStartup() {
-  const fs = require('fs');
-  const shortcutPath = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'HALQ Bridge.lnk');
-  try {
-    fs.unlinkSync(shortcutPath);
-    console.log('[STARTUP] Unregistered from Windows startup');
-    process.exit(0);
-  } catch (e) {
-    console.error('[STARTUP] Unregister failed:', e.message);
-    process.exit(1);
-  }
 }
 
 // ── Graceful Shutdown ──
