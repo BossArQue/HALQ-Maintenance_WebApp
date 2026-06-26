@@ -1,7 +1,7 @@
 /* ============================================
    FILE: app.js
    PATH: public/js/app.js
-   VERSION: 2.5.9
+   VERSION: 2.6.0
    DESCRIPTION: HALQ core namespace, API helpers, theme/font utilities, view router, Bridge status.
    ============================================ */
 
@@ -31,7 +31,7 @@ window.HALQ = {
   woTags: {}
 };
 
-const APP_VERSION = '2.5.8';
+const APP_VERSION = '2.6.0';
 let _currentView = 'wo';
 let _navMode = 'sidebar';
 
@@ -174,6 +174,9 @@ function init() {
 
   // Init browser panel (af-panel.js)
   if (HALQ.af && HALQ.af.init) HALQ.af.init();
+
+  // Init messages (templates + vendor directory)
+  if (HALQ.msg && HALQ.msg.init) HALQ.msg.init();
 
   // Bridge status
   updateBridgeStatus();

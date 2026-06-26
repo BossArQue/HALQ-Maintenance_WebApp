@@ -1,13 +1,14 @@
 /* ============================================
    FILE: index.js
    PATH: bridge/index.js
-   VERSION: 2.5.3
-   DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown. Added /api/bridge/ping on sync loop.
-                Excel → Webapp → Obsidian. Webapp is the source of truth for Obsidian sync.
+   VERSION: 2.6.0
+   DESCRIPTION: Main entry — config load, Excel watcher, webapp API sync loop, graceful shutdown,
+                HTTP control server, Windows startup registration. Excel → Webapp → Obsidian.
    ============================================ */
 
 const chokidar = require('chokidar');
 const path = require('path');
+const http = require('http');
 const config = require('./config');
 const parser = require('./parser');
 const obsidian = require('./obsidian');
@@ -15,16 +16,29 @@ const api = require('./api');
 const tray = require('./tray');
 
 const POLL_INTERVAL_MS = 30000; // 30s
+const CONTROL_PORT = 9876;
 let _watcher = null;
 let _syncTimer = null;
 let _isRunning = false;
 let _lastExcelPath = null;
+let _controlServer = null;
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║  HALQ Bridge v2.2.4                                  ║');
+  console.log('║  HALQ Bridge v2.6.0                                  ║');
   console.log('║  Excel → Webapp → Obsidian Sync                      ║');
   console.log('╚══════════════════════════════════════════════════════╝');
+
+  // CLI flags
+  const args = process.argv.slice(2);
+  if (args.includes('--register-startup')) {
+    registerWindowsStartup();
+    return;
+  }
+  if (args.includes('--unregister-startup')) {
+    unregisterWindowsStartup();
+    return;
+  }
 
   // Load config
   const cfg = await config.load(process.env.HALQ_API_URL);
@@ -50,6 +64,9 @@ async function main() {
     errors.forEach(e => console.error('   •', e));
     process.exit(1);
   }
+
+  // Set tray webapp URL
+  tray.setWebappUrl(currentCfg.apiBaseUrl || currentCfg.apiUrl || 'http://localhost:8787');
 
   // Start tray
   tray.startTray();
@@ -80,13 +97,18 @@ async function main() {
   // Start sync loop — polls webapp, NOT Excel
   _syncTimer = setInterval(() => _syncLoop(), POLL_INTERVAL_MS);
 
+  // Start HTTP control server for webapp start/stop
+  startControlServer();
+
   _isRunning = true;
   console.log('[MAIN] Bridge is running. Press Ctrl+C to exit.');
   console.log('');
 
-  // Graceful shutdown
+  // Graceful shutdown + crash handlers
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  process.on('uncaughtException', handleCrash);
+  process.on('unhandledRejection', handleCrash);
 }
 
 function _startWatcher(watchPath) {
@@ -122,7 +144,7 @@ function _sanitizePayload(obj) {
   const out = {};
   for (const key of Object.keys(obj)) {
     const val = obj[key];
-    if (val === undefined) continue; // skip undefined entirely
+    if (val === undefined) continue;
     out[key] = val === null ? '' : val;
   }
   return out;
@@ -133,16 +155,13 @@ async function _processExcel(filePath) {
   const cfg = config.get();
 
   try {
-    // Parse Excel
     console.log('[PROCESS] Starting Excel parse...');
     const parsed = parser.parseFile(filePath);
     console.log('[PROCESS] Parse complete. Active: ' + parsed.active.length + ', Closed: ' + parsed.closed.length);
 
-    // Sanitize payload — ensure no undefined values
     const activeWos = parsed.active.map(_sanitizePayload);
     const closedWos = parsed.closed.map(_sanitizePayload);
 
-    // Upload to HALQ API
     console.log('[PROCESS] Preparing upload payload...');
     const uploadPayload = { 
       wos: activeWos, 
@@ -163,7 +182,6 @@ async function _processExcel(filePath) {
       return;
     }
 
-    // 4. Fetch from Webapp (source of truth) and sync to Obsidian
     console.log('[PROCESS] Fetching current WOs from Webapp...');
     await _syncToObsidian(cfg.vaultPath);
 
@@ -185,7 +203,6 @@ async function _syncToObsidian(vaultPath) {
       return;
     }
 
-    // Resolve category IDs → names
     let catNames = {};
     if (catsRes.ok && catsRes.data) {
       catsRes.data.forEach(c => { catNames[String(c.id)] = c.name; });
@@ -215,15 +232,98 @@ async function _syncToObsidian(vaultPath) {
 async function _syncLoop() {
   const cfg = config.get();
   try {
-    // Sync from webapp (source of truth) — NOT from Excel
     await _syncToObsidian(cfg.vaultPath);
-    // Ping HALQ webapp so it knows Bridge is alive
     await api.apiPost('/bridge/ping', {});
   } catch (e) {
-    // Silent fail on poll — API may be down
+    // Silent fail on poll
   }
 }
 
+// ── HTTP Control Server ──
+function startControlServer() {
+  _controlServer = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.url === '/status' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ running: _isRunning, lastExcelPath: _lastExcelPath }));
+    } else if (req.url === '/stop' && req.method === 'POST') {
+      if (_syncTimer) { clearInterval(_syncTimer); _syncTimer = null; }
+      _isRunning = false;
+      tray.setStatus('stopped', 'Sync stopped');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } else if (req.url === '/start' && req.method === 'POST') {
+      if (!_isRunning) {
+        _syncTimer = setInterval(() => _syncLoop(), POLL_INTERVAL_MS);
+        _isRunning = true;
+      }
+      tray.setStatus('ready', 'Sync running');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  _controlServer.listen(CONTROL_PORT, () => {
+    console.log(`[CONTROL] Server on http://localhost:${CONTROL_PORT}`);
+  });
+}
+
+// ── Windows Startup Registration ──
+function registerWindowsStartup() {
+  const { exec } = require('child_process');
+  const shortcutPath = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'HALQ Bridge.lnk');
+  const targetPath = process.argv[0];
+  const args = `"${process.argv[1]}"`;
+  const workDir = __dirname;
+
+  const psCmd = `
+    $WshShell = New-Object -ComObject WScript.Shell;
+    $Shortcut = $WshShell.CreateShortcut('${shortcutPath.replace(/\\/g, '\\\\')}');
+    $Shortcut.TargetPath = '${targetPath.replace(/\\/g, '\\\\')}';
+    $Shortcut.Arguments = '${args}';
+    $Shortcut.WorkingDirectory = '${workDir.replace(/\\/g, '\\\\')}';
+    $Shortcut.IconLocation = '${path.join(__dirname, '.tray-icon.ico').replace(/\\/g, '\\\\')}';
+    $Shortcut.Save()
+  `.trim();
+
+  exec(`powershell -Command "${psCmd.replace(/"/g, '\\"')}"`, (err) => {
+    if (err) {
+      console.error('[STARTUP] Register failed:', err.message);
+      process.exit(1);
+    } else {
+      console.log('[STARTUP] Registered for Windows startup');
+      console.log('        Shortcut:', shortcutPath);
+      process.exit(0);
+    }
+  });
+}
+
+function unregisterWindowsStartup() {
+  const fs = require('fs');
+  const shortcutPath = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'HALQ Bridge.lnk');
+  try {
+    fs.unlinkSync(shortcutPath);
+    console.log('[STARTUP] Unregistered from Windows startup');
+    process.exit(0);
+  } catch (e) {
+    console.error('[STARTUP] Unregister failed:', e.message);
+    process.exit(1);
+  }
+}
+
+// ── Graceful Shutdown ──
 async function shutdown() {
   console.log('');
   console.log('[MAIN] Shutting down...');
@@ -239,18 +339,35 @@ async function shutdown() {
     _watcher = null;
   }
 
-  tray.stopTray();
+  if (_controlServer) {
+    _controlServer.close();
+    _controlServer = null;
+  }
 
-  // Clean up temp files
+  tray.stopTray();
+  cleanupTempFiles();
+  console.log('[MAIN] Goodbye.');
+  console.log('');
+  process.exit(0);
+}
+
+function handleCrash(err) {
+  console.error('[MAIN] Fatal error:', err);
+  _isRunning = false;
+  if (_syncTimer) { clearInterval(_syncTimer); _syncTimer = null; }
+  if (_watcher) { _watcher.close(); _watcher = null; }
+  if (_controlServer) { _controlServer.close(); _controlServer = null; }
+  tray.stopTray();
+  cleanupTempFiles();
+  process.exit(1);
+}
+
+function cleanupTempFiles() {
   const fs = require('fs');
   const tmpFiles = ['.tray.ps1', '.tray-status.json', '.tray-icon.ico'];
   tmpFiles.forEach(f => {
     try { fs.unlinkSync(path.join(__dirname, f)); } catch (e) {}
   });
-
-  console.log('[MAIN] Goodbye.');
-  console.log('');
-  process.exit(0);
 }
 
 // Run

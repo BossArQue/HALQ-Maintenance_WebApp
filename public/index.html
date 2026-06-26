@@ -1,7 +1,7 @@
 <!-- ============================================
    FILE: index.html
    PATH: public/index.html
-   VERSION: 2.5.9
+   VERSION: 2.6.0
    DESCRIPTION: SPA shell with DashboardKit layout. v2.5.9: Debug trace added to settings.js.
    ============================================ -->
 <!DOCTYPE html>
@@ -21,8 +21,8 @@
   <link rel="stylesheet" href="/assets/dashboardkit/css/style-preset.css">
 
   <!-- [HALQ CSS] -->
-  <link rel="stylesheet" href="/css/app.css?v=2.5.9">
-  <link rel="stylesheet" href="/css/wo-panel.css?v=2.5.9">
+  <link rel="stylesheet" href="/css/app.css?v=2.6.0">
+  <link rel="stylesheet" href="/css/wo-panel.css?v=2.6.0">
   <link rel="stylesheet" href="/css/category-manager.css?v=2.5.8">
   <link rel="stylesheet" href="/css/context-menu.css?v=2.5.8">
   <link rel="stylesheet" href="/css/settings.css?v=2.5.8">
@@ -492,6 +492,29 @@
             <button class="btn btn-primary" id="bridge-save-btn">💾 Save Config</button>
             <div id="bridge-status"></div>
           </div>
+          <div class="settings-section" style="margin-top:16px">
+            <div class="settings-section-title">Bridge Control</div>
+            <div class="settings-info" style="margin-bottom:10px">
+              Start or stop the Bridge sync loop from the webapp. The Bridge must be running on your local machine.
+            </div>
+            <div class="settings-btn-row">
+              <button class="btn btn-primary" id="bridge-control-start">▶ Start Sync</button>
+              <button class="btn btn-ghost" id="bridge-control-stop">⏹ Stop Sync</button>
+            </div>
+            <div id="bridge-control-status" class="bridge-control-status"></div>
+          </div>
+          <div class="settings-section" style="margin-top:16px">
+            <div class="settings-section-title">Windows Startup</div>
+            <div class="settings-info" style="margin-bottom:10px">
+              Register the Bridge to start automatically when Windows boots.
+            </div>
+            <div class="settings-info" style="font-size:10px;line-height:1.6">
+              Run in PowerShell from the bridge folder:<br>
+              <code>node index.js --register-startup</code><br>
+              To remove:<br>
+              <code>node index.js --unregister-startup</code>
+            </div>
+          </div>
         </div>
         <div class="settings-tab-panel hidden" data-panel="messages">
           <div class="settings-section">
@@ -787,10 +810,10 @@
   <script src="/assets/dashboardkit/js/pcoded.js"></script>
 
   <!-- 2. Core app (registers namespace, utilities) -->
-  <script src="/js/app.js?v=2.5.9"></script>
+  <script src="/js/app.js?v=2.6.0"></script>
 
   <!-- 3. Feature panels (depend on HALQ.app) -->
-  <script src="/js/wo-panel.js?v=2.5.9"></script>
+  <script src="/js/wo-panel.js?v=2.6.0"></script>
   <script src="/js/af-panel.js?v=2.5.8"></script>
   <script src="/js/email-panel.js?v=2.5.8"></script>
   <script src="/js/notes-panel.js?v=2.5.8"></script>
@@ -800,7 +823,7 @@
   <script src="/js/categories.js?v=2.5.8"></script>
 
   <!-- 5. Settings (depends on everything above) -->
-  <script src="/js/settings.js?v=2.5.9"></script>
+  <script src="/js/settings.js?v=2.6.0"></script>
 
   <!-- 6. Bootstrap -->
   <script>

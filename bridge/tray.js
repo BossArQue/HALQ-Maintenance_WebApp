@@ -1,8 +1,8 @@
 /* ============================================
    FILE: tray.js
    PATH: bridge/tray.js
-   VERSION: 2.2.1
-   DESCRIPTION: System tray icon, menu, status notifications for Windows.
+   VERSION: 2.6.0
+   DESCRIPTION: System tray icon, menu, status notifications for Windows. Dynamic webapp URL.
    ============================================ */
 
 const { spawn } = require('child_process');
@@ -12,6 +12,11 @@ const fs = require('fs');
 let _trayProcess = null;
 let _status = 'idle';
 let _lastMessage = 'HALQ Bridge ready';
+let _webappUrl = 'http://localhost:8787';
+
+function setWebappUrl(url) {
+  _webappUrl = (url || 'http://localhost:8787').replace(/\/$/, '');
+}
 
 function startTray() {
   if (_trayProcess) return;
@@ -109,7 +114,7 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $menu.Items.Add("Status: Ready", $null, $null).Enabled = $false
 $menu.Items.Add("-", $null, $null)
 $openItem = $menu.Items.Add("Open HALQ WebApp", $null, {
-    Start-Process "http://localhost:8787"
+    Start-Process "${_webappUrl}"
 })
 $menu.Items.Add("-", $null, $null)
 $exitItem = $menu.Items.Add("Exit", $null, {
@@ -142,4 +147,4 @@ function _escapePs(str) {
   return String(str).replace(/'/g, "''").replace(/`/g, '``');
 }
 
-module.exports = { startTray, stopTray, setStatus, notify };
+module.exports = { startTray, stopTray, setStatus, notify, setWebappUrl };

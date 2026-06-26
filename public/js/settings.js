@@ -1,7 +1,7 @@
 /* ============================================
    FILE: settings.js
    PATH: public/js/settings.js
-   VERSION: 2.5.9
+   VERSION: 2.6.0
    DESCRIPTION: Settings panel UI — theme, font, layout, nav, message templates, vendor directory, bridge config, PIN.
    ============================================ */
 
@@ -69,6 +69,10 @@
 
     // Bridge config
     document.getElementById('bridge-save-btn')?.addEventListener('click', saveBridgeConfig);
+
+    // Bridge control (local start/stop via HTTP control server)
+    document.getElementById('bridge-control-start')?.addEventListener('click', startBridgeLocal);
+    document.getElementById('bridge-control-stop')?.addEventListener('click', stopBridgeLocal);
 
     // Accounts — AppFolio URL
     document.getElementById('btn-save-appfolio-url')?.addEventListener('click', saveAppfolioUrl);
@@ -516,6 +520,39 @@
     setTimeout(() => { el.textContent = ''; el.className = 'bridge-status'; }, 3000);
   }
 
+    /* ---------- Bridge Control (Local) ---------- */
+    async function startBridgeLocal() {
+      const status = document.getElementById('bridge-control-status');
+      try {
+        const res = await fetch('http://localhost:9876/start', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          if (status) { status.textContent = '✓ Bridge sync started'; status.className = 'bridge-control-status ok'; }
+        } else {
+          if (status) { status.textContent = '✗ Start failed'; status.className = 'bridge-control-status err'; }
+        }
+      } catch (e) {
+        if (status) { status.textContent = '✗ Bridge not running on localhost:9876'; status.className = 'bridge-control-status err'; }
+      }
+      setTimeout(() => { if (status) { status.textContent = ''; status.className = 'bridge-control-status'; } }, 3000);
+    }
+
+    async function stopBridgeLocal() {
+      const status = document.getElementById('bridge-control-status');
+      try {
+        const res = await fetch('http://localhost:9876/stop', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          if (status) { status.textContent = '✓ Bridge sync stopped'; status.className = 'bridge-control-status ok'; }
+        } else {
+          if (status) { status.textContent = '✗ Stop failed'; status.className = 'bridge-control-status err'; }
+        }
+      } catch (e) {
+        if (status) { status.textContent = '✗ Bridge not running on localhost:9876'; status.className = 'bridge-control-status err'; }
+      }
+      setTimeout(() => { if (status) { status.textContent = ''; status.className = 'bridge-control-status'; } }, 3000);
+    }
+
   /* ---------- Accounts / AppFolio ---------- */
   async function saveAppfolioUrl() {
     const urlInput = document.getElementById('appfolio-url-input');
@@ -589,6 +626,8 @@
     setFontSize,
     togglePref,
     saveBridgeConfig,
+    startBridgeLocal,
+    stopBridgeLocal,
     showBridgeStatus,
     saveAppfolioUrl,
     copyTampermonkeyScript,

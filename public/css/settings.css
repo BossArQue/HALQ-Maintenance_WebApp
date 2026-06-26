@@ -373,4 +373,15 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
+}/* Bridge Control */
+.bridge-control-status {
+  margin-top: 8px;
+  font-size: 12px;
+  min-height: 18px;
+}
+.bridge-control-status.ok {
+  color: #34c759;
+}
+.bridge-control-status.err {
+  color: #ff453a;
 }

@@ -1,7 +1,7 @@
 /* ============================================
    FILE: messages.js
    PATH: public/js/messages.js
-   VERSION: 2.1.1
+   VERSION: 2.6.0
    DESCRIPTION: Message templates, vendor directory, token resolution, clipboard send.
    ============================================ */
 
@@ -49,6 +49,19 @@
   // ── Init ──
   async function init() {
     await Promise.all([dirLoad(), loadTemplates()]);
+
+    // Event delegation for vendor directory edit/delete (replaces inline onclick)
+    const tbody = document.getElementById('vendor-dir-tbody');
+    if (tbody) {
+      tbody.addEventListener('click', e => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const idx = parseInt(btn.dataset.idx, 10);
+        if (action === 'edit') dirEdit(idx);
+        else if (action === 'delete') dirDelete(idx);
+      });
+    }
   }
 
   // =====================
@@ -400,8 +413,8 @@ Please send your invoice for WO #{wo} — {prop}.
         <td style="padding:5px 8px;color:var(--text2)">${esc(v.phone2)}</td>
         <td style="padding:5px 8px;color:var(--text2)">${esc(v.email)}</td>
         <td style="padding:5px 4px;text-align:center">
-          <button style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 4px" onclick="HALQ.msg.dirEdit(${realIdx})" title="Edit">✎</button>
-          <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:2px 4px" onclick="HALQ.msg.dirDelete(${realIdx})" title="Delete">🗑</button>
+          <button style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 4px" data-action="edit" data-idx="${realIdx}" title="Edit">✎</button>
+          <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:2px 4px" data-action="delete" data-idx="${realIdx}" title="Delete">🗑</button>
         </td>
       </tr>`;
     }).join('');
