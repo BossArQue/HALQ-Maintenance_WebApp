@@ -143,6 +143,11 @@
     initDetailScrollClose();
     // Load WOs from API
     loadWOs().then(() => {
+      // Clear any browser-autofilled search value before rendering
+      if ($.searchInput && $.searchInput.value) {
+        $.searchInput.value = '';
+        filter('');
+      }
       renderList();
       updateBottomBar();
       if (HALQ.categories && HALQ.categories.attachModalListeners) HALQ.categories.attachModalListeners();
