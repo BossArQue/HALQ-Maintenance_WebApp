@@ -131,8 +131,8 @@
       });
     }
 
-    // PIN overlay listeners
-    initPinListeners();
+    // PIN overlay listeners — DISABLED: browser autofill on hidden password field triggers Settings open
+    // initPinListeners();
 
     loadSettingsToUI();
   }
@@ -284,8 +284,6 @@
   /* ---------- Open / Close ---------- */
   function open() {
     // PIN auto-lock disabled — feature was unreliable and caused unexpected overlays
-    console.trace('=== SETTINGS.OPEN() CALLED ===');
-    console.log('Call stack above shows what triggered Settings open');
     loadSettingsToUI();
     _overlay?.classList.add('open');
   }
