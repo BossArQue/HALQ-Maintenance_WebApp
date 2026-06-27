@@ -311,8 +311,13 @@
           _raw: row
         }));
         console.log('[WO] loaded', S.wos.length, 'work orders from API');
+      } else {
+        S.wos = [];
+        if ($.list) $.list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">' + (result.error || 'Error loading work orders') + '</div>';
       }
     } catch (e) {
+      S.wos = [];
+      if ($.list) $.list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red)">Failed to load work orders</div>';
       console.error('[WO] load error:', e);
     }
   }

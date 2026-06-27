@@ -1349,6 +1349,29 @@ body {
   border-color: var(--accent);
 }
 
+/* Sidebar footer fix: ensure navbar-content is visible at bottom */
+.pc-sidebar .navbar-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.pc-sidebar .pc-sidebar-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.pc-sidebar .navbar-content {
+  flex-shrink: 0;
+  background: var(--pc-sidebar-background);
+  z-index: 1;
+}
+
+/* Version and bridge status in sidebar footer */
+#bb-version {
+  font-size: 11px;
+  color: var(--pc-sidebar-color);
+  opacity: 0.7;
+}
+
 /* ── Notes Panel Template Styles (v2.5.3) ── */
 .notes-body-wrap {
   display: flex;
